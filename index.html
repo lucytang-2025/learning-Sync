@@ -1,0 +1,2976 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复习打卡计划</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .app-description {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: white;
+            color: #4facfe;
+            border-bottom: 3px solid #4facfe;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .task-list {
+            margin-bottom: 20px;
+        }
+
+        .task-item {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid #4facfe;
+            transition: transform 0.2s;
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+        }
+
+        .task-item.overdue {
+            border-left-color: #ff6b6b;
+            background: #fff5f5;
+        }
+
+        .task-item.completed {
+            border-left-color: #1dd1a1;
+            background: #f0fff4;
+        }
+
+        .task-item.pending-review {
+            border-left-color: #feca57;
+            background: #fff9e6;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .task-name {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .task-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .status-overdue {
+            background: #ff6b6b;
+        }
+
+        .status-today {
+            background: #4ecdc4;
+        }
+
+        .status-future {
+            background: #45aaf2;
+        }
+
+        .status-completed {
+            background: #1dd1a1;
+        }
+
+        .status-pending {
+            background: #feca57;
+        }
+
+        .status-pending-review {
+            background: #ff9ff3;
+        }
+
+        .task-progress {
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
+        .progress-text {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4facfe;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3a9bf7;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        .btn-disabled {
+            background: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-disabled:hover {
+            background: #cbd5e1;
+        }
+
+        .recorder-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .recorder-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .recorder-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .timer {
+            font-size: 48px;
+            font-weight: 700;
+            color: #4facfe;
+            margin: 20px 0;
+        }
+
+        .recorder-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .recorder-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .record-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .record-btn.recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        .pause-btn {
+            background: #feca57;
+            color: white;
+        }
+
+        .stop-btn {
+            background: #48dbfb;
+            color: white;
+        }
+
+        .play-btn {
+            background: #1dd1a1;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .waveform {
+            height: 100px;
+            background: #f8fafc;
+            border-radius: 10px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform-bar {
+            position: absolute;
+            bottom: 0;
+            width: 4px;
+            background: #4facfe;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .recordings-list {
+            margin-top: 20px;
+        }
+
+        .recording-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .recording-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .recording-name {
+            font-weight: 600;
+        }
+
+        .recording-duration {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .calendar-nav-btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .calendar-nav-btn:hover {
+            background: #3a9bf7;
+        }
+
+        .calendar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            font-weight: 600;
+            padding: 10px 0;
+            color: #475569;
+            background: #f8fafc;
+            border-radius: 5px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            padding: 5px;
+            position: relative;
+            border: 2px solid transparent;
+        }
+
+        .calendar-day:hover {
+            background: #f1f5f9;
+        }
+
+        .calendar-day.active {
+            background: #4facfe;
+            color: white;
+        }
+
+        .calendar-day.selected {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .calendar-day.today {
+            border-color: #ff6b6b;
+        }
+
+        .calendar-day.other-month {
+            color: #cbd5e1;
+        }
+
+        .day-number {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .task-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-top: 2px;
+        }
+
+        .indicator-overdue {
+            background: #ff6b6b;
+        }
+
+        .indicator-today {
+            background: #4ecdc4;
+        }
+
+        .indicator-future {
+            background: #45aaf2;
+        }
+
+        .indicator-completed {
+            background: #1dd1a1;
+        }
+
+        .indicator-pending-review {
+            background: #ff9ff3;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .checkin-history {
+            margin-top: 10px;
+        }
+
+        .history-item {
+            padding: 8px 12px;
+            border-left: 3px solid #4facfe;
+            background: #f8fafc;
+            margin-bottom: 8px;
+            border-radius: 0 8px 8px 0;
+            font-size: 12px;
+        }
+
+        .history-date {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .history-status {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .status-completed {
+            color: #1dd1a1;
+        }
+
+        .status-pending {
+            color: #feca57;
+        }
+
+        .status-missed {
+            color: #ff6b6b;
+        }
+
+        .status-pending-review {
+            color: #ff9ff3;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 14px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .task-form-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .audio-player {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .recording-status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        .status-recording {
+            background: #fff5f5;
+            color: #ff6b6b;
+        }
+
+        .status-playing {
+            background: #f0fff4;
+            color: #1dd1a1;
+        }
+
+        .last-recording-time {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .edit-task-form {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .compact-checkin-info {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .compact-checkin-item {
+            display: inline-block;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-right: 5px;
+            margin-bottom: 3px;
+        }
+        
+        /* 新增上传录音样式 */
+        .upload-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .upload-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .upload-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-input-btn {
+            display: block;
+            padding: 12px 20px;
+            background: #4facfe;
+            color: white;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-input-btn:hover {
+            background: #3a9bf7;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .recorder-mode-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .recorder-mode {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .recorder-mode.active {
+            background: #4facfe;
+            color: white;
+        }
+        
+        .uploaded-audio-player {
+            width: 100%;
+            margin: 15px 0;
+        }
+
+        /* 数据管理样式 */
+        .data-management-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .data-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .data-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border-left: 4px solid #4facfe;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4facfe;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .instructions-list {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+
+        .instructions-list li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #475569;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .close-btn:hover {
+            color: #475569;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .data-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .data-section h4 {
+            margin-bottom: 10px;
+            color: #475569;
+        }
+
+        .data-section p {
+            margin-bottom: 15px;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .data-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>复习打卡计划</h1>
+            <p class="app-description">日积月累、持之以恒，冲刺100分</p>
+        </header>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="today">今日任务</div>
+            <div class="tab" data-tab="tasks">任务管理</div>
+            <div class="tab" data-tab="calendar">日历视图</div>
+            <div class="tab" data-tab="recorder">录音打卡</div>
+            <div class="tab" data-tab="data">数据管理</div>
+        </div>
+
+        <div class="tab-content active" id="today-tab">
+            <h2>今日任务</h2>
+            <div class="task-list" id="today-tasks">
+                <!-- 今日任务将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="tasks-tab">
+            <h2>任务管理</h2>
+            
+            <div id="task-form" class="task-form-container hidden">
+                <h3>新建任务</h3>
+                <div class="form-group">
+                    <label for="task-subject">科目</label>
+                    <select id="task-subject">
+                        <option value="语文">语文</option>
+                        <option value="数学">数学</option>
+                        <option value="英语">英语</option>
+                        <option value="科学">科学</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="task-name">任务名称</label>
+                    <input type="text" id="task-name" placeholder="输入任务名称">
+                </div>
+                <div class="form-group">
+                    <label for="task-desc">任务描述</label>
+                    <textarea id="task-desc" placeholder="输入任务描述（可选）"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="task-date">开始日期</label>
+                    <input type="date" id="task-date">
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-primary" id="save-task">保存任务</button>
+                    <button class="btn btn-secondary" id="cancel-task">取消</button>
+                </div>
+            </div>
+
+            <div id="edit-task-form" class="edit-task-form hidden">
+                <h3>编辑任务</h3>
+                <div class="form-group">
+                    <label for="edit-task-subject">科目</label>
+                    <select id="edit-task-subject">
+                        <option value="语文">语文</option>
+                        <option value="数学">数学</option>
+                        <option value="英语">英语</option>
+                        <option value="科学">科学</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-task-name">任务名称</label>
+                    <input type="text" id="edit-task-name" placeholder="输入任务名称">
+                </div>
+                <div class="form-group">
+                    <label for="edit-task-desc">任务描述</label>
+                    <textarea id="edit-task-desc" placeholder="输入任务描述（可选）"></textarea>
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-primary" id="update-task">更新任务</button>
+                    <button class="btn btn-secondary" id="cancel-edit-task">取消</button>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="add-task-btn">新建任务</button>
+            
+            <div class="task-list" id="all-tasks">
+                <!-- 所有任务将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="calendar-tab">
+            <h2>日历视图</h2>
+            <div class="calendar-header">
+                <div class="calendar-nav">
+                    <button class="calendar-nav-btn" id="prev-month">←</button>
+                    <button class="calendar-nav-btn" id="next-month">→</button>
+                </div>
+                <div class="calendar-title" id="calendar-title"></div>
+                <button class="btn btn-secondary" id="today-btn">今天</button>
+            </div>
+            <div class="calendar" id="calendar">
+                <!-- 日历将通过JavaScript动态生成 -->
+            </div>
+            <div class="checkin-history" id="selected-date-tasks">
+                <!-- 选中日期的任务将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="recorder-tab">
+            <h2>录音打卡</h2>
+            
+            <!-- 添加录音模式选择器 -->
+            <div class="recorder-mode-selector">
+                <div class="recorder-mode active" data-mode="record">实时录音</div>
+                <div class="recorder-mode" data-mode="upload">上传录音</div>
+            </div>
+            
+            <!-- 实时录音容器 -->
+            <div class="recorder-container" id="record-container">
+                <div class="recorder-header">
+                    <h3 id="recorder-task-name">选择任务进行打卡</h3>
+                    <p id="recorder-checkpoint">请先从今日任务中选择一个任务</p>
+                </div>
+                
+                <div class="recording-status hidden" id="recording-status"></div>
+                
+                <div class="recorder-display">
+                    <div class="timer" id="timer">00:00:00</div>
+                    <div class="waveform" id="waveform">
+                        <!-- 波形图将通过JavaScript动态生成 -->
+                    </div>
+                </div>
+                
+                <div class="recorder-controls">
+                    <button class="recorder-btn record-btn" id="record-btn" title="开始录音">
+                        ●
+                    </button>
+                    <button class="recorder-btn pause-btn hidden" id="pause-btn" title="暂停">
+                        ❚❚
+                    </button>
+                    <button class="recorder-btn stop-btn hidden" id="stop-btn" title="停止">
+                        ■
+                    </button>
+                    <button class="recorder-btn play-btn hidden" id="play-btn" title="播放">
+                        ▶
+                    </button>
+                </div>
+
+                <audio id="audio-player" class="audio-player hidden" controls></audio>
+                
+                <div class="task-actions">
+                    <button class="btn btn-primary" id="submit-recording" disabled>提交打卡</button>
+                    <button class="btn btn-secondary" id="reset-recorder">重置</button>
+                </div>
+            </div>
+            
+            <!-- 上传录音容器 -->
+            <div class="upload-container hidden" id="upload-container">
+                <div class="upload-header">
+                    <h3 id="upload-task-name">选择任务进行打卡</h3>
+                    <p id="upload-checkpoint">请先从今日任务中选择一个任务</p>
+                </div>
+                
+                <div class="upload-controls">
+                    <div class="file-input-wrapper">
+                        <div class="file-input-btn">选择录音文件</div>
+                        <input type="file" id="audio-file" accept="audio/*">
+                    </div>
+                    
+                    <div class="file-info hidden" id="file-info">
+                        <div>文件名: <span id="file-name"></span></div>
+                        <div>文件大小: <span id="file-size"></span></div>
+                        <div>时长: <span id="file-duration">计算中...</span></div>
+                    </div>
+                    
+                    <audio id="uploaded-audio-player" class="uploaded-audio-player hidden" controls></audio>
+                </div>
+                
+                <div class="task-actions">
+                    <button class="btn btn-primary" id="submit-upload" disabled>提交打卡</button>
+                    <button class="btn btn-secondary" id="reset-upload">重置</button>
+                </div>
+            </div>
+            
+            <div class="recordings-list" id="recordings-list">
+                <h3>打卡记录</h3>
+                <!-- 录音记录将通过JavaScript动态生成 -->
+            </div>
+        </div>
+
+        <div class="tab-content" id="data-tab">
+            <h2>数据管理</h2>
+            
+            <div class="data-management-container">
+                <div class="data-card">
+                    <h3>数据备份与同步</h3>
+                    <p>将您的学习数据导出为文件，然后可以在其他设备上导入，实现数据同步。</p>
+                    
+                    <div class="data-actions">
+                        <button class="btn btn-primary" id="show-data-modal">管理数据</button>
+                        <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
+                    </div>
+                </div>
+                
+                <div class="data-card">
+                    <h3>数据统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📝</div>
+                            <div class="stat-number" id="stats-total-tasks">0</div>
+                            <div class="stat-label">总任务数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">✅</div>
+                            <div class="stat-number" id="stats-completed-tasks">0</div>
+                            <div class="stat-label">已完成</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🎤</div>
+                            <div class="stat-number" id="stats-total-recordings">0</div>
+                            <div class="stat-label">录音总数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏱️</div>
+                            <div class="stat-number" id="stats-total-duration">0</div>
+                            <div class="stat-label">总录音时长</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="data-card">
+                    <h3>使用说明</h3>
+                    <ol class="instructions-list">
+                        <li>点击"管理数据"按钮打开数据管理面板</li>
+                        <li>使用"导出数据"功能将数据保存为JSON文件</li>
+                        <li>在其他设备上打开本应用，使用"导入数据"功能</li>
+                        <li>选择之前导出的JSON文件完成数据同步</li>
+                        <li>注意：导入数据将覆盖当前设备上的所有数据</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>复习打卡计划 &copy; 2023 - 第180天打卡完成后任务完成</p>
+        </footer>
+    </div>
+
+    <!-- 数据管理模态框 -->
+    <div id="data-management-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>数据管理</h3>
+                <button class="close-btn" id="close-data-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="data-section">
+                    <h4>导出数据</h4>
+                    <p>将您的任务和打卡记录导出为JSON文件，用于备份或迁移到其他设备。</p>
+                    <button class="btn btn-primary" id="export-data-btn">导出数据</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>导入数据</h4>
+                    <p>从JSON文件导入任务和打卡记录，将覆盖当前设备上的所有数据。</p>
+                    <div class="file-input-wrapper">
+                        <div class="file-input-btn">选择数据文件</div>
+                        <input type="file" id="import-data-file" accept=".json">
+                    </div>
+                    <div class="file-info hidden" id="import-file-info">
+                        <div>文件名: <span id="import-file-name"></span></div>
+                        <div>文件大小: <span id="import-file-size"></span></div>
+                    </div>
+                    <button class="btn btn-danger" id="import-data-btn" disabled>导入数据</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>数据统计</h4>
+                    <div class="data-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">任务总数:</span>
+                            <span class="stat-value" id="stat-total-tasks">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已完成任务:</span>
+                            <span class="stat-value" id="stat-completed-tasks">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">打卡记录:</span>
+                            <span class="stat-value" id="stat-total-recordings">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">待验收录音:</span>
+                            <span class="stat-value" id="stat-pending-recordings">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 应用数据
+        const appData = {
+            tasks: [],
+            recordings: [],
+            currentTask: null,
+            currentRecording: null,
+            isRecording: false,
+            isPaused: false,
+            isPlaying: false,
+            timerInterval: null,
+            recordingTime: 0,
+            mediaRecorder: null,
+            audioChunks: [],
+            audioContext: null,
+            analyser: null,
+            currentCalendarDate: new Date(),
+            selectedCalendarDate: null,
+            recordingState: null,
+            editingTask: null,
+            currentCheckpointIndex: null,
+            uploadedAudio: null,
+            currentMode: 'record' // 'record' 或 'upload'
+        };
+
+        // 打卡时间表
+        const checkinSchedule = [1, 2, 3, 5, 8, 15, 30, 90, 180];
+
+        // DOM 元素
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const todayTasksEl = document.getElementById('today-tasks');
+        const allTasksEl = document.getElementById('all-tasks');
+        const taskFormEl = document.getElementById('task-form');
+        const editTaskFormEl = document.getElementById('edit-task-form');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const saveTaskBtn = document.getElementById('save-task');
+        const cancelTaskBtn = document.getElementById('cancel-task');
+        const updateTaskBtn = document.getElementById('update-task');
+        const cancelEditTaskBtn = document.getElementById('cancel-edit-task');
+        const calendarEl = document.getElementById('calendar');
+        const calendarTitleEl = document.getElementById('calendar-title');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const todayBtn = document.getElementById('today-btn');
+        const selectedDateTasksEl = document.getElementById('selected-date-tasks');
+        const recorderTaskNameEl = document.getElementById('recorder-task-name');
+        const recorderCheckpointEl = document.getElementById('recorder-checkpoint');
+        const recordingStatusEl = document.getElementById('recording-status');
+        const timerEl = document.getElementById('timer');
+        const waveformEl = document.getElementById('waveform');
+        const recordBtn = document.getElementById('record-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const playBtn = document.getElementById('play-btn');
+        const audioPlayer = document.getElementById('audio-player');
+        const submitRecordingBtn = document.getElementById('submit-recording');
+        const resetRecorderBtn = document.getElementById('reset-recorder');
+        const recordingsListEl = document.getElementById('recordings-list');
+        
+        // 新增DOM元素
+        const recordModeBtn = document.querySelector('.recorder-mode[data-mode="record"]');
+        const uploadModeBtn = document.querySelector('.recorder-mode[data-mode="upload"]');
+        const recordContainer = document.getElementById('record-container');
+        const uploadContainer = document.getElementById('upload-container');
+        const audioFileInput = document.getElementById('audio-file');
+        const fileInfoEl = document.getElementById('file-info');
+        const fileNameEl = document.getElementById('file-name');
+        const fileSizeEl = document.getElementById('file-size');
+        const fileDurationEl = document.getElementById('file-duration');
+        const uploadedAudioPlayer = document.getElementById('uploaded-audio-player');
+        const submitUploadBtn = document.getElementById('submit-upload');
+        const resetUploadBtn = document.getElementById('reset-upload');
+        const uploadTaskNameEl = document.getElementById('upload-task-name');
+        const uploadCheckpointEl = document.getElementById('upload-checkpoint');
+
+        // 数据管理相关DOM元素
+        const dataManagementModal = document.getElementById('data-management-modal');
+        const closeDataModalBtn = document.getElementById('close-data-modal');
+        const showDataModalBtn = document.getElementById('show-data-modal');
+        const exportDataBtn = document.getElementById('export-data-btn');
+        const importDataFile = document.getElementById('import-data-file');
+        const importDataBtn = document.getElementById('import-data-btn');
+        const importFileInfo = document.getElementById('import-file-info');
+        const importFileName = document.getElementById('import-file-name');
+        const importFileSize = document.getElementById('import-file-size');
+        const clearDataBtn = document.getElementById('clear-data-btn');
+
+        // 初始化应用
+        function initApp() {
+            loadData();
+            setupEventListeners();
+            setupUploadEventListeners();
+            setupDataManagementEventListeners();
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderRecordings();
+            renderDataStats();
+            
+            restoreRecordingState();
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        // 处理页面可见性变化
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                saveRecordingState();
+            } else {
+                restoreRecordingState();
+            }
+        }
+
+        // 保存录音状态
+        function saveRecordingState() {
+            if (appData.isRecording || appData.currentRecording) {
+                appData.recordingState = {
+                    isRecording: appData.isRecording,
+                    isPaused: appData.isPaused,
+                    recordingTime: appData.recordingTime,
+                    currentTask: appData.currentTask,
+                    currentCheckpointIndex: appData.currentCheckpointIndex,
+                    audioChunks: appData.audioChunks
+                };
+                localStorage.setItem('recordingState', JSON.stringify(appData.recordingState));
+            }
+        }
+
+        // 恢复录音状态
+        function restoreRecordingState() {
+            const savedState = localStorage.getItem('recordingState');
+            if (savedState) {
+                try {
+                    const state = JSON.parse(savedState);
+                    
+                    if (state.isRecording && !state.isPaused) {
+                        if (confirm('检测到未完成的录音，是否恢复录音？')) {
+                            appData.isRecording = state.isRecording;
+                            appData.isPaused = state.isPaused;
+                            appData.recordingTime = state.recordingTime;
+                            appData.currentTask = state.currentTask;
+                            appData.currentCheckpointIndex = state.currentCheckpointIndex;
+                            appData.audioChunks = state.audioChunks || [];
+                            
+                            updateTimer();
+                            recordBtn.classList.add('hidden');
+                            pauseBtn.classList.remove('hidden');
+                            stopBtn.classList.remove('hidden');
+                            updatePlaybackStatus('录音已恢复，点击暂停', 'status-recording');
+                            
+                            switchTab('recorder');
+                            resumeRecording();
+                        } else {
+                            clearRecordingState();
+                        }
+                    }
+                } catch (e) {
+                    console.error('恢复录音状态失败:', e);
+                    clearRecordingState();
+                }
+            }
+        }
+
+        // 恢复录音
+        async function resumeRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                appData.mediaRecorder = new MediaRecorder(stream);
+                
+                appData.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        appData.audioChunks.push(event.data);
+                    }
+                };
+                
+                appData.mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    appData.currentRecording = {
+                        id: Date.now(),
+                        taskId: appData.currentTask.id,
+                        checkpointIndex: appData.currentCheckpointIndex,
+                        date: new Date().toISOString(),
+                        duration: appData.recordingTime,
+                        audioUrl: audioUrl,
+                        audioBlob: audioBlob
+                    };
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    clearRecordingState();
+                };
+                
+                appData.mediaRecorder.start();
+                
+                appData.timerInterval = setInterval(() => {
+                    appData.recordingTime += 10;
+                    updateTimer();
+                    updateWaveform();
+                }, 10);
+                
+            } catch (error) {
+                console.error('恢复录音失败:', error);
+                alert('无法恢复录音，请重新开始');
+                resetRecorder();
+            }
+        }
+
+        // 清除录音状态
+        function clearRecordingState() {
+            localStorage.removeItem('recordingState');
+            appData.recordingState = null;
+        }
+
+        // 加载数据
+        function loadData() {
+            const savedTasks = localStorage.getItem('checkinTasks');
+            const savedRecordings = localStorage.getItem('checkinRecordings');
+            
+            if (savedTasks) {
+                appData.tasks = JSON.parse(savedTasks);
+            } else {
+                appData.tasks = [
+                    {
+                        id: 1,
+                        subject: '英语',
+                        name: '学习英语',
+                        description: '每天学习30分钟英语',
+                        createDate: new Date().toISOString(),
+                        status: 'active',
+                        checkins: []
+                    },
+                    {
+                        id: 2,
+                        subject: '其他',
+                        name: '健身计划',
+                        description: '每周三次健身房锻炼',
+                        createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                        status: 'active',
+                        checkins: []
+                    }
+                ];
+                saveTasks();
+            }
+            
+            if (savedRecordings) {
+                appData.recordings = JSON.parse(savedRecordings);
+            }
+        }
+
+        // 保存任务数据
+        function saveTasks() {
+            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+        }
+
+        // 保存录音数据
+        function saveRecordings() {
+            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+
+            addTaskBtn.addEventListener('click', showTaskForm);
+            saveTaskBtn.addEventListener('click', saveTask);
+            cancelTaskBtn.addEventListener('click', hideTaskForm);
+            updateTaskBtn.addEventListener('click', updateTask);
+            cancelEditTaskBtn.addEventListener('click', hideEditTaskForm);
+
+            prevMonthBtn.addEventListener('click', () => navigateCalendar(-1));
+            nextMonthBtn.addEventListener('click', () => navigateCalendar(1));
+            todayBtn.addEventListener('click', goToToday);
+
+            recordBtn.addEventListener('click', startRecording);
+            pauseBtn.addEventListener('click', togglePause);
+            stopBtn.addEventListener('click', stopRecording);
+            playBtn.addEventListener('click', playRecording);
+            submitRecordingBtn.addEventListener('click', submitRecording);
+            resetRecorderBtn.addEventListener('click', resetRecorder);
+        }
+        
+        // 设置上传相关事件监听器
+        function setupUploadEventListeners() {
+            recordModeBtn.addEventListener('click', () => switchRecorderMode('record'));
+            uploadModeBtn.addEventListener('click', () => switchRecorderMode('upload'));
+            
+            audioFileInput.addEventListener('change', handleFileUpload);
+            submitUploadBtn.addEventListener('click', submitUploadedAudio);
+            resetUploadBtn.addEventListener('click', resetUpload);
+        }
+
+        // 设置数据管理事件监听器
+        function setupDataManagementEventListeners() {
+            showDataModalBtn.addEventListener('click', showDataManagementModal);
+            closeDataModalBtn.addEventListener('click', hideDataManagementModal);
+            exportDataBtn.addEventListener('click', exportData);
+            importDataFile.addEventListener('change', handleImportFileSelect);
+            importDataBtn.addEventListener('click', importData);
+            clearDataBtn.addEventListener('click', clearAllData);
+        }
+
+        // 更新播放状态显示
+        function updatePlaybackStatus(message, statusClass) {
+            recordingStatusEl.textContent = message;
+            recordingStatusEl.className = 'recording-status ' + statusClass;
+            recordingStatusEl.classList.remove('hidden');
+        }
+
+        // 切换标签页
+        function switchTab(tabId) {
+            tabs.forEach(tab => {
+                if (tab.getAttribute('data-tab') === tabId) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.add('active');
+                } else {
+                    content.classList.remove('active');
+                }
+            });
+
+            if (tabId === 'today') {
+                renderTodayTasks();
+            } else if (tabId === 'tasks') {
+                renderAllTasks();
+            } else if (tabId === 'calendar') {
+                renderCalendar();
+            } else if (tabId === 'recorder') {
+                renderRecordings();
+            } else if (tabId === 'data') {
+                renderDataStats();
+            }
+        }
+        
+        // 切换录音模式
+        function switchRecorderMode(mode) {
+            appData.currentMode = mode;
+            
+            if (mode === 'record') {
+                recordModeBtn.classList.add('active');
+                uploadModeBtn.classList.remove('active');
+                recordContainer.classList.remove('hidden');
+                uploadContainer.classList.add('hidden');
+                
+                // 更新任务信息
+                if (appData.currentTask) {
+                    recorderTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
+                    const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
+                    recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+                }
+            } else {
+                recordModeBtn.classList.remove('active');
+                uploadModeBtn.classList.add('active');
+                recordContainer.classList.add('hidden');
+                uploadContainer.classList.remove('hidden');
+                
+                // 更新任务信息
+                if (appData.currentTask) {
+                    uploadTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
+                    const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
+                    uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+                }
+            }
+        }
+
+        // 显示任务表单
+        function showTaskForm() {
+            taskFormEl.classList.remove('hidden');
+            hideEditTaskForm();
+            document.getElementById('task-subject').value = '语文';
+            document.getElementById('task-name').value = '';
+            document.getElementById('task-desc').value = '';
+            document.getElementById('task-date').valueAsDate = new Date();
+            taskFormEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 隐藏任务表单
+        function hideTaskForm() {
+            taskFormEl.classList.add('hidden');
+        }
+
+        // 显示编辑任务表单
+        function showEditTaskForm(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            appData.editingTask = task;
+            editTaskFormEl.classList.remove('hidden');
+            hideTaskForm();
+            
+            document.getElementById('edit-task-subject').value = task.subject;
+            document.getElementById('edit-task-name').value = task.name;
+            document.getElementById('edit-task-desc').value = task.description || '';
+            editTaskFormEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 隐藏编辑任务表单
+        function hideEditTaskForm() {
+            editTaskFormEl.classList.add('hidden');
+            appData.editingTask = null;
+        }
+
+        // 保存任务
+        function saveTask() {
+            const subject = document.getElementById('task-subject').value;
+            const name = document.getElementById('task-name').value.trim();
+            const desc = document.getElementById('task-desc').value.trim();
+            let date = document.getElementById('task-date').value;
+            
+            if (!name) {
+                alert('请输入任务名称');
+                return;
+            }
+            
+            if (!date) {
+                date = new Date().toISOString().split('T')[0];
+            }
+            
+            const newTask = {
+                id: Date.now(),
+                subject: subject,
+                name: name,
+                description: desc,
+                createDate: date ? new Date(date).toISOString() : new Date().toISOString(),
+                status: 'active',
+                checkins: []
+            };
+            
+            appData.tasks.push(newTask);
+            saveTasks();
+            hideTaskForm();
+            renderAllTasks();
+            renderTodayTasks();
+            renderCalendar();
+            renderDataStats();
+        }
+
+        // 更新任务
+        function updateTask() {
+            if (!appData.editingTask) return;
+            
+            const subject = document.getElementById('edit-task-subject').value;
+            const name = document.getElementById('edit-task-name').value.trim();
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            
+            if (!name) {
+                alert('请输入任务名称');
+                return;
+            }
+            
+            appData.editingTask.subject = subject;
+            appData.editingTask.name = name;
+            appData.editingTask.description = desc;
+            
+            saveTasks();
+            hideEditTaskForm();
+            renderAllTasks();
+            renderTodayTasks();
+            renderCalendar();
+            renderDataStats();
+        }
+
+        // 获取任务的上次录音用时
+        function getLastRecordingDuration(task) {
+            if (task.checkins.length === 0) return null;
+            
+            const latestCheckin = task.checkins.reduce((latest, current) => 
+                new Date(current.date) > new Date(latest.date) ? current : latest
+            );
+            
+            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
+            return recording ? recording.duration : null;
+        }
+
+        // 渲染今日任务
+        function renderTodayTasks() {
+            todayTasksEl.innerHTML = '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let tasksForToday = [];
+            
+            appData.tasks.forEach(task => {
+                if (task.status !== 'active') return;
+                
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                
+                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                
+                if (checkpointIndex !== -1) {
+                    const hasCheckedIn = task.checkins.some(checkin => 
+                        checkin.checkpointIndex === checkpointIndex
+                    );
+                    
+                    const hasPendingRecording = appData.recordings.some(recording => 
+                        recording.taskId === task.id && 
+                        recording.checkpointIndex === checkpointIndex &&
+                        !task.checkins.some(checkin => checkin.recordingId === recording.id)
+                    );
+                    
+                    tasksForToday.push({
+                        task,
+                        checkpointIndex,
+                        daysSinceStart,
+                        isOverdue: false,
+                        hasCheckedIn,
+                        hasPendingRecording
+                    });
+                }
+                
+                for (let i = 0; i < checkinSchedule.length; i++) {
+                    const checkpointDay = checkinSchedule[i];
+                    if (checkpointDay < daysSinceStart && 
+                        !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
+                        
+                        const hasPendingRecording = appData.recordings.some(recording => 
+                            recording.taskId === task.id && 
+                            recording.checkpointIndex === i &&
+                            !task.checkins.some(checkin => checkin.recordingId === recording.id)
+                        );
+                        
+                        tasksForToday.push({
+                            task,
+                            checkpointIndex: i,
+                            daysSinceStart,
+                            isOverdue: true,
+                            hasCheckedIn: false,
+                            hasPendingRecording
+                        });
+                    }
+                }
+            });
+            
+            tasksForToday.sort((a, b) => {
+                if (a.isOverdue && b.isOverdue) {
+                    return checkinSchedule[a.checkpointIndex] - checkinSchedule[b.checkpointIndex];
+                }
+                
+                if (a.isOverdue && !b.isOverdue) return -1;
+                if (!a.isOverdue && b.isOverdue) return 1;
+                
+                if (a.hasPendingRecording && !b.hasPendingRecording) return -1;
+                if (!a.hasPendingRecording && b.hasPendingRecording) return 1;
+                
+                if (!a.hasCheckedIn && b.hasCheckedIn) return -1;
+                if (a.hasCheckedIn && !b.hasCheckedIn) return 1;
+                
+                return new Date(b.task.createDate) - new Date(a.task.createDate);
+            });
+            
+            if (tasksForToday.length === 0) {
+                todayTasksEl.innerHTML = `
+                    <div class="empty-state">
+                        <i>📅</i>
+                        <p>今天没有打卡任务，放松一下吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            tasksForToday.forEach(item => {
+                renderTaskItem(item.task, todayTasksEl, item.checkpointIndex, item.daysSinceStart, 
+                              item.isOverdue, item.hasCheckedIn, item.hasPendingRecording);
+            });
+        }
+
+        // 渲染所有任务
+        function renderAllTasks() {
+            allTasksEl.innerHTML = '';
+            
+            if (appData.tasks.length === 0) {
+                allTasksEl.innerHTML = `
+                    <div class="empty-state">
+                        <i>📝</i>
+                        <p>还没有任何任务，点击"新建任务"开始吧！</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const sortedTasks = [...appData.tasks].sort((a, b) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const aDate = new Date(a.createDate);
+                aDate.setHours(0, 0, 0, 0);
+                const bDate = new Date(b.createDate);
+                bDate.setHours(0, 0, 0, 0);
+                
+                const aDaysSinceStart = Math.floor((today - aDate) / (1000 * 60 * 60 * 24));
+                const bDaysSinceStart = Math.floor((today - bDate) / (1000 * 60 * 60 * 24));
+                
+                const aHasOverdue = checkinSchedule.some((day, index) => 
+                    day < aDaysSinceStart && !a.checkins.some(checkin => checkin.checkpointIndex === index)
+                );
+                const bHasOverdue = checkinSchedule.some((day, index) => 
+                    day < bDaysSinceStart && !b.checkins.some(checkin => checkin.checkpointIndex === index)
+                );
+                
+                const aHasPendingReview = appData.recordings.some(recording => 
+                    recording.taskId === a.id && 
+                    !a.checkins.some(checkin => checkin.recordingId === recording.id)
+                );
+                const bHasPendingReview = appData.recordings.some(recording => 
+                    recording.taskId === b.id && 
+                    !b.checkins.some(checkin => checkin.recordingId === recording.id)
+                );
+                
+                const aHasToday = checkinSchedule.includes(aDaysSinceStart);
+                const bHasToday = checkinSchedule.includes(bDaysSinceStart);
+                
+                const aTodayCompleted = aHasToday && a.checkins.some(checkin => 
+                    checkin.checkpointIndex === checkinSchedule.indexOf(aDaysSinceStart)
+                );
+                const bTodayCompleted = bHasToday && b.checkins.some(checkin => 
+                    checkin.checkpointIndex === checkinSchedule.indexOf(bDaysSinceStart)
+                );
+                
+                if (aHasOverdue && !bHasOverdue) return -1;
+                if (!aHasOverdue && bHasOverdue) return 1;
+                
+                if (aHasPendingReview && !bHasPendingReview) return -1;
+                if (!aHasPendingReview && bHasPendingReview) return 1;
+                
+                if (aHasToday && !aTodayCompleted && !(bHasToday && !bTodayCompleted)) return -1;
+                if (!(aHasToday && !aTodayCompleted) && bHasToday && !bTodayCompleted) return 1;
+                
+                return new Date(b.createDate) - new Date(a.createDate);
+            });
+            
+            sortedTasks.forEach(task => {
+                const taskEl = document.createElement('div');
+                taskEl.className = 'task-item';
+                
+                const completedCheckins = task.checkins.length;
+                const totalCheckins = checkinSchedule.length;
+                const progressPercent = (completedCheckins / totalCheckins) * 100;
+                
+                const lastRecordingDuration = getLastRecordingDuration(task);
+                const lastRecordingText = lastRecordingDuration ? 
+                    `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                const shouldCheckinToday = checkpointIndex !== -1;
+                const hasCheckedInToday = shouldCheckinToday ? 
+                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex) : false;
+                
+                let hasOverdue = false;
+                for (let i = 0; i < checkinSchedule.length; i++) {
+                    const checkpointDay = checkinSchedule[i];
+                    if (checkpointDay < daysSinceStart && 
+                        !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
+                        hasOverdue = true;
+                        break;
+                    }
+                }
+                
+                const hasPendingReview = appData.recordings.some(recording => 
+                    recording.taskId === task.id && 
+                    !task.checkins.some(checkin => checkin.recordingId === recording.id)
+                );
+                
+                const latestCheckin = task.checkins.length > 0 ? 
+                    task.checkins.reduce((latest, current) => 
+                        new Date(current.date) > new Date(latest.date) ? current : latest
+                    ) : null;
+                
+                const canCheckinToday = shouldCheckinToday && !hasCheckedInToday && !hasPendingReview;
+                const hasOverdueCheckin = hasOverdue && !hasPendingReview;
+                const checkinBtnEnabled = canCheckinToday || hasOverdueCheckin;
+                
+                let statusClass = 'status-future';
+                let statusText = '';
+                
+                if (hasPendingReview) {
+                    statusClass = 'status-pending-review';
+                    statusText = '待验收';
+                } else if (hasOverdue) {
+                    statusClass = 'status-overdue';
+                    statusText = '有逾期';
+                } else if (shouldCheckinToday) {
+                    statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
+                    statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
+                }
+                
+                // 生成紧凑的打卡记录信息
+                const compactCheckinInfo = generateCompactCheckinInfo(task);
+                
+                taskEl.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-name">${task.subject} - ${task.name}</div>
+                        <div class="task-status ${statusClass}">
+                            ${completedCheckins}/${totalCheckins}
+                            ${statusText}
+                        </div>
+                    </div>
+                    ${task.description ? `<p>${task.description}</p>` : ''}
+                    <div class="task-progress">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="progress-text">
+                            已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次
+                            ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                        </div>
+                        ${compactCheckinInfo}
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn ${checkinBtnEnabled ? 'btn-primary' : 'btn-disabled'}" onclick="handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">打卡</button>
+                        <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
+                        <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                        <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
+                        ${latestCheckin ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+                    </div>
+                `;
+                
+                if (hasPendingReview) {
+                    taskEl.classList.add('pending-review');
+                }
+                
+                allTasksEl.appendChild(taskEl);
+            });
+        }
+
+        // 生成紧凑的打卡记录信息
+        function generateCompactCheckinInfo(task) {
+            if (task.checkins.length === 0) {
+                return '';
+            }
+            
+            // 只显示最近的3次打卡记录
+            const recentCheckins = [...task.checkins]
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 3);
+            
+            const checkinItems = recentCheckins.map(checkin => {
+                const checkpointDay = checkinSchedule[checkin.checkpointIndex];
+                const date = new Date(checkin.date);
+                const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
+                return `<span class="compact-checkin-item">第${checkpointDay}天 ${formattedDate}</span>`;
+            }).join('');
+            
+            return `<div class="compact-checkin-info">最近打卡: ${checkinItems}</div>`;
+        }
+
+        // 处理打卡按钮点击
+        function handleCheckinClick(taskId, isDisabled) {
+            if (isDisabled) {
+                alert('今日已经打卡成功或正在等待验收！');
+                return;
+            }
+            startCheckin(taskId);
+        }
+
+        // 渲染任务项
+        function renderTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
+            const taskEl = document.createElement('div');
+            
+            let taskClass = 'task-item';
+            if (hasPendingRecording) {
+                taskClass += ' pending-review';
+            } else if (isOverdue) {
+                taskClass += ' overdue';
+            } else if (hasCheckedIn) {
+                taskClass += ' completed';
+            }
+            
+            taskEl.className = taskClass;
+            
+            const checkpointDay = checkinSchedule[checkpointIndex];
+            let statusText = '';
+            
+            if (hasPendingRecording) {
+                statusText = '待验收';
+            } else if (isOverdue) {
+                statusText = `逾期${daysSinceStart - checkpointDay}天`;
+            } else {
+                statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
+            }
+            
+            const completedCheckins = task.checkins.length;
+            const totalCheckins = checkinSchedule.length;
+            const progressPercent = (completedCheckins / totalCheckins) * 100;
+            
+            const lastRecordingDuration = getLastRecordingDuration(task);
+            const lastRecordingText = lastRecordingDuration ? 
+                `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
+            
+            // 生成紧凑的打卡记录信息
+            const compactCheckinInfo = generateCompactCheckinInfo(task);
+            
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-name">${task.subject} - ${task.name}</div>
+                    <div class="task-status ${hasPendingRecording ? 'status-pending-review' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
+                        ${statusText} ${hasCheckedIn ? '✓ 今日已打卡' : (hasPendingRecording ? '待验收' : '未完成')}
+                    </div>
+                </div>
+                ${task.description ? `<p>${task.description}</p>` : ''}
+                <div class="task-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        已完成 ${completedCheckins} 次打卡
+                        ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                    </div>
+                    ${compactCheckinInfo}
+                </div>
+                <div class="task-actions">
+                    ${!hasCheckedIn && !hasPendingRecording ? `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">立即打卡</button>` : ''}
+                    ${hasPendingRecording ? `<button class="btn btn-secondary" onclick="viewPendingRecording(${task.id}, ${checkpointIndex})">查看待验收录音</button>` : ''}
+                    <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                </div>
+            `;
+            
+            container.appendChild(taskEl);
+        }
+
+        // 查看待验收录音
+        function viewPendingRecording(taskId, checkpointIndex) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const pendingRecording = appData.recordings.find(recording => 
+                recording.taskId === taskId && 
+                recording.checkpointIndex === checkpointIndex &&
+                !task.checkins.some(checkin => checkin.recordingId === recording.id)
+            );
+            
+            if (pendingRecording) {
+                switchTab('recorder');
+                playSavedRecording(pendingRecording.id);
+            } else {
+                alert('未找到待验收的录音');
+            }
+        }
+
+        // 渲染日历
+        function renderCalendar() {
+            calendarEl.innerHTML = '';
+            
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekdays.forEach(day => {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-weekday';
+                dayEl.textContent = day;
+                calendarEl.appendChild(dayEl);
+            });
+            
+            const year = appData.currentCalendarDate.getFullYear();
+            const month = appData.currentCalendarDate.getMonth();
+            calendarTitleEl.textContent = `${year}年${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            const firstDayIndex = firstDay.getDay();
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            
+            for (let i = firstDayIndex - 1; i >= 0; i--) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day other-month';
+                dayEl.innerHTML = `<div class="day-number">${prevMonthLastDay - i}</div>`;
+                calendarEl.appendChild(dayEl);
+            }
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+                
+                const date = new Date(year, month, day);
+                if (date.getTime() === today.getTime()) {
+                    dayEl.classList.add('today');
+                }
+                
+                if (appData.selectedCalendarDate && 
+                    appData.selectedCalendarDate.getDate() === day &&
+                    appData.selectedCalendarDate.getMonth() === month &&
+                    appData.selectedCalendarDate.getFullYear() === year) {
+                    dayEl.classList.add('selected');
+                }
+                
+                const tasksOnDate = getTasksOnDate(date);
+                
+                let indicators = '';
+                if (tasksOnDate.overdue > 0) {
+                    indicators += '<div class="task-indicator indicator-overdue"></div>';
+                }
+                if (tasksOnDate.today > 0) {
+                    indicators += '<div class="task-indicator indicator-today"></div>';
+                }
+                if (tasksOnDate.future > 0) {
+                    indicators += '<div class="task-indicator indicator-future"></div>';
+                }
+                if (tasksOnDate.completed > 0) {
+                    indicators += '<div class="task-indicator indicator-completed"></div>';
+                }
+                if (tasksOnDate.pendingReview > 0) {
+                    indicators += '<div class="task-indicator indicator-pending-review"></div>';
+                }
+                
+                dayEl.innerHTML = `
+                    <div class="day-number">${day}</div>
+                    ${indicators}
+                `;
+                
+                dayEl.addEventListener('click', () => showDateTasks(date));
+                calendarEl.appendChild(dayEl);
+            }
+            
+            const totalCells = 42;
+            const filledCells = firstDayIndex + lastDay.getDate();
+            const remainingCells = totalCells - filledCells;
+            
+            for (let day = 1; day <= remainingCells; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day other-month';
+                dayEl.innerHTML = `<div class="day-number">${day}</div>`;
+                calendarEl.appendChild(dayEl);
+            }
+        }
+
+        // 日历导航
+        function navigateCalendar(direction) {
+            const currentDate = appData.currentCalendarDate;
+            const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1);
+            appData.currentCalendarDate = newDate;
+            renderCalendar();
+        }
+
+        // 回到今天
+        function goToToday() {
+            appData.currentCalendarDate = new Date();
+            appData.selectedCalendarDate = new Date();
+            renderCalendar();
+            showDateTasks(new Date());
+        }
+
+        // 获取指定日期的任务
+        function getTasksOnDate(date) {
+            const result = {
+                overdue: 0,
+                today: 0,
+                future: 0,
+                completed: 0,
+                pendingReview: 0
+            };
+            
+            appData.tasks.forEach(task => {
+                if (task.status !== 'active') return;
+                
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const targetDate = new Date(date);
+                targetDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((targetDate - taskDate) / (1000 * 60 * 60 * 24));
+                
+                const isCheckpointDay = checkinSchedule.includes(daysSinceStart);
+                if (isCheckpointDay) {
+                    const checkpointIndex = checkinSchedule.indexOf(daysSinceStart);
+                    const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
+                    
+                    const hasPendingRecording = appData.recordings.some(recording => 
+                        recording.taskId === task.id && 
+                        recording.checkpointIndex === checkpointIndex &&
+                        !task.checkins.some(checkin => checkin.recordingId === recording.id)
+                    );
+                    
+                    if (hasPendingRecording) {
+                        result.pendingReview++;
+                    } else if (hasCheckedIn) {
+                        result.completed++;
+                    } else {
+                        if (daysSinceStart < 0) {
+                            result.future++;
+                        } else if (daysSinceStart === 0) {
+                            result.today++;
+                        } else {
+                            result.overdue++;
+                        }
+                    }
+                }
+            });
+            
+            return result;
+        }
+
+        // 显示指定日期的任务
+        function showDateTasks(date) {
+            appData.selectedCalendarDate = date;
+            renderCalendar();
+            
+            selectedDateTasksEl.innerHTML = '';
+            
+            const dateStr = date.toLocaleDateString();
+            selectedDateTasksEl.innerHTML = `<h3>${dateStr} 的任务</h3>`;
+            
+            let hasTasks = false;
+            
+            appData.tasks.forEach(task => {
+                if (task.status !== 'active') return;
+                
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const targetDate = new Date(date);
+                targetDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((targetDate - taskDate) / (1000 * 60 * 60 * 24));
+                
+                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                
+                if (checkpointIndex !== -1) {
+                    hasTasks = true;
+                    const checkpointDay = checkinSchedule[checkpointIndex];
+                    const isOverdue = daysSinceStart > checkpointDay;
+                    const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
+                    
+                    const hasPendingRecording = appData.recordings.some(recording => 
+                        recording.taskId === task.id && 
+                        recording.checkpointIndex === checkpointIndex &&
+                        !task.checkins.some(checkin => checkin.recordingId === recording.id)
+                    );
+                    
+                    const taskEl = document.createElement('div');
+                    
+                    let taskClass = 'task-item';
+                    if (hasPendingRecording) {
+                        taskClass += ' pending-review';
+                    } else if (isOverdue) {
+                        taskClass += ' overdue';
+                    } else if (hasCheckedIn) {
+                        taskClass += ' completed';
+                    }
+                    
+                    taskEl.className = taskClass;
+                    
+                    taskEl.innerHTML = `
+                        <div class="task-header">
+                            <div class="task-name">${task.subject} - ${task.name}</div>
+                            <div class="task-status ${hasPendingRecording ? 'status-pending-review' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
+                                ${isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : `第${checkpointDay}天`} ${hasCheckedIn ? '✓' : (hasPendingRecording ? '待验收' : '')}
+                            </div>
+                        </div>
+                        <p>${task.description || ''}</p>
+                        <div class="task-actions">
+                            ${!hasCheckedIn && !hasPendingRecording ? `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">打卡</button>` : ''}
+                            ${hasPendingRecording ? `<button class="btn btn-secondary" onclick="viewPendingRecording(${task.id}, ${checkpointIndex})">查看待验收录音</button>` : ''}
+                        </div>
+                    `;
+                    
+                    selectedDateTasksEl.appendChild(taskEl);
+                }
+            });
+            
+            if (!hasTasks) {
+                selectedDateTasksEl.innerHTML += `
+                    <div class="empty-state">
+                        <i>📅</i>
+                        <p>这一天没有打卡任务</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 渲染录音记录
+        function renderRecordings() {
+            recordingsListEl.innerHTML = '';
+            
+            const unconfirmedRecordings = appData.recordings.filter(recording => {
+                const task = appData.tasks.find(t => t.id === recording.taskId);
+                if (!task) return false;
+                
+                return !task.checkins.some(checkin => checkin.recordingId === recording.id);
+            });
+            
+            if (unconfirmedRecordings.length === 0) {
+                recordingsListEl.innerHTML = `
+                    <div class="empty-state">
+                        <i>🎤</i>
+                        <p>还没有任何打卡记录</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            unconfirmedRecordings.forEach(recording => {
+                const recordingEl = document.createElement('div');
+                recordingEl.className = 'recording-item';
+                
+                const task = appData.tasks.find(t => t.id === recording.taskId);
+                const taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
+                const checkpointDay = checkinSchedule[recording.checkpointIndex];
+                const date = new Date(recording.date).toLocaleString();
+                
+                recordingEl.innerHTML = `
+                    <div class="recording-info">
+                        <div class="recording-name">${taskName} - 第${checkpointDay}天</div>
+                        <div class="recording-duration">${date} | 时长: ${formatTime(recording.duration)}</div>
+                    </div>
+                    <div class="task-actions">
+                        <button class="btn btn-secondary" onclick="playSavedRecording(${recording.id})" id="play-saved-${recording.id}">播放</button>
+                        <button class="btn btn-primary" onclick="confirmCheckin(${recording.id})">确认签收</button>
+                    </div>
+                `;
+                
+                recordingsListEl.appendChild(recordingEl);
+            });
+        }
+
+        // 开始打卡
+        function startCheckin(taskId, checkpointIndex = null) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            appData.currentTask = task;
+            
+            if (checkpointIndex === null) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                
+                if (checkpointIndex === -1) {
+                    const overdueCheckpoints = [];
+                    for (let i = 0; i < checkinSchedule.length; i++) {
+                        if (checkinSchedule[i] < daysSinceStart && 
+                            !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
+                            overdueCheckpoints.push({
+                                index: i,
+                                day: checkinSchedule[i]
+                            });
+                        }
+                    }
+                    
+                    overdueCheckpoints.sort((a, b) => a.day - b.day);
+                    
+                    if (overdueCheckpoints.length > 0) {
+                        checkpointIndex = overdueCheckpoints[0].index;
+                    }
+                }
+            }
+            
+            appData.currentCheckpointIndex = checkpointIndex;
+            
+            switchTab('recorder');
+            
+            const checkpointDay = checkinSchedule[checkpointIndex];
+            recorderTaskNameEl.textContent = `${task.subject} - ${task.name}`;
+            recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            
+            uploadTaskNameEl.textContent = `${task.subject} - ${task.name}`;
+            uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            
+            resetRecorder();
+            resetUpload();
+        }
+
+        // 开始录音
+        async function startRecording() {
+            if (!appData.currentTask) {
+                alert('请先选择一个任务！');
+                return;
+            }
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                appData.mediaRecorder = new MediaRecorder(stream);
+                appData.audioChunks = [];
+                
+                appData.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        appData.audioChunks.push(event.data);
+                    }
+                };
+                
+                appData.mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    appData.currentRecording = {
+                        id: Date.now(),
+                        taskId: appData.currentTask.id,
+                        checkpointIndex: appData.currentCheckpointIndex,
+                        date: new Date().toISOString(),
+                        duration: appData.recordingTime,
+                        audioUrl: audioUrl,
+                        audioBlob: audioBlob
+                    };
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    clearRecordingState();
+                };
+                
+                appData.isRecording = true;
+                appData.isPaused = false;
+                appData.recordingTime = 0;
+                
+                recordBtn.classList.add('recording');
+                pauseBtn.classList.remove('hidden');
+                stopBtn.classList.remove('hidden');
+                recordBtn.classList.add('hidden');
+                
+                updatePlaybackStatus('录音中...', 'status-recording');
+                
+                appData.mediaRecorder.start();
+                
+                appData.timerInterval = setInterval(() => {
+                    appData.recordingTime += 10;
+                    updateTimer();
+                    updateWaveform();
+                }, 10);
+                
+            } catch (error) {
+                console.error('录音启动失败:', error);
+                alert('无法访问麦克风，请检查权限设置');
+            }
+        }
+
+        // 暂停录音
+        function togglePause() {
+            if (!appData.mediaRecorder) return;
+            
+            if (appData.isPaused) {
+                appData.mediaRecorder.resume();
+                appData.isPaused = false;
+                pauseBtn.innerHTML = '❚❚';
+                updatePlaybackStatus('录音中...', 'status-recording');
+                
+                appData.timerInterval = setInterval(() => {
+                    appData.recordingTime += 10;
+                    updateTimer();
+                    updateWaveform();
+                }, 10);
+            } else {
+                appData.mediaRecorder.pause();
+                appData.isPaused = true;
+                clearInterval(appData.timerInterval);
+                pauseBtn.innerHTML = '▶';
+                updatePlaybackStatus('录音已暂停', 'status-playing');
+                saveRecordingState();
+            }
+        }
+
+        // 停止录音
+        function stopRecording() {
+            if (!appData.mediaRecorder || appData.mediaRecorder.state === 'inactive') return;
+            
+            appData.mediaRecorder.stop();
+            appData.isRecording = false;
+            appData.isPaused = false;
+            
+            clearInterval(appData.timerInterval);
+            
+            recordBtn.classList.remove('recording', 'hidden');
+            pauseBtn.classList.add('hidden');
+            stopBtn.classList.add('hidden');
+            playBtn.classList.remove('hidden');
+            submitRecordingBtn.disabled = false;
+            
+            recordingStatusEl.classList.add('hidden');
+            clearRecordingState();
+        }
+
+        // 播放录音
+        function playRecording() {
+            if (!appData.currentRecording) return;
+            
+            audioPlayer.src = appData.currentRecording.audioUrl;
+            audioPlayer.classList.remove('hidden');
+            audioPlayer.play();
+        }
+
+        // 播放保存的录音
+        function playSavedRecording(recordingId) {
+            const recording = appData.recordings.find(r => r.id === recordingId);
+            if (recording && recording.audioUrl) {
+                const playBtn = document.getElementById(`play-saved-${recordingId}`);
+                if (playBtn) {
+                    playBtn.textContent = '录音回放中';
+                    playBtn.disabled = true;
+                }
+                
+                audioPlayer.src = recording.audioUrl;
+                audioPlayer.classList.remove('hidden');
+                audioPlayer.play();
+                
+                audioPlayer.onended = () => {
+                    if (playBtn) {
+                        playBtn.textContent = '播放';
+                        playBtn.disabled = false;
+                    }
+                };
+            }
+        }
+
+        // 播放最新录音
+        function playLatestRecording(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const latestCheckin = task.checkins.length > 0 ? 
+                task.checkins.reduce((latest, current) => 
+                    new Date(current.date) > new Date(latest.date) ? current : latest
+                ) : null;
+            
+            if (!latestCheckin || !latestCheckin.recordingId) {
+                alert('该任务没有录音记录');
+                return;
+            }
+            
+            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
+            if (recording && recording.audioUrl) {
+                const playBtn = document.getElementById(`play-latest-${taskId}`);
+                if (playBtn) {
+                    playBtn.textContent = '录音回放中';
+                    playBtn.disabled = true;
+                }
+                
+                audioPlayer.src = recording.audioUrl;
+                audioPlayer.classList.remove('hidden');
+                audioPlayer.play();
+                
+                audioPlayer.onended = () => {
+                    if (playBtn) {
+                        playBtn.textContent = '回放录音';
+                        playBtn.disabled = false;
+                    }
+                };
+            }
+        }
+
+        // 提交录音
+        function submitRecording() {
+            if (!appData.currentRecording) return;
+            
+            appData.recordings.push(appData.currentRecording);
+            saveRecordings();
+            
+            alert('打卡提交成功！等待签收确认。');
+            resetRecorder();
+            renderRecordings();
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+        }
+
+        // 确认签收
+        function confirmCheckin(recordingId) {
+            const recording = appData.recordings.find(r => r.id === recordingId);
+            if (!recording) return;
+            
+            const task = appData.tasks.find(t => t.id === recording.taskId);
+            if (!task) return;
+            
+            const alreadyCheckedIn = task.checkins.some(
+                checkin => checkin.checkpointIndex === recording.checkpointIndex
+            );
+            
+            if (alreadyCheckedIn) {
+                alert('这个打卡点已经签收过了！');
+                return;
+            }
+            
+            task.checkins.push({
+                checkpointIndex: recording.checkpointIndex,
+                date: recording.date,
+                recordingId: recording.id
+            });
+            
+            if (task.checkins.length === checkinSchedule.length) {
+                task.status = 'completed';
+                alert(`恭喜！任务"${task.name}"已完成！`);
+            } else {
+                alert('打卡签收成功！');
+            }
+            
+            saveTasks();
+            renderAllTasks();
+            renderTodayTasks();
+            renderRecordings();
+            renderCalendar();
+            renderDataStats();
+        }
+
+        // 重置录音器
+        function resetRecorder() {
+            appData.isRecording = false;
+            appData.isPaused = false;
+            appData.recordingTime = 0;
+            
+            clearInterval(appData.timerInterval);
+            
+            recordBtn.classList.remove('recording', 'hidden');
+            pauseBtn.classList.add('hidden');
+            stopBtn.classList.add('hidden');
+            playBtn.classList.add('hidden');
+            submitRecordingBtn.disabled = true;
+            
+            audioPlayer.classList.add('hidden');
+            audioPlayer.src = '';
+            recordingStatusEl.classList.add('hidden');
+            
+            updateTimer();
+            clearWaveform();
+            clearRecordingState();
+        }
+
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 检查文件类型
+            if (!file.type.startsWith('audio/')) {
+                alert('请选择音频文件！');
+                resetUpload();
+                return;
+            }
+            
+            // 显示文件信息
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = formatFileSize(file.size);
+            fileDurationEl.textContent = '计算中...';
+            fileInfoEl.classList.remove('hidden');
+            
+            // 创建临时音频元素来计算时长
+            const tempAudio = new Audio();
+            tempAudio.src = URL.createObjectURL(file);
+            
+            tempAudio.addEventListener('loadedmetadata', () => {
+                const duration = Math.floor(tempAudio.duration * 1000); // 转换为毫秒
+                fileDurationEl.textContent = formatTime(duration);
+                
+                // 保存上传的音频信息
+                appData.uploadedAudio = {
+                    file: file,
+                    duration: duration,
+                    url: tempAudio.src
+                };
+                
+                // 显示音频播放器
+                uploadedAudioPlayer.src = tempAudio.src;
+                uploadedAudioPlayer.classList.remove('hidden');
+                
+                // 启用提交按钮
+                submitUploadBtn.disabled = false;
+            });
+            
+            tempAudio.addEventListener('error', () => {
+                fileDurationEl.textContent = '计算失败';
+                alert('无法读取音频文件，请选择其他文件');
+                resetUpload();
+            });
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // 提交上传的音频
+        function submitUploadedAudio() {
+            if (!appData.uploadedAudio || !appData.currentTask) return;
+            
+            const recording = {
+                id: Date.now(),
+                taskId: appData.currentTask.id,
+                checkpointIndex: appData.currentCheckpointIndex,
+                date: new Date().toISOString(),
+                duration: appData.uploadedAudio.duration,
+                audioUrl: appData.uploadedAudio.url,
+                audioBlob: appData.uploadedAudio.file,
+                source: 'upload' // 标记为上传的录音
+            };
+            
+            appData.recordings.push(recording);
+            saveRecordings();
+            
+            alert('打卡提交成功！等待签收确认。');
+            resetUpload();
+            renderRecordings();
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+        }
+
+        // 重置上传界面
+        function resetUpload() {
+            audioFileInput.value = '';
+            fileInfoEl.classList.add('hidden');
+            uploadedAudioPlayer.classList.add('hidden');
+            uploadedAudioPlayer.src = '';
+            submitUploadBtn.disabled = true;
+            appData.uploadedAudio = null;
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            timerEl.textContent = formatTime(appData.recordingTime);
+        }
+
+        // 格式化时间
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const ms = Math.floor((milliseconds % 1000) / 10);
+            
+            if (hours > 0) {
+                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        // 更新波形图
+        function updateWaveform() {
+            if (Math.random() < 0.3) {
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar';
+                bar.style.height = `${10 + Math.random() * 80}px`;
+                bar.style.left = `${Math.random() * 95}%`;
+                waveformEl.appendChild(bar);
+                
+                if (waveformEl.children.length > 50) {
+                    waveformEl.removeChild(waveformEl.firstChild);
+                }
+            }
+        }
+
+        // 清空波形图
+        function clearWaveform() {
+            waveformEl.innerHTML = '';
+        }
+
+        // 查看任务详情
+        function viewTaskDetails(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const checkinDetails = checkinSchedule.map((day, index) => {
+                const checkin = task.checkins.find(c => c.checkpointIndex === index);
+                const hasPendingRecording = appData.recordings.some(recording => 
+                    recording.taskId === taskId && 
+                    recording.checkpointIndex === index &&
+                    !task.checkins.some(c => c.recordingId === recording.id)
+                );
+                
+                let status = checkin ? '完成' : '未完成';
+                if (hasPendingRecording) {
+                    status = '待验收';
+                }
+                
+                return `第${day}天: ${status}`;
+            }).join('\n');
+            
+            alert(`
+               任务详情:
+               ${task.subject} - ${task.name}
+               ${task.description ? `\n描述: ${task.description}` : ''}
+               \n打卡进度:
+               ${checkinDetails}
+            `);
+        }
+
+        // 删除任务
+        function deleteTask(taskId) {
+            if (confirm('确定要删除这个任务吗？')) {
+                appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+                saveTasks();
+                renderAllTasks();
+                renderTodayTasks();
+                renderCalendar();
+                renderDataStats();
+            }
+        }
+
+        // 数据管理功能
+        function showDataManagementModal() {
+            dataManagementModal.classList.remove('hidden');
+            updateDataStats();
+        }
+
+        function hideDataManagementModal() {
+            dataManagementModal.classList.add('hidden');
+        }
+
+        function updateDataStats() {
+            const totalTasks = appData.tasks.length;
+            const completedTasks = appData.tasks.filter(task => task.status === 'completed').length;
+            const totalRecordings = appData.recordings.length;
+            const pendingRecordings = appData.recordings.filter(recording => {
+                const task = appData.tasks.find(t => t.id === recording.taskId);
+                if (!task) return false;
+                return !task.checkins.some(checkin => checkin.recordingId === recording.id);
+            }).length;
+            
+            document.getElementById('stat-total-tasks').textContent = totalTasks;
+            document.getElementById('stat-completed-tasks').textContent = completedTasks;
+            document.getElementById('stat-total-recordings').textContent = totalRecordings;
+            document.getElementById('stat-pending-recordings').textContent = pendingRecordings;
+        }
+
+        function renderDataStats() {
+            const totalTasks = appData.tasks.length;
+            const completedTasks = appData.tasks.filter(task => task.status === 'completed').length;
+            const totalRecordings = appData.recordings.length;
+            
+            // 计算总录音时长（毫秒）
+            const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
+            const totalMinutes = Math.floor(totalDuration / 60000);
+            
+            document.getElementById('stats-total-tasks').textContent = totalTasks;
+            document.getElementById('stats-completed-tasks').textContent = completedTasks;
+            document.getElementById('stats-total-recordings').textContent = totalRecordings;
+            document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
+        }
+
+        function exportData() {
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                tasks: appData.tasks,
+                recordings: appData.recordings
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `复习打卡计划备份_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('数据导出成功！');
+        }
+
+        function handleImportFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.json')) {
+                alert('请选择JSON格式的文件！');
+                resetImportFile();
+                return;
+            }
+            
+            importFileName.textContent = file.name;
+            importFileSize.textContent = formatFileSize(file.size);
+            importFileInfo.classList.remove('hidden');
+            importDataBtn.disabled = false;
+        }
+
+        function importData() {
+            const file = importDataFile.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    // 验证数据格式
+                    if (!importedData.tasks || !importedData.recordings) {
+                        throw new Error('文件格式不正确，缺少必要的数据字段');
+                    }
+                    
+                    if (!confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
+                        return;
+                    }
+                    
+                    // 导入数据
+                    appData.tasks = importedData.tasks;
+                    appData.recordings = importedData.recordings;
+                    
+                    // 保存到本地存储
+                    saveTasks();
+                    saveRecordings();
+                    
+                    // 重置应用状态
+                    appData.currentTask = null;
+                    appData.currentRecording = null;
+                    appData.selectedCalendarDate = null;
+                    appData.editingTask = null;
+                    appData.currentCheckpointIndex = null;
+                    
+                    // 重新渲染所有组件
+                    renderTodayTasks();
+                    renderAllTasks();
+                    renderCalendar();
+                    renderRecordings();
+                    renderDataStats();
+                    
+                    hideDataManagementModal();
+                    resetImportFile();
+                    
+                    alert('数据导入成功！');
+                    
+                } catch (error) {
+                    console.error('数据导入失败:', error);
+                    alert('数据导入失败：' + error.message);
+                }
+            };
+            reader.onerror = function() {
+                alert('文件读取失败，请重试');
+            };
+            reader.readAsText(file);
+        }
+
+        function resetImportFile() {
+            importDataFile.value = '';
+            importFileInfo.classList.add('hidden');
+            importDataBtn.disabled = true;
+        }
+
+        function clearAllData() {
+            if (!confirm('确定要清除所有数据吗？此操作不可撤销！')) {
+                return;
+            }
+            
+            if (!confirm('再次确认：这将删除所有任务和录音记录，确定要继续吗？')) {
+                return;
+            }
+            
+            // 清除所有数据
+            appData.tasks = [];
+            appData.recordings = [];
+            
+            // 清除本地存储
+            localStorage.removeItem('checkinTasks');
+            localStorage.removeItem('checkinRecordings');
+            localStorage.removeItem('recordingState');
+            
+            // 重置应用状态
+            appData.currentTask = null;
+            appData.currentRecording = null;
+            appData.selectedCalendarDate = null;
+            appData.editingTask = null;
+            appData.currentCheckpointIndex = null;
+            
+            // 重新渲染所有组件
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderRecordings();
+            renderDataStats();
+            
+            alert('所有数据已清除！');
+        }
+
+        // 初始化应用
+        window.onload = initApp;
+    </script>
+</body>
+</html>
