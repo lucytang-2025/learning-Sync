@@ -940,6 +940,38 @@
         .status-missed-icon {
             color: #ff6b6b;
         }
+        
+        /* 播放控制样式 */
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .playback-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .playback-btn.play {
+            background: #1dd1a1;
+            color: white;
+        }
+        
+        .playback-btn.pause {
+            background: #feca57;
+            color: white;
+        }
+        
+        .playback-btn.stop {
+            background: #ff6b6b;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -1299,7 +1331,9 @@
             currentCheckpointIndex: null,
             uploadedAudio: null,
             currentMode: 'record', // 'record' 或 'upload'
-            approvalPassword: "123456" // 默认验收密码
+            approvalPassword: "123456", // 默认验收密码
+            pendingApprovalRecordingId: null,
+            currentlyPlayingRecordingId: null
         };
 
         // 打卡时间表
@@ -1459,9 +1493,22 @@
         // 恢复录音
         async function resumeRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 22050, // 降低采样率减少文件大小
+                        channelCount: 1,   // 单声道
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
                 
-                appData.mediaRecorder = new MediaRecorder(stream);
+                // 使用中等质量压缩
+                const options = {
+                    mimeType: 'audio/webm;codecs=opus',
+                    audioBitsPerSecond: 64000 // 64kbps 中等质量
+                };
+                
+                appData.mediaRecorder = new MediaRecorder(stream, options);
                 
                 appData.mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
@@ -1470,21 +1517,27 @@
                 };
                 
                 appData.mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/webm' });
                     
-                    appData.currentRecording = {
-                        id: Date.now(),
-                        taskId: appData.currentTask.id,
-                        checkpointIndex: appData.currentCheckpointIndex,
-                        date: new Date().toISOString(),
-                        duration: appData.recordingTime,
-                        audioUrl: audioUrl,
-                        audioBlob: audioBlob
+                    // 将Blob转换为base64以便存储
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        appData.currentRecording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,  // 存储base64数据
+                            mimeType: 'audio/webm'
+                        };
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
                     };
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    clearRecordingState();
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.mediaRecorder.start();
@@ -1579,6 +1632,61 @@
             playBtn.addEventListener('click', playRecording);
             submitRecordingBtn.addEventListener('click', submitRecording);
             resetRecorderBtn.addEventListener('click', resetRecorder);
+            
+            // 添加音频播放器事件监听
+            audioPlayer.addEventListener('play', () => {
+                appData.isPlaying = true;
+                updatePlaybackControls();
+            });
+            
+            audioPlayer.addEventListener('pause', () => {
+                appData.isPlaying = false;
+                updatePlaybackControls();
+            });
+            
+            audioPlayer.addEventListener('ended', () => {
+                appData.isPlaying = false;
+                appData.currentlyPlayingRecordingId = null;
+                updatePlaybackControls();
+            });
+        }
+        
+        // 更新播放控制按钮
+        function updatePlaybackControls() {
+            // 更新任务管理中的播放按钮
+            if (appData.currentlyPlayingRecordingId) {
+                const task = appData.tasks.find(t => 
+                    appData.recordings.some(r => r.id === appData.currentlyPlayingRecordingId && r.taskId === t.id)
+                );
+                if (task) {
+                    const playBtn = document.getElementById(`play-latest-${task.id}`);
+                    if (playBtn) {
+                        if (appData.isPlaying) {
+                            playBtn.textContent = '暂停';
+                            playBtn.classList.remove('play');
+                            playBtn.classList.add('pause');
+                        } else {
+                            playBtn.textContent = '回放录音';
+                            playBtn.classList.remove('pause');
+                            playBtn.classList.add('play');
+                        }
+                    }
+                }
+            }
+            
+            // 更新录音列表中的播放按钮
+            const recordingPlayBtn = document.getElementById(`play-saved-${appData.currentlyPlayingRecordingId}`);
+            if (recordingPlayBtn) {
+                if (appData.isPlaying) {
+                    recordingPlayBtn.textContent = '暂停';
+                    recordingPlayBtn.classList.remove('play');
+                    recordingPlayBtn.classList.add('pause');
+                } else {
+                    recordingPlayBtn.textContent = '播放';
+                    recordingPlayBtn.classList.remove('pause');
+                    recordingPlayBtn.classList.add('play');
+                }
+            }
         }
         
         // 设置上传相关事件监听器
@@ -1817,7 +1925,6 @@
                     
                     const hasPendingRecording = appData.recordings.some(recording => 
                         recording.taskId === task.id && 
-                        recording.checkpointIndex === checkpointIndex &&
                         !task.checkins.some(checkin => checkin.recordingId === recording.id)
                     );
                     
@@ -1838,7 +1945,6 @@
                         
                         const hasPendingRecording = appData.recordings.some(recording => 
                             recording.taskId === task.id && 
-                            recording.checkpointIndex === i &&
                             !task.checkins.some(checkin => checkin.recordingId === recording.id)
                         );
                         
@@ -2006,7 +2112,7 @@
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                        ${latestCheckin ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+                        ${hasPendingReview ? `<button class="btn btn-secondary playback-btn ${appData.currentlyPlayingRecordingId && appData.isPlaying ? 'pause' : 'play'}" onclick="togglePlayLatestRecording(${task.id})" id="play-latest-${task.id}">${appData.currentlyPlayingRecordingId && appData.isPlaying ? '暂停' : '回放录音'}</button>` : ''}
                     </div>
                 `;
                 
@@ -2135,13 +2241,12 @@
             
             const pendingRecording = appData.recordings.find(recording => 
                 recording.taskId === taskId && 
-                recording.checkpointIndex === checkpointIndex &&
                 !task.checkins.some(checkin => checkin.recordingId === recording.id)
             );
             
             if (pendingRecording) {
                 switchTab('recorder');
-                playSavedRecording(pendingRecording.id);
+                togglePlaySavedRecording(pendingRecording.id);
             } else {
                 alert('未找到待验收的录音');
             }
@@ -2279,7 +2384,6 @@
                     
                     const hasPendingRecording = appData.recordings.some(recording => 
                         recording.taskId === task.id && 
-                        recording.checkpointIndex === checkpointIndex &&
                         !task.checkins.some(checkin => checkin.recordingId === recording.id)
                     );
                     
@@ -2335,7 +2439,6 @@
                     
                     const hasPendingRecording = appData.recordings.some(recording => 
                         recording.taskId === task.id && 
-                        recording.checkpointIndex === checkpointIndex &&
                         !task.checkins.some(checkin => checkin.recordingId === recording.id)
                     );
                     
@@ -2416,7 +2519,7 @@
                         <div class="recording-duration">${date} | 时长: ${formatTime(recording.duration)}</div>
                     </div>
                     <div class="task-actions">
-                        <button class="btn btn-secondary" onclick="playSavedRecording(${recording.id})" id="play-saved-${recording.id}">播放</button>
+                        <button class="btn btn-secondary playback-btn ${appData.currentlyPlayingRecordingId === recording.id && appData.isPlaying ? 'pause' : 'play'}" onclick="togglePlaySavedRecording(${recording.id})" id="play-saved-${recording.id}">${appData.currentlyPlayingRecordingId === recording.id && appData.isPlaying ? '暂停' : '播放'}</button>
                         <button class="btn btn-primary" onclick="showApprovalModal(${recording.id})">确认签收</button>
                     </div>
                 `;
@@ -2485,9 +2588,22 @@
             }
             
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        sampleRate: 22050, // 降低采样率减少文件大小
+                        channelCount: 1,   // 单声道
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    } 
+                });
                 
-                appData.mediaRecorder = new MediaRecorder(stream);
+                // 使用中等质量压缩
+                const options = {
+                    mimeType: 'audio/webm;codecs=opus',
+                    audioBitsPerSecond: 64000 // 64kbps 中等质量
+                };
+                
+                appData.mediaRecorder = new MediaRecorder(stream, options);
                 appData.audioChunks = [];
                 
                 appData.mediaRecorder.ondataavailable = (event) => {
@@ -2497,21 +2613,27 @@
                 };
                 
                 appData.mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/webm' });
                     
-                    appData.currentRecording = {
-                        id: Date.now(),
-                        taskId: appData.currentTask.id,
-                        checkpointIndex: appData.currentCheckpointIndex,
-                        date: new Date().toISOString(),
-                        duration: appData.recordingTime,
-                        audioUrl: audioUrl,
-                        audioBlob: audioBlob
+                    // 将Blob转换为base64以便存储
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        appData.currentRecording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,  // 存储base64数据
+                            mimeType: 'audio/webm'
+                        };
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
                     };
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    clearRecordingState();
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.isRecording = true;
@@ -2588,73 +2710,89 @@
         function playRecording() {
             if (!appData.currentRecording) return;
             
-            audioPlayer.src = appData.currentRecording.audioUrl;
+            audioPlayer.src = appData.currentRecording.audioData;
             audioPlayer.classList.remove('hidden');
             audioPlayer.play();
         }
 
-        // 播放保存的录音
-        function playSavedRecording(recordingId) {
-            const recording = appData.recordings.find(r => r.id === recordingId);
-            if (recording && recording.audioUrl) {
-                const playBtn = document.getElementById(`play-saved-${recordingId}`);
-                if (playBtn) {
-                    playBtn.textContent = '录音回放中';
-                    playBtn.disabled = true;
+        // 切换播放保存的录音
+        function togglePlaySavedRecording(recordingId) {
+            if (appData.currentlyPlayingRecordingId === recordingId && appData.isPlaying) {
+                // 暂停当前播放
+                audioPlayer.pause();
+                appData.isPlaying = false;
+                appData.currentlyPlayingRecordingId = null;
+            } else {
+                // 停止其他播放并开始新的播放
+                if (appData.currentlyPlayingRecordingId && appData.currentlyPlayingRecordingId !== recordingId) {
+                    audioPlayer.pause();
+                    appData.isPlaying = false;
                 }
                 
-                audioPlayer.src = recording.audioUrl;
-                audioPlayer.classList.remove('hidden');
-                audioPlayer.play();
-                
-                audioPlayer.onended = () => {
-                    if (playBtn) {
-                        playBtn.textContent = '播放';
-                        playBtn.disabled = false;
-                    }
-                };
+                const recording = appData.recordings.find(r => r.id === recordingId);
+                if (recording && recording.audioData) {
+                    audioPlayer.src = recording.audioData;
+                    audioPlayer.classList.remove('hidden');
+                    audioPlayer.play();
+                    appData.currentlyPlayingRecordingId = recordingId;
+                    appData.isPlaying = true;
+                }
             }
+            updatePlaybackControls();
         }
 
-        // 播放最新录音
-        function playLatestRecording(taskId) {
+        // 切换播放最新录音
+        function togglePlayLatestRecording(taskId) {
             const task = appData.tasks.find(t => t.id === taskId);
             if (!task) return;
             
-            const latestCheckin = task.checkins.length > 0 ? 
-                task.checkins.reduce((latest, current) => 
-                    new Date(current.date) > new Date(latest.date) ? current : latest
-                ) : null;
-            
-            if (!latestCheckin || !latestCheckin.recordingId) {
+            // 查找该任务的最新录音（无论哪个打卡点）
+            const taskRecordings = appData.recordings.filter(r => r.taskId === taskId);
+            if (taskRecordings.length === 0) {
                 alert('该任务没有录音记录');
                 return;
             }
             
-            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
-            if (recording && recording.audioUrl) {
-                const playBtn = document.getElementById(`play-latest-${taskId}`);
-                if (playBtn) {
-                    playBtn.textContent = '录音回放中';
-                    playBtn.disabled = true;
+            // 按日期排序，获取最新的录音
+            const latestRecording = taskRecordings.sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            )[0];
+            
+            if (appData.currentlyPlayingRecordingId === latestRecording.id && appData.isPlaying) {
+                // 暂停当前播放
+                audioPlayer.pause();
+                appData.isPlaying = false;
+                appData.currentlyPlayingRecordingId = null;
+            } else {
+                // 停止其他播放并开始新的播放
+                if (appData.currentlyPlayingRecordingId && appData.currentlyPlayingRecordingId !== latestRecording.id) {
+                    audioPlayer.pause();
+                    appData.isPlaying = false;
                 }
                 
-                audioPlayer.src = recording.audioUrl;
-                audioPlayer.classList.remove('hidden');
-                audioPlayer.play();
-                
-                audioPlayer.onended = () => {
-                    if (playBtn) {
-                        playBtn.textContent = '回放录音';
-                        playBtn.disabled = false;
-                    }
-                };
+                if (latestRecording && latestRecording.audioData) {
+                    audioPlayer.src = latestRecording.audioData;
+                    audioPlayer.classList.remove('hidden');
+                    audioPlayer.play();
+                    appData.currentlyPlayingRecordingId = latestRecording.id;
+                    appData.isPlaying = true;
+                }
             }
+            updatePlaybackControls();
         }
 
         // 提交录音
         function submitRecording() {
             if (!appData.currentRecording) return;
+            
+            // 检查是否已存在相同任务的录音，如果存在则删除旧的
+            const existingRecordingIndex = appData.recordings.findIndex(recording => 
+                recording.taskId === appData.currentRecording.taskId
+            );
+            
+            if (existingRecordingIndex !== -1) {
+                appData.recordings.splice(existingRecordingIndex, 1);
+            }
             
             appData.recordings.push(appData.currentRecording);
             saveRecordings();
@@ -2781,19 +2919,24 @@
                 const duration = Math.floor(tempAudio.duration * 1000); // 转换为毫秒
                 fileDurationEl.textContent = formatTime(duration);
                 
-                // 保存上传的音频信息
-                appData.uploadedAudio = {
-                    file: file,
-                    duration: duration,
-                    url: tempAudio.src
+                // 将文件转换为base64
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    appData.uploadedAudio = {
+                        file: file,
+                        duration: duration,
+                        audioData: e.target.result,  // 存储base64数据
+                        mimeType: file.type
+                    };
+                    
+                    // 显示音频播放器
+                    uploadedAudioPlayer.src = e.target.result;
+                    uploadedAudioPlayer.classList.remove('hidden');
+                    
+                    // 启用提交按钮
+                    submitUploadBtn.disabled = false;
                 };
-                
-                // 显示音频播放器
-                uploadedAudioPlayer.src = tempAudio.src;
-                uploadedAudioPlayer.classList.remove('hidden');
-                
-                // 启用提交按钮
-                submitUploadBtn.disabled = false;
+                reader.readAsDataURL(file);
             });
             
             tempAudio.addEventListener('error', () => {
@@ -2814,15 +2957,24 @@
         function submitUploadedAudio() {
             if (!appData.uploadedAudio || !appData.currentTask) return;
             
+            // 检查是否已存在相同任务的录音，如果存在则删除旧的
+            const existingRecordingIndex = appData.recordings.findIndex(recording => 
+                recording.taskId === appData.currentTask.id
+            );
+            
+            if (existingRecordingIndex !== -1) {
+                appData.recordings.splice(existingRecordingIndex, 1);
+            }
+            
             const recording = {
                 id: Date.now(),
                 taskId: appData.currentTask.id,
                 checkpointIndex: appData.currentCheckpointIndex,
                 date: new Date().toISOString(),
                 duration: appData.uploadedAudio.duration,
-                audioUrl: appData.uploadedAudio.url,
-                audioBlob: appData.uploadedAudio.file,
-                source: 'upload' // 标记为上传的录音
+                audioData: appData.uploadedAudio.audioData,  // 使用base64数据
+                mimeType: appData.uploadedAudio.mimeType,
+                source: 'upload'
             };
             
             appData.recordings.push(recording);
@@ -2896,7 +3048,6 @@
                 const checkin = task.checkins.find(c => c.checkpointIndex === index);
                 const hasPendingRecording = appData.recordings.some(recording => 
                     recording.taskId === taskId && 
-                    recording.checkpointIndex === index &&
                     !task.checkins.some(c => c.recordingId === recording.id)
                 );
                 
