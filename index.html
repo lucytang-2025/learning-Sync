@@ -33,7 +33,6 @@
             color: white;
             padding: 20px;
             text-align: center;
-            position: relative;
         }
 
         h1 {
@@ -44,34 +43,6 @@
         .app-description {
             font-size: 14px;
             opacity: 0.9;
-        }
-
-        .user-section {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-info {
-            color: white;
-            font-size: 14px;
-        }
-
-        .btn-logout {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            padding: 5px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .btn-logout:hover {
-            background: rgba(255, 255, 255, 0.3);
         }
 
         .tabs {
@@ -926,41 +897,6 @@
             color: #feca57;
         }
 
-        /* 用户登录样式 */
-        .login-container {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            max-width: 400px;
-            margin: 50px auto;
-        }
-
-        .login-title {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #475569;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .login-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-
-        .user-switch {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
         /* 任务详情样式 */
         .task-details-modal {
             max-width: 600px;
@@ -1011,10 +947,6 @@
         <header>
             <h1>复习打卡计划</h1>
             <p class="app-description">日积月累、持之以恒，冲刺100分</p>
-            <div class="user-section" id="user-section">
-                <div class="user-info" id="user-info">未登录</div>
-                <button class="btn-logout" id="logout-btn">退出登录</button>
-            </div>
         </header>
 
         <div class="tabs">
@@ -1256,33 +1188,6 @@
         </footer>
     </div>
 
-    <!-- 登录模态框 -->
-    <div id="login-modal" class="modal">
-        <div class="login-container">
-            <h2 class="login-title">用户登录</h2>
-            <div class="login-form">
-                <div class="form-group">
-                    <label for="username">用户名</label>
-                    <input type="text" id="username" placeholder="请输入用户名">
-                </div>
-                <div class="form-group">
-                    <label for="password">密码</label>
-                    <input type="password" id="password" placeholder="请输入密码">
-                </div>
-                <div class="login-actions">
-                    <button class="btn btn-primary" id="login-btn">登录</button>
-                    <button class="btn btn-secondary" id="register-btn">注册</button>
-                </div>
-                <div class="user-switch">
-                    <label for="switch-user">切换用户:</label>
-                    <select id="switch-user">
-                        <!-- 用户列表将通过JavaScript动态生成 -->
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- 数据管理模态框 -->
     <div id="data-management-modal" class="modal hidden">
         <div class="modal-content">
@@ -1394,8 +1299,6 @@
             currentCheckpointIndex: null,
             uploadedAudio: null,
             currentMode: 'record', // 'record' 或 'upload'
-            users: [],
-            currentUser: null,
             approvalPassword: "123456" // 默认验收密码
         };
 
@@ -1462,17 +1365,6 @@
         const importFileSize = document.getElementById('import-file-size');
         const clearDataBtn = document.getElementById('clear-data-btn');
 
-        // 用户登录相关DOM元素
-        const loginModal = document.getElementById('login-modal');
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const loginBtn = document.getElementById('login-btn');
-        const registerBtn = document.getElementById('register-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const userInfoEl = document.getElementById('user-info');
-        const userSectionEl = document.getElementById('user-section');
-        const switchUserSelect = document.getElementById('switch-user');
-
         // 任务详情相关DOM元素
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -1492,12 +1384,8 @@
             setupEventListeners();
             setupUploadEventListeners();
             setupDataManagementEventListeners();
-            setupUserEventListeners();
             setupTaskDetailsEventListeners();
             setupApprovalEventListeners();
-            
-            // 检查用户登录状态
-            checkLoginStatus();
             
             renderTodayTasks();
             renderAllTasks();
@@ -1507,20 +1395,6 @@
             
             restoreRecordingState();
             document.addEventListener('visibilitychange', handleVisibilityChange);
-        }
-
-        // 检查登录状态
-        function checkLoginStatus() {
-            const savedCurrentUser = localStorage.getItem('currentUser');
-            if (savedCurrentUser) {
-                appData.currentUser = JSON.parse(savedCurrentUser);
-                userInfoEl.textContent = `用户: ${appData.currentUser.username}`;
-                userSectionEl.classList.remove('hidden');
-                loginModal.classList.add('hidden');
-            } else {
-                loginModal.classList.remove('hidden');
-                userSectionEl.classList.add('hidden');
-            }
         }
 
         // 处理页面可见性变化
@@ -1638,7 +1512,6 @@
         function loadData() {
             const savedTasks = localStorage.getItem('checkinTasks');
             const savedRecordings = localStorage.getItem('checkinRecordings');
-            const savedUsers = localStorage.getItem('checkinUsers');
             
             if (savedTasks) {
                 appData.tasks = JSON.parse(savedTasks);
@@ -1651,8 +1524,7 @@
                         description: '每天学习30分钟英语',
                         createDate: new Date().toISOString(),
                         status: 'active',
-                        checkins: [],
-                        userId: 'default'
+                        checkins: []
                     },
                     {
                         id: 2,
@@ -1661,8 +1533,7 @@
                         description: '每周三次健身房锻炼',
                         createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                         status: 'active',
-                        checkins: [],
-                        userId: 'default'
+                        checkins: []
                     }
                 ];
                 saveTasks();
@@ -1671,18 +1542,6 @@
             if (savedRecordings) {
                 appData.recordings = JSON.parse(savedRecordings);
             }
-            
-            if (savedUsers) {
-                appData.users = JSON.parse(savedUsers);
-            } else {
-                appData.users = [
-                    { id: 'default', username: '默认用户', password: '123456' }
-                ];
-                saveUsers();
-            }
-            
-            // 更新用户选择下拉框
-            updateUserSelect();
         }
 
         // 保存任务数据
@@ -1693,22 +1552,6 @@
         // 保存录音数据
         function saveRecordings() {
             localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
-        }
-
-        // 保存用户数据
-        function saveUsers() {
-            localStorage.setItem('checkinUsers', JSON.stringify(appData.users));
-        }
-
-        // 更新用户选择下拉框
-        function updateUserSelect() {
-            switchUserSelect.innerHTML = '';
-            appData.users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.username;
-                switchUserSelect.appendChild(option);
-            });
         }
 
         // 设置事件监听器
@@ -1758,14 +1601,6 @@
             clearDataBtn.addEventListener('click', clearAllData);
         }
 
-        // 设置用户事件监听器
-        function setupUserEventListeners() {
-            loginBtn.addEventListener('click', handleLogin);
-            registerBtn.addEventListener('click', handleRegister);
-            logoutBtn.addEventListener('click', handleLogout);
-            switchUserSelect.addEventListener('change', handleSwitchUser);
-        }
-
         // 设置任务详情事件监听器
         function setupTaskDetailsEventListeners() {
             closeTaskDetailsBtn.addEventListener('click', hideTaskDetails);
@@ -1776,102 +1611,6 @@
             confirmApprovalBtn.addEventListener('click', handleApproval);
             cancelApprovalBtn.addEventListener('click', hideApprovalModal);
             closeApprovalModalBtn.addEventListener('click', hideApprovalModal);
-        }
-
-        // 处理登录
-        function handleLogin() {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-            
-            if (!username || !password) {
-                alert('请输入用户名和密码');
-                return;
-            }
-            
-            const user = appData.users.find(u => u.username === username && u.password === password);
-            if (user) {
-                appData.currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                userInfoEl.textContent = `用户: ${user.username}`;
-                userSectionEl.classList.remove('hidden');
-                loginModal.classList.add('hidden');
-                
-                // 重新渲染任务
-                renderTodayTasks();
-                renderAllTasks();
-                renderCalendar();
-                renderRecordings();
-                renderDataStats();
-            } else {
-                alert('用户名或密码错误');
-            }
-        }
-
-        // 处理注册
-        function handleRegister() {
-            const username = usernameInput.value.trim();
-            const password = passwordInput.value;
-            
-            if (!username || !password) {
-                alert('请输入用户名和密码');
-                return;
-            }
-            
-            if (appData.users.find(u => u.username === username)) {
-                alert('用户名已存在');
-                return;
-            }
-            
-            const newUser = {
-                id: 'user_' + Date.now(),
-                username: username,
-                password: password
-            };
-            
-            appData.users.push(newUser);
-            saveUsers();
-            updateUserSelect();
-            
-            alert('注册成功，请登录');
-            usernameInput.value = '';
-            passwordInput.value = '';
-        }
-
-        // 处理退出登录
-        function handleLogout() {
-            appData.currentUser = null;
-            localStorage.removeItem('currentUser');
-            userSectionEl.classList.add('hidden');
-            loginModal.classList.remove('hidden');
-            
-            // 重置应用状态
-            appData.currentTask = null;
-            appData.currentRecording = null;
-            resetRecorder();
-            resetUpload();
-            
-            // 清空任务显示
-            todayTasksEl.innerHTML = '';
-            allTasksEl.innerHTML = '';
-            recordingsListEl.innerHTML = '';
-        }
-
-        // 处理切换用户
-        function handleSwitchUser() {
-            const userId = switchUserSelect.value;
-            const user = appData.users.find(u => u.id === userId);
-            if (user) {
-                appData.currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                userInfoEl.textContent = `用户: ${user.username}`;
-                
-                // 重新渲染任务
-                renderTodayTasks();
-                renderAllTasks();
-                renderCalendar();
-                renderRecordings();
-                renderDataStats();
-            }
         }
 
         // 更新播放状态显示
@@ -2003,8 +1742,7 @@
                 description: desc,
                 createDate: date ? new Date(date).toISOString() : new Date().toISOString(),
                 status: 'active',
-                checkins: [],
-                userId: appData.currentUser ? appData.currentUser.id : 'default'
+                checkins: []
             };
             
             appData.tasks.push(newTask);
@@ -2062,12 +1800,7 @@
             
             let tasksForToday = [];
             
-            // 只显示当前用户的任务
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            
-            userTasks.forEach(task => {
+            appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
                 
                 const taskDate = new Date(task.createDate);
@@ -2156,12 +1889,7 @@
         function renderAllTasks() {
             allTasksEl.innerHTML = '';
             
-            // 只显示当前用户的任务
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            
-            if (userTasks.length === 0) {
+            if (appData.tasks.length === 0) {
                 allTasksEl.innerHTML = `
                     <div class="empty-state">
                         <i>📝</i>
@@ -2172,7 +1900,7 @@
             }
             
             // 按科目排序，同科目按时间从新到旧
-            const sortedTasks = [...userTasks].sort((a, b) => {
+            const sortedTasks = [...appData.tasks].sort((a, b) => {
                 // 先按科目排序
                 const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.subject] || 6;
@@ -2533,12 +2261,7 @@
                 pendingReview: 0
             };
             
-            // 只统计当前用户的任务
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            
-            userTasks.forEach(task => {
+            appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
                 
                 const taskDate = new Date(task.createDate);
@@ -2591,12 +2314,7 @@
             
             let hasTasks = false;
             
-            // 只显示当前用户的任务
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            
-            userTasks.forEach(task => {
+            appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
                 
                 const taskDate = new Date(task.createDate);
@@ -2666,17 +2384,11 @@
         function renderRecordings() {
             recordingsListEl.innerHTML = '';
             
-            // 只显示当前用户的录音记录
-            const userTaskIds = appData.tasks
-                .filter(task => task.userId === (appData.currentUser ? appData.currentUser.id : 'default'))
-                .map(task => task.id);
-            
             const unconfirmedRecordings = appData.recordings.filter(recording => {
                 const task = appData.tasks.find(t => t.id === recording.taskId);
                 if (!task) return false;
                 
-                return !task.checkins.some(checkin => checkin.recordingId === recording.id) && 
-                       userTaskIds.includes(recording.taskId);
+                return !task.checkins.some(checkin => checkin.recordingId === recording.id);
             });
             
             if (unconfirmedRecordings.length === 0) {
@@ -3256,22 +2968,13 @@
         }
 
         function updateDataStats() {
-            // 只统计当前用户的数据
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            const userTaskIds = userTasks.map(task => task.id);
-            
-            const totalTasks = userTasks.length;
-            const completedTasks = userTasks.filter(task => task.status === 'completed').length;
-            const totalRecordings = appData.recordings.filter(recording => 
-                userTaskIds.includes(recording.taskId)
-            ).length;
+            const totalTasks = appData.tasks.length;
+            const completedTasks = appData.tasks.filter(task => task.status === 'completed').length;
+            const totalRecordings = appData.recordings.length;
             const pendingRecordings = appData.recordings.filter(recording => {
                 const task = appData.tasks.find(t => t.id === recording.taskId);
                 if (!task) return false;
-                return !task.checkins.some(checkin => checkin.recordingId === recording.id) &&
-                       userTaskIds.includes(recording.taskId);
+                return !task.checkins.some(checkin => checkin.recordingId === recording.id);
             }).length;
             
             document.getElementById('stat-total-tasks').textContent = totalTasks;
@@ -3281,23 +2984,12 @@
         }
 
         function renderDataStats() {
-            // 只统计当前用户的数据
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            const userTaskIds = userTasks.map(task => task.id);
-            
-            const totalTasks = userTasks.length;
-            const completedTasks = userTasks.filter(task => task.status === 'completed').length;
-            const totalRecordings = appData.recordings.filter(recording => 
-                userTaskIds.includes(recording.taskId)
-            ).length;
+            const totalTasks = appData.tasks.length;
+            const completedTasks = appData.tasks.filter(task => task.status === 'completed').length;
+            const totalRecordings = appData.recordings.length;
             
             // 计算总录音时长（毫秒）
-            const userRecordings = appData.recordings.filter(recording => 
-                userTaskIds.includes(recording.taskId)
-            );
-            const totalDuration = userRecordings.reduce((total, recording) => total + recording.duration, 0);
+            const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
             document.getElementById('stats-total-tasks').textContent = totalTasks;
@@ -3307,20 +2999,11 @@
         }
 
         function exportData() {
-            // 只导出当前用户的数据
-            const userTasks = appData.tasks.filter(task => 
-                task.userId === (appData.currentUser ? appData.currentUser.id : 'default')
-            );
-            const userTaskIds = userTasks.map(task => task.id);
-            const userRecordings = appData.recordings.filter(recording => 
-                userTaskIds.includes(recording.taskId)
-            );
-            
             const exportData = {
                 version: '1.0',
                 exportDate: new Date().toISOString(),
-                tasks: userTasks,
-                recordings: userRecordings
+                tasks: appData.tasks,
+                recordings: appData.recordings
             };
             
             const dataStr = JSON.stringify(exportData, null, 2);
@@ -3368,28 +3051,13 @@
                         throw new Error('文件格式不正确，缺少必要的数据字段');
                     }
                     
-                    if (!confirm('导入数据将覆盖当前用户的所有数据，确定要继续吗？')) {
+                    if (!confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
                         return;
                     }
                     
-                    // 为导入的数据设置当前用户ID
-                    const currentUserId = appData.currentUser ? appData.currentUser.id : 'default';
-                    importedData.tasks.forEach(task => {
-                        task.userId = currentUserId;
-                    });
-                    
-                    // 删除当前用户的所有任务和录音
-                    appData.tasks = appData.tasks.filter(task => 
-                        task.userId !== currentUserId
-                    );
-                    appData.recordings = appData.recordings.filter(recording => {
-                        const task = appData.tasks.find(t => t.id === recording.taskId);
-                        return task && task.userId !== currentUserId;
-                    });
-                    
                     // 导入数据
-                    appData.tasks = appData.tasks.concat(importedData.tasks);
-                    appData.recordings = appData.recordings.concat(importedData.recordings);
+                    appData.tasks = importedData.tasks;
+                    appData.recordings = importedData.recordings;
                     
                     // 保存到本地存储
                     saveTasks();
@@ -3440,19 +3108,14 @@
                 return;
             }
             
-            // 清除当前用户的所有数据
-            const currentUserId = appData.currentUser ? appData.currentUser.id : 'default';
-            appData.tasks = appData.tasks.filter(task => 
-                task.userId !== currentUserId
-            );
-            appData.recordings = appData.recordings.filter(recording => {
-                const task = appData.tasks.find(t => t.id === recording.taskId);
-                return task && task.userId !== currentUserId;
-            });
+            // 清除所有数据
+            appData.tasks = [];
+            appData.recordings = [];
             
-            // 保存到本地存储
-            saveTasks();
-            saveRecordings();
+            // 清除本地存储
+            localStorage.removeItem('checkinTasks');
+            localStorage.removeItem('checkinRecordings');
+            localStorage.removeItem('recordingState');
             
             // 重置应用状态
             appData.currentTask = null;
