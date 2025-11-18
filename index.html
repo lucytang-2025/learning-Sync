@@ -622,7 +622,6 @@
             margin-bottom: 3px;
         }
         
-        /* 新增上传录音样式 */
         .upload-container {
             background: white;
             border-radius: 10px;
@@ -712,7 +711,6 @@
             margin: 15px 0;
         }
 
-        /* 数据管理样式 */
         .data-management-container {
             display: flex;
             flex-direction: column;
@@ -774,7 +772,6 @@
             line-height: 1.4;
         }
 
-        /* 模态框样式 */
         .modal {
             position: fixed;
             top: 0;
@@ -876,7 +873,6 @@
             display: none !important;
         }
 
-        /* 科目颜色 */
         .subject-chinese {
             color: #4facfe;
         }
@@ -897,7 +893,6 @@
             color: #feca57;
         }
 
-        /* 任务详情样式 */
         .task-details-modal {
             max-width: 600px;
         }
@@ -1051,13 +1046,11 @@
         <div class="tab-content" id="recorder-tab">
             <h2>录音打卡</h2>
             
-            <!-- 添加录音模式选择器 -->
             <div class="recorder-mode-selector">
                 <div class="recorder-mode active" data-mode="record">实时录音</div>
                 <div class="recorder-mode" data-mode="upload">上传录音</div>
             </div>
             
-            <!-- 实时录音容器 -->
             <div class="recorder-container" id="record-container">
                 <div class="recorder-header">
                     <h3 id="recorder-task-name">选择任务进行打卡</h3>
@@ -1096,7 +1089,6 @@
                 </div>
             </div>
             
-            <!-- 上传录音容器 -->
             <div class="upload-container hidden" id="upload-container">
                 <div class="upload-header">
                     <h3 id="upload-task-name">选择任务进行打卡</h3>
@@ -1188,7 +1180,6 @@
         </footer>
     </div>
 
-    <!-- 数据管理模态框 -->
     <div id="data-management-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1241,7 +1232,6 @@
         </div>
     </div>
 
-    <!-- 任务详情模态框 -->
     <div id="task-details-modal" class="modal hidden">
         <div class="modal-content task-details-modal">
             <div class="modal-header">
@@ -1256,7 +1246,6 @@
         </div>
     </div>
 
-    <!-- 验收密码模态框 -->
     <div id="approval-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1298,8 +1287,8 @@
             editingTask: null,
             currentCheckpointIndex: null,
             uploadedAudio: null,
-            currentMode: 'record', // 'record' 或 'upload'
-            approvalPassword: "123456" // 默认验收密码
+            currentMode: 'record',
+            approvalPassword: "123456"
         };
 
         // 打卡时间表
@@ -1337,7 +1326,6 @@
         const resetRecorderBtn = document.getElementById('reset-recorder');
         const recordingsListEl = document.getElementById('recordings-list');
         
-        // 新增DOM元素
         const recordModeBtn = document.querySelector('.recorder-mode[data-mode="record"]');
         const uploadModeBtn = document.querySelector('.recorder-mode[data-mode="upload"]');
         const recordContainer = document.getElementById('record-container');
@@ -1353,7 +1341,6 @@
         const uploadTaskNameEl = document.getElementById('upload-task-name');
         const uploadCheckpointEl = document.getElementById('upload-checkpoint');
 
-        // 数据管理相关DOM元素
         const dataManagementModal = document.getElementById('data-management-modal');
         const closeDataModalBtn = document.getElementById('close-data-modal');
         const showDataModalBtn = document.getElementById('show-data-modal');
@@ -1365,27 +1352,76 @@
         const importFileSize = document.getElementById('import-file-size');
         const clearDataBtn = document.getElementById('clear-data-btn');
 
-        // 任务详情相关DOM元素
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
         const taskDetailsContent = document.getElementById('task-details-content');
         const closeTaskDetailsBtn = document.getElementById('close-task-details');
 
-        // 验收密码相关DOM元素
         const approvalModal = document.getElementById('approval-modal');
         const approvalPasswordInput = document.getElementById('approval-password');
         const confirmApprovalBtn = document.getElementById('confirm-approval');
         const cancelApprovalBtn = document.getElementById('cancel-approval');
         const closeApprovalModalBtn = document.getElementById('close-approval-modal');
 
+        // 从Base64数据创建可播放的URL
+        function createAudioUrlFromData(recording) {
+            if (recording.audioData && !recording.audioUrl) {
+                try {
+                    console.log('正在为录音创建URL:', recording.id);
+                    
+                    const parts = recording.audioData.split(',');
+                    if (parts.length < 2) {
+                        console.error('Base64数据格式不正确');
+                        return;
+                    }
+                    
+                    const mimeType = parts[0].match(/:(.*?);/)[1];
+                    const base64Data = parts[1];
+                    
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    
+                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                        const slice = byteCharacters.slice(offset, offset + 512);
+                        
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        
+                        const byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                    }
+                    
+                    const blob = new Blob(byteArrays, { type: mimeType });
+                    recording.audioUrl = URL.createObjectURL(blob);
+                    console.log('成功创建音频URL:', recording.audioUrl);
+                    
+                } catch (error) {
+                    console.error('创建音频URL失败:', error);
+                }
+            }
+        }
+
+        // 加载录音数据时恢复所有录音的URL
+        function restoreRecordingUrls() {
+            console.log('正在恢复录音URL，录音数量:', appData.recordings.length);
+            appData.recordings.forEach(recording => {
+                createAudioUrlFromData(recording);
+            });
+        }
+
         // 初始化应用
         function initApp() {
+            console.log('初始化应用...');
             loadData();
             setupEventListeners();
             setupUploadEventListeners();
             setupDataManagementEventListeners();
             setupTaskDetailsEventListeners();
             setupApprovalEventListeners();
+            
+            restoreRecordingUrls();
             
             renderTodayTasks();
             renderAllTasks();
@@ -1395,6 +1431,8 @@
             
             restoreRecordingState();
             document.addEventListener('visibilitychange', handleVisibilityChange);
+            
+            console.log('应用初始化完成');
         }
 
         // 处理页面可见性变化
@@ -1471,20 +1509,45 @@
                 
                 appData.mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
                     
-                    appData.currentRecording = {
-                        id: Date.now(),
-                        taskId: appData.currentTask.id,
-                        checkpointIndex: appData.currentCheckpointIndex,
-                        date: new Date().toISOString(),
-                        duration: appData.recordingTime,
-                        audioUrl: audioUrl,
-                        audioBlob: audioBlob
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        const recording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,
+                            mimeType: 'audio/wav'
+                        };
+                        
+                        createAudioUrlFromData(recording);
+                        
+                        appData.recordings.push(recording);
+                        saveRecordings();
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
+                        
+                        recordBtn.classList.remove('recording', 'hidden');
+                        pauseBtn.classList.add('hidden');
+                        stopBtn.classList.add('hidden');
+                        playBtn.classList.remove('hidden');
+                        submitRecordingBtn.disabled = false;
+                        
+                        audioPlayer.src = recording.audioUrl;
+                        audioPlayer.classList.remove('hidden');
+                        
+                        alert('录音已保存！等待签收确认。');
+                        renderRecordings();
+                        renderTodayTasks();
+                        renderAllTasks();
+                        renderDataStats();
                     };
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    clearRecordingState();
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.mediaRecorder.start();
@@ -1514,44 +1577,98 @@
             const savedRecordings = localStorage.getItem('checkinRecordings');
             
             if (savedTasks) {
-                appData.tasks = JSON.parse(savedTasks);
+                try {
+                    appData.tasks = JSON.parse(savedTasks);
+                    console.log('加载任务数量:', appData.tasks.length);
+                } catch (e) {
+                    console.error('解析任务数据失败:', e);
+                    appData.tasks = getDefaultTasks();
+                }
             } else {
-                appData.tasks = [
-                    {
-                        id: 1,
-                        subject: '英语',
-                        name: '学习英语',
-                        description: '每天学习30分钟英语',
-                        createDate: new Date().toISOString(),
-                        status: 'active',
-                        checkins: []
-                    },
-                    {
-                        id: 2,
-                        subject: '其他',
-                        name: '健身计划',
-                        description: '每周三次健身房锻炼',
-                        createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-                        status: 'active',
-                        checkins: []
-                    }
-                ];
-                saveTasks();
+                appData.tasks = getDefaultTasks();
             }
             
             if (savedRecordings) {
-                appData.recordings = JSON.parse(savedRecordings);
+                try {
+                    appData.recordings = JSON.parse(savedRecordings);
+                    console.log('加载录音数量:', appData.recordings.length);
+                    
+                    appData.recordings.forEach(recording => {
+                        if (!recording.audioData) {
+                            console.warn('录音数据不完整:', recording.id);
+                        }
+                    });
+                    
+                } catch (e) {
+                    console.error('解析录音数据失败:', e);
+                    appData.recordings = [];
+                }
+            } else {
+                appData.recordings = [];
             }
+            
+            saveTasks();
+            saveRecordings();
+        }
+
+        // 获取默认任务
+        function getDefaultTasks() {
+            return [
+                {
+                    id: 1,
+                    subject: '英语',
+                    name: '学习英语',
+                    description: '每天学习30分钟英语',
+                    createDate: new Date().toISOString(),
+                    status: 'active',
+                    checkins: []
+                },
+                {
+                    id: 2,
+                    subject: '其他',
+                    name: '健身计划',
+                    description: '每周三次健身房锻炼',
+                    createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                    status: 'active',
+                    checkins: []
+                }
+            ];
         }
 
         // 保存任务数据
         function saveTasks() {
-            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+            try {
+                localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+                console.log('任务数据已保存，数量:', appData.tasks.length);
+            } catch (e) {
+                console.error('保存任务数据失败:', e);
+            }
         }
 
         // 保存录音数据
         function saveRecordings() {
-            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
+            try {
+                const recordingsToSave = appData.recordings.map(recording => {
+                    return {
+                        id: recording.id,
+                        taskId: recording.taskId,
+                        checkpointIndex: recording.checkpointIndex,
+                        date: recording.date,
+                        duration: recording.duration,
+                        audioData: recording.audioData,
+                        mimeType: recording.mimeType,
+                        source: recording.source
+                    };
+                });
+                
+                localStorage.setItem('checkinRecordings', JSON.stringify(recordingsToSave));
+                console.log('录音数据已保存，数量:', recordingsToSave.length);
+            } catch (e) {
+                console.error('保存录音数据失败:', e);
+                if (e.name === 'QuotaExceededError') {
+                    alert('存储空间不足，建议导出数据并清理');
+                }
+            }
         }
 
         // 设置事件监听器
@@ -1661,7 +1778,6 @@
                 recordContainer.classList.remove('hidden');
                 uploadContainer.classList.add('hidden');
                 
-                // 更新任务信息
                 if (appData.currentTask) {
                     recorderTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
                     const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
@@ -1673,7 +1789,6 @@
                 recordContainer.classList.add('hidden');
                 uploadContainer.classList.remove('hidden');
                 
-                // 更新任务信息
                 if (appData.currentTask) {
                     uploadTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
                     const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
@@ -1854,9 +1969,7 @@
                 }
             });
             
-            // 按科目排序，同科目按时间从新到旧
             tasksForToday.sort((a, b) => {
-                // 先按科目排序
                 const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.task.subject] || 6;
                 const subjectB = subjectOrder[b.task.subject] || 6;
@@ -1865,7 +1978,6 @@
                     return subjectA - subjectB;
                 }
                 
-                // 同科目按创建时间从新到旧排序
                 return new Date(b.task.createDate) - new Date(a.task.createDate);
             });
             
@@ -1899,9 +2011,7 @@
                 return;
             }
             
-            // 按科目排序，同科目按时间从新到旧
             const sortedTasks = [...appData.tasks].sort((a, b) => {
-                // 先按科目排序
                 const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.subject] || 6;
                 const subjectB = subjectOrder[b.subject] || 6;
@@ -1910,7 +2020,6 @@
                     return subjectA - subjectB;
                 }
                 
-                // 同科目按创建时间从新到旧排序
                 return new Date(b.createDate) - new Date(a.createDate);
             });
             
@@ -1976,11 +2085,12 @@
                     statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
                 }
                 
-                // 生成紧凑的打卡记录信息
                 const compactCheckinInfo = generateCompactCheckinInfo(task);
                 
-                // 根据科目设置颜色类
                 const subjectClass = `subject-${getSubjectClass(task.subject)}`;
+                
+                const hasPlayableRecording = latestCheckin && 
+                    appData.recordings.some(r => r.id === latestCheckin.recordingId && r.audioData);
                 
                 taskEl.innerHTML = `
                     <div class="task-header">
@@ -2006,7 +2116,7 @@
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                        ${latestCheckin ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+                        ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
                     </div>
                 `;
                 
@@ -2036,7 +2146,6 @@
                 return '';
             }
             
-            // 只显示最近的3次打卡记录
             const recentCheckins = [...task.checkins]
                 .sort((a, b) => new Date(b.date) - new Date(a.date))
                 .slice(0, 3);
@@ -2094,10 +2203,8 @@
             const lastRecordingText = lastRecordingDuration ? 
                 `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
             
-            // 生成紧凑的打卡记录信息
             const compactCheckinInfo = generateCompactCheckinInfo(task);
             
-            // 根据科目设置颜色类
             const subjectClass = `subject-${getSubjectClass(task.subject)}`;
             
             taskEl.innerHTML = `
@@ -2144,6 +2251,142 @@
                 playSavedRecording(pendingRecording.id);
             } else {
                 alert('未找到待验收的录音');
+            }
+        }
+
+        // 播放最新录音
+        function playLatestRecording(taskId) {
+            console.log('尝试播放任务最新录音:', taskId);
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) {
+                console.log('未找到任务:', taskId);
+                alert('未找到任务');
+                return;
+            }
+            
+            if (task.checkins.length === 0) {
+                console.log('该任务没有打卡记录');
+                alert('该任务没有录音记录');
+                return;
+            }
+            
+            const latestCheckin = task.checkins.reduce((latest, current) => {
+                const latestDate = new Date(latest.date);
+                const currentDate = new Date(current.date);
+                return currentDate > latestDate ? current : latest;
+            });
+            
+            console.log('最新打卡记录:', latestCheckin);
+            
+            if (!latestCheckin.recordingId) {
+                console.log('最新打卡记录没有录音ID');
+                alert('该任务没有录音记录');
+                return;
+            }
+            
+            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
+            if (!recording) {
+                console.log('未找到录音记录:', latestCheckin.recordingId);
+                alert('未找到录音记录');
+                return;
+            }
+            
+            console.log('找到录音记录:', recording);
+            
+            if (!recording.audioUrl && recording.audioData) {
+                console.log('为录音创建URL...');
+                createAudioUrlFromData(recording);
+            }
+            
+            if (recording.audioUrl) {
+                const playBtn = document.getElementById(`play-latest-${taskId}`);
+                if (playBtn) {
+                    playBtn.textContent = '录音回放中';
+                    playBtn.disabled = true;
+                }
+                
+                console.log('播放录音URL:', recording.audioUrl);
+                
+                switchTab('recorder');
+                
+                audioPlayer.src = recording.audioUrl;
+                audioPlayer.classList.remove('hidden');
+                
+                audioPlayer.play().then(() => {
+                    console.log('录音开始播放');
+                }).catch(error => {
+                    console.error('播放失败:', error);
+                    alert('播放录音失败: ' + error.message);
+                    if (playBtn) {
+                        playBtn.textContent = '回放录音';
+                        playBtn.disabled = false;
+                    }
+                });
+                
+                audioPlayer.onended = () => {
+                    console.log('录音播放结束');
+                    if (playBtn) {
+                        playBtn.textContent = '回放录音';
+                        playBtn.disabled = false;
+                    }
+                };
+                
+                audioPlayer.onerror = () => {
+                    console.error('音频播放错误');
+                    alert('播放录音时发生错误');
+                    if (playBtn) {
+                        playBtn.textContent = '回放录音';
+                        playBtn.disabled = false;
+                    }
+                };
+                
+            } else {
+                console.error('录音数据不可用，audioData:', !!recording.audioData, 'audioUrl:', !!recording.audioUrl);
+                alert('录音数据不可用，可能已损坏');
+            }
+        }
+
+        // 播放保存的录音
+        function playSavedRecording(recordingId) {
+            console.log('尝试播放录音:', recordingId);
+            const recording = appData.recordings.find(r => r.id === recordingId);
+            if (!recording) {
+                console.log('未找到录音:', recordingId);
+                return;
+            }
+            
+            if (!recording.audioUrl && recording.audioData) {
+                createAudioUrlFromData(recording);
+            }
+            
+            if (recording.audioUrl) {
+                const playBtn = document.getElementById(`play-saved-${recordingId}`);
+                if (playBtn) {
+                    playBtn.textContent = '录音回放中';
+                    playBtn.disabled = true;
+                }
+                
+                console.log('播放录音URL:', recording.audioUrl);
+                audioPlayer.src = recording.audioUrl;
+                audioPlayer.classList.remove('hidden');
+                audioPlayer.play().catch(error => {
+                    console.error('播放失败:', error);
+                    alert('播放录音失败');
+                    if (playBtn) {
+                        playBtn.textContent = '播放';
+                        playBtn.disabled = false;
+                    }
+                });
+                
+                audioPlayer.onended = () => {
+                    if (playBtn) {
+                        playBtn.textContent = '播放';
+                        playBtn.disabled = false;
+                    }
+                };
+            } else {
+                console.error('录音数据已损坏或丢失');
+                alert('录音数据已损坏或丢失');
             }
         }
 
@@ -2498,20 +2741,33 @@
                 
                 appData.mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
                     
-                    appData.currentRecording = {
-                        id: Date.now(),
-                        taskId: appData.currentTask.id,
-                        checkpointIndex: appData.currentCheckpointIndex,
-                        date: new Date().toISOString(),
-                        duration: appData.recordingTime,
-                        audioUrl: audioUrl,
-                        audioBlob: audioBlob
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        const recording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,
+                            mimeType: 'audio/wav'
+                        };
+                        
+                        createAudioUrlFromData(recording);
+                        
+                        appData.currentRecording = recording;
+                        appData.recordings.push(recording);
+                        saveRecordings();
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
+                        
+                        console.log('录音保存完成，ID:', recording.id);
                     };
-                    
-                    stream.getTracks().forEach(track => track.stop());
-                    clearRecordingState();
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.isRecording = true;
@@ -2586,78 +2842,35 @@
 
         // 播放录音
         function playRecording() {
-            if (!appData.currentRecording) return;
-            
-            audioPlayer.src = appData.currentRecording.audioUrl;
-            audioPlayer.classList.remove('hidden');
-            audioPlayer.play();
-        }
-
-        // 播放保存的录音
-        function playSavedRecording(recordingId) {
-            const recording = appData.recordings.find(r => r.id === recordingId);
-            if (recording && recording.audioUrl) {
-                const playBtn = document.getElementById(`play-saved-${recordingId}`);
-                if (playBtn) {
-                    playBtn.textContent = '录音回放中';
-                    playBtn.disabled = true;
-                }
-                
-                audioPlayer.src = recording.audioUrl;
-                audioPlayer.classList.remove('hidden');
-                audioPlayer.play();
-                
-                audioPlayer.onended = () => {
-                    if (playBtn) {
-                        playBtn.textContent = '播放';
-                        playBtn.disabled = false;
-                    }
-                };
-            }
-        }
-
-        // 播放最新录音
-        function playLatestRecording(taskId) {
-            const task = appData.tasks.find(t => t.id === taskId);
-            if (!task) return;
-            
-            const latestCheckin = task.checkins.length > 0 ? 
-                task.checkins.reduce((latest, current) => 
-                    new Date(current.date) > new Date(latest.date) ? current : latest
-                ) : null;
-            
-            if (!latestCheckin || !latestCheckin.recordingId) {
-                alert('该任务没有录音记录');
+            if (!appData.currentRecording) {
+                console.log('没有当前录音可播放');
                 return;
             }
             
-            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
-            if (recording && recording.audioUrl) {
-                const playBtn = document.getElementById(`play-latest-${taskId}`);
-                if (playBtn) {
-                    playBtn.textContent = '录音回放中';
-                    playBtn.disabled = true;
-                }
-                
-                audioPlayer.src = recording.audioUrl;
+            if (!appData.currentRecording.audioUrl && appData.currentRecording.audioData) {
+                createAudioUrlFromData(appData.currentRecording);
+            }
+            
+            if (appData.currentRecording.audioUrl) {
+                console.log('播放录音:', appData.currentRecording.audioUrl);
+                audioPlayer.src = appData.currentRecording.audioUrl;
                 audioPlayer.classList.remove('hidden');
-                audioPlayer.play();
-                
-                audioPlayer.onended = () => {
-                    if (playBtn) {
-                        playBtn.textContent = '回放录音';
-                        playBtn.disabled = false;
-                    }
-                };
+                audioPlayer.play().catch(error => {
+                    console.error('播放失败:', error);
+                    alert('播放录音失败');
+                });
+            } else {
+                console.error('录音数据不可用');
+                alert('录音数据不可用，可能已损坏');
             }
         }
 
         // 提交录音
         function submitRecording() {
-            if (!appData.currentRecording) return;
-            
-            appData.recordings.push(appData.currentRecording);
-            saveRecordings();
+            if (!appData.currentRecording) {
+                alert('请先完成录音！');
+                return;
+            }
             
             alert('打卡提交成功！等待签收确认。');
             resetRecorder();
@@ -2760,46 +2973,55 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            // 检查文件类型
             if (!file.type.startsWith('audio/')) {
                 alert('请选择音频文件！');
                 resetUpload();
                 return;
             }
             
-            // 显示文件信息
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小不能超过10MB');
+                resetUpload();
+                return;
+            }
+            
             fileNameEl.textContent = file.name;
             fileSizeEl.textContent = formatFileSize(file.size);
             fileDurationEl.textContent = '计算中...';
             fileInfoEl.classList.remove('hidden');
             
-            // 创建临时音频元素来计算时长
             const tempAudio = new Audio();
-            tempAudio.src = URL.createObjectURL(file);
+            const tempUrl = URL.createObjectURL(file);
+            tempAudio.src = tempUrl;
             
             tempAudio.addEventListener('loadedmetadata', () => {
-                const duration = Math.floor(tempAudio.duration * 1000); // 转换为毫秒
+                const duration = Math.floor(tempAudio.duration * 1000);
                 fileDurationEl.textContent = formatTime(duration);
                 
-                // 保存上传的音频信息
-                appData.uploadedAudio = {
-                    file: file,
-                    duration: duration,
-                    url: tempAudio.src
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    appData.uploadedAudio = {
+                        file: file,
+                        duration: duration,
+                        audioData: e.target.result,
+                        mimeType: file.type
+                    };
+                    
+                    uploadedAudioPlayer.src = e.target.result;
+                    uploadedAudioPlayer.classList.remove('hidden');
+                    
+                    submitUploadBtn.disabled = false;
+                    
+                    URL.revokeObjectURL(tempUrl);
                 };
-                
-                // 显示音频播放器
-                uploadedAudioPlayer.src = tempAudio.src;
-                uploadedAudioPlayer.classList.remove('hidden');
-                
-                // 启用提交按钮
-                submitUploadBtn.disabled = false;
+                reader.readAsDataURL(file);
             });
             
             tempAudio.addEventListener('error', () => {
                 fileDurationEl.textContent = '计算失败';
                 alert('无法读取音频文件，请选择其他文件');
                 resetUpload();
+                URL.revokeObjectURL(tempUrl);
             });
         }
 
@@ -2820,10 +3042,12 @@
                 checkpointIndex: appData.currentCheckpointIndex,
                 date: new Date().toISOString(),
                 duration: appData.uploadedAudio.duration,
-                audioUrl: appData.uploadedAudio.url,
-                audioBlob: appData.uploadedAudio.file,
-                source: 'upload' // 标记为上传的录音
+                audioData: appData.uploadedAudio.audioData,
+                mimeType: appData.uploadedAudio.mimeType,
+                source: 'upload'
             };
+            
+            createAudioUrlFromData(recording);
             
             appData.recordings.push(recording);
             saveRecordings();
@@ -2891,7 +3115,6 @@
             const task = appData.tasks.find(t => t.id === taskId);
             if (!task) return;
             
-            // 生成打卡进度详情
             const checkinDetails = checkinSchedule.map((day, index) => {
                 const checkin = task.checkins.find(c => c.checkpointIndex === index);
                 const hasPendingRecording = appData.recordings.some(recording => 
@@ -2988,7 +3211,6 @@
             const completedTasks = appData.tasks.filter(task => task.status === 'completed').length;
             const totalRecordings = appData.recordings.length;
             
-            // 计算总录音时长（毫秒）
             const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
@@ -3046,7 +3268,6 @@
                 try {
                     const importedData = JSON.parse(e.target.result);
                     
-                    // 验证数据格式
                     if (!importedData.tasks || !importedData.recordings) {
                         throw new Error('文件格式不正确，缺少必要的数据字段');
                     }
@@ -3055,22 +3276,20 @@
                         return;
                     }
                     
-                    // 导入数据
                     appData.tasks = importedData.tasks;
                     appData.recordings = importedData.recordings;
                     
-                    // 保存到本地存储
+                    restoreRecordingUrls();
+                    
                     saveTasks();
                     saveRecordings();
                     
-                    // 重置应用状态
                     appData.currentTask = null;
                     appData.currentRecording = null;
                     appData.selectedCalendarDate = null;
                     appData.editingTask = null;
                     appData.currentCheckpointIndex = null;
                     
-                    // 重新渲染所有组件
                     renderTodayTasks();
                     renderAllTasks();
                     renderCalendar();
@@ -3108,23 +3327,19 @@
                 return;
             }
             
-            // 清除所有数据
             appData.tasks = [];
             appData.recordings = [];
             
-            // 清除本地存储
             localStorage.removeItem('checkinTasks');
             localStorage.removeItem('checkinRecordings');
             localStorage.removeItem('recordingState');
             
-            // 重置应用状态
             appData.currentTask = null;
             appData.currentRecording = null;
             appData.selectedCalendarDate = null;
             appData.editingTask = null;
             appData.currentCheckpointIndex = null;
             
-            // 重新渲染所有组件
             renderTodayTasks();
             renderAllTasks();
             renderCalendar();
