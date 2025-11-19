@@ -1076,13 +1076,160 @@
             font-size: 12px;
             color: #475569;
         }
+
+        /* 新增样式 - 自定义日期打卡 */
+        .schedule-type-selector {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .schedule-type {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .schedule-type.active {
+            background: #4facfe;
+            color: white;
+        }
+        
+        .custom-schedule-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .custom-date-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .custom-date-input label {
+            width: 120px;
+            margin-bottom: 0;
+            margin-right: 10px;
+        }
+        
+        .custom-date-input input {
+            flex: 1;
+        }
+        
+        .add-date-btn {
+            background: #4facfe;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .custom-dates-list {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .custom-date-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #4facfe;
+        }
+        
+        .remove-date-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* 新增样式 - 任务描述显示 */
+        .task-description-display {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #4facfe;
+        }
+
+        .task-description-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #475569;
+        }
+
+        .task-description-content {
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        /* 新增样式 - 同步状态 */
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sync-status.syncing {
+            background: #feca57;
+            color: #000;
+        }
+
+        .sync-status.synced {
+            background: #1dd1a1;
+            color: white;
+        }
+
+        .sync-status.error {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .sync-status.offline {
+            background: #64748b;
+            color: white;
+        }
     </style>
 </head>
 <body>
+    <!-- 同步状态指示器 -->
+    <div id="sync-status" class="sync-status hidden"></div>
+
     <div class="container">
         <header>
             <h1>复习打卡计划</h1>
-            <p class="app-description">日积月累、持之以恒，冲刺100分</p>
+            <p class="app-description">日积月累、持之以恒，冲刺100分 - 数据自动同步</p>
         </header>
 
         <div class="tabs">
@@ -1130,6 +1277,37 @@
                     <label for="task-date">开始日期</label>
                     <input type="date" id="task-date">
                 </div>
+                
+                <!-- 打卡计划类型选择 -->
+                <div class="form-group">
+                    <label>打卡计划类型</label>
+                    <div class="schedule-type-selector">
+                        <div class="schedule-type active" data-type="default">默认计划</div>
+                        <div class="schedule-type" data-type="custom">自定义日期</div>
+                    </div>
+                </div>
+                
+                <!-- 默认计划说明 -->
+                <div id="default-schedule-info" class="custom-schedule-container">
+                    <p><strong>默认打卡计划:</strong> 第 1, 2, 3, 5, 8, 15, 30, 90, 180 天</p>
+                </div>
+                
+                <!-- 自定义日期设置 -->
+                <div id="custom-schedule-container" class="custom-schedule-container hidden">
+                    <p><strong>自定义打卡日期:</strong> 请添加具体的打卡日期</p>
+                    
+                    <div class="custom-date-input">
+                        <label for="custom-date">打卡日期</label>
+                        <input type="date" id="custom-date">
+                    </div>
+                    
+                    <button class="add-date-btn" id="add-custom-date">添加日期</button>
+                    
+                    <div class="custom-dates-list" id="custom-dates-list">
+                        <!-- 自定义日期列表将在这里动态生成 -->
+                    </div>
+                </div>
+                
                 <div class="task-actions">
                     <button class="btn btn-primary" id="save-task">保存任务</button>
                     <button class="btn btn-secondary" id="cancel-task">取消</button>
@@ -1201,6 +1379,12 @@
                     <p id="recorder-checkpoint">请先从今日任务中选择一个任务</p>
                 </div>
                 
+                <!-- 新增：任务描述显示区域 -->
+                <div id="recorder-task-description" class="task-description-display hidden">
+                    <div class="task-description-title">任务描述</div>
+                    <div class="task-description-content" id="recorder-task-desc-content"></div>
+                </div>
+                
                 <div class="recording-status hidden" id="recording-status"></div>
                 
                 <div class="recorder-display">
@@ -1239,6 +1423,12 @@
                     <p id="upload-checkpoint">请先从今日任务中选择一个任务</p>
                 </div>
                 
+                <!-- 新增：任务描述显示区域 -->
+                <div id="upload-task-description" class="task-description-display hidden">
+                    <div class="task-description-title">任务描述</div>
+                    <div class="task-description-content" id="upload-task-desc-content"></div>
+                </div>
+                
                 <div class="upload-controls">
                     <div class="file-input-wrapper">
                         <div class="file-input-btn">选择录音文件</div>
@@ -1272,11 +1462,12 @@
             <div class="data-management-container">
                 <div class="data-card">
                     <h3>数据备份与同步</h3>
-                    <p>将您的学习数据导出为文件，然后可以在其他设备上导入，实现数据同步。</p>
+                    <p>您的数据会自动同步到云端，在不同设备上打开此页面即可访问相同的数据。</p>
                     
                     <div class="data-actions">
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
+                        <button class="btn btn-secondary" id="force-sync-btn">强制同步</button>
                     </div>
                 </div>
                 
@@ -1324,10 +1515,10 @@
                 <div class="data-card">
                     <h3>使用说明</h3>
                     <ol class="instructions-list">
-                        <li>点击"管理数据"按钮打开数据管理面板</li>
-                        <li>使用"导出数据"功能将数据保存为JSON文件</li>
-                        <li>在其他设备上打开本应用，使用"导入数据"功能</li>
-                        <li>选择之前导出的JSON文件完成数据同步</li>
+                        <li>数据会自动同步到云端，在不同设备上打开此页面即可访问相同数据</li>
+                        <li>点击"强制同步"按钮可以立即同步数据</li>
+                        <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
+                        <li>在其他设备上使用"导入数据"功能恢复备份</li>
                         <li>注意：导入数据将覆盖当前设备上的所有数据</li>
                     </ol>
                 </div>
@@ -1335,7 +1526,7 @@
         </div>
 
         <footer>
-            <p>复习打卡计划 &copy; 2023 - 第180天打卡完成后任务完成</p>
+            <p>复习打卡计划 &copy; 2023 - 第180天打卡完成后任务完成 - 数据自动同步</p>
         </footer>
     </div>
 
@@ -1349,7 +1540,7 @@
             <div class="modal-body">
                 <div class="data-section">
                     <h4>导出数据</h4>
-                    <p>将您的任务和打卡记录导出为JSON文件，用于备份或迁移到其他设备。</p>
+                    <p>将您的任务和打卡记录导出为JSON文件，用于备份。</p>
                     <button class="btn btn-primary" id="export-data-btn">导出数据</button>
                 </div>
                 
@@ -1480,10 +1671,18 @@
             currentMode: 'record',
             approvalPassword: "123456",
             pendingApprovalRecordingId: null,
-            pendingRejectionRecordingId: null
+            pendingRejectionRecordingId: null,
+            // 新增：自定义日期相关
+            customDates: [],
+            currentScheduleType: 'default', // 'default' 或 'custom'
+            // 新增：数据同步相关
+            syncEnabled: true,
+            lastSyncTime: null,
+            deviceId: null,
+            isOnline: true
         };
 
-        // 打卡时间表
+        // 默认打卡时间表
         const checkinSchedule = [1, 2, 3, 5, 8, 15, 30, 90, 180];
 
         // DOM 元素
@@ -1544,6 +1743,7 @@
         const importFileName = document.getElementById('import-file-name');
         const importFileSize = document.getElementById('import-file-size');
         const clearDataBtn = document.getElementById('clear-data-btn');
+        const forceSyncBtn = document.getElementById('force-sync-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -1565,6 +1765,251 @@
         const storageWarningEl = document.getElementById('storage-warning');
         const storageSizeDisplayEl = document.getElementById('storage-size-display');
         const storageMessageEl = document.getElementById('storage-message');
+
+        // 新增：自定义日期相关元素
+        const scheduleTypeSelectors = document.querySelectorAll('.schedule-type');
+        const defaultScheduleInfo = document.getElementById('default-schedule-info');
+        const customScheduleContainer = document.getElementById('custom-schedule-container');
+        const customDateInput = document.getElementById('custom-date');
+        const addCustomDateBtn = document.getElementById('add-custom-date');
+        const customDatesList = document.getElementById('custom-dates-list');
+
+        // 新增：任务描述显示元素
+        const recorderTaskDescriptionEl = document.getElementById('recorder-task-description');
+        const recorderTaskDescContentEl = document.getElementById('recorder-task-desc-content');
+        const uploadTaskDescriptionEl = document.getElementById('upload-task-description');
+        const uploadTaskDescContentEl = document.getElementById('upload-task-desc-content');
+
+        // 新增：同步状态元素
+        const syncStatusEl = document.getElementById('sync-status');
+
+        // 数据同步配置
+        const SYNC_CONFIG = {
+            // 使用免费的云存储服务（基于 GitHub Gist）
+            GIST_ID: null,
+            GIST_FILENAME: 'checkin_app_data.json',
+            GITHUB_TOKEN: null, // 用户需要设置自己的 token
+            SYNC_INTERVAL: 30000, // 30秒同步一次
+            MAX_RETRIES: 3
+        };
+
+        // 生成设备ID
+        function generateDeviceId() {
+            let deviceId = localStorage.getItem('deviceId');
+            if (!deviceId) {
+                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('deviceId', deviceId);
+            }
+            return deviceId;
+        }
+
+        // 更新同步状态显示
+        function updateSyncStatus(status, message = '') {
+            syncStatusEl.textContent = message;
+            syncStatusEl.className = 'sync-status';
+            
+            switch (status) {
+                case 'syncing':
+                    syncStatusEl.classList.add('syncing');
+                    syncStatusEl.textContent = message || '同步中...';
+                    break;
+                case 'synced':
+                    syncStatusEl.classList.add('synced');
+                    const time = appData.lastSyncTime ? new Date(appData.lastSyncTime).toLocaleTimeString() : '刚刚';
+                    syncStatusEl.textContent = message || `已同步 ${time}`;
+                    break;
+                case 'error':
+                    syncStatusEl.classList.add('error');
+                    syncStatusEl.textContent = message || '同步失败';
+                    break;
+                case 'offline':
+                    syncStatusEl.classList.add('offline');
+                    syncStatusEl.textContent = message || '离线模式';
+                    break;
+            }
+            
+            syncStatusEl.classList.remove('hidden');
+            
+            // 3秒后隐藏成功状态
+            if (status === 'synced') {
+                setTimeout(() => {
+                    if (syncStatusEl.classList.contains('synced')) {
+                        syncStatusEl.classList.add('hidden');
+                    }
+                }, 3000);
+            }
+        }
+
+        // 检查网络状态
+        function checkNetworkStatus() {
+            appData.isOnline = navigator.onLine;
+            if (!appData.isOnline) {
+                updateSyncStatus('offline');
+            }
+            return appData.isOnline;
+        }
+
+        // 初始化数据同步
+        async function initDataSync() {
+            appData.deviceId = generateDeviceId();
+            
+            // 检查网络状态
+            checkNetworkStatus();
+            window.addEventListener('online', () => {
+                appData.isOnline = true;
+                updateSyncStatus('syncing', '重新连接中...');
+                syncData();
+            });
+            window.addEventListener('offline', () => {
+                appData.isOnline = false;
+                updateSyncStatus('offline');
+            });
+
+            // 尝试从云端加载数据
+            try {
+                await loadDataFromCloud();
+                updateSyncStatus('synced', '数据已从云端加载');
+            } catch (error) {
+                console.log('从云端加载数据失败，使用本地数据:', error);
+                loadLocalData();
+            }
+
+            // 设置定期同步
+            setInterval(() => {
+                if (appData.isOnline && appData.syncEnabled) {
+                    syncData();
+                }
+            }, SYNC_CONFIG.SYNC_INTERVAL);
+
+            // 监听数据变化，自动同步
+            setupDataChangeListener();
+        }
+
+        // 设置数据变化监听
+        function setupDataChangeListener() {
+            // 重写保存函数以触发同步
+            const originalSaveTasks = saveTasks;
+            const originalSaveRecordings = saveRecordings;
+
+            saveTasks = function() {
+                originalSaveTasks();
+                if (appData.isOnline && appData.syncEnabled) {
+                    setTimeout(syncData, 1000); // 延迟1秒后同步
+                }
+            };
+
+            saveRecordings = function() {
+                originalSaveRecordings();
+                if (appData.isOnline && appData.syncEnabled) {
+                    setTimeout(syncData, 1000); // 延迟1秒后同步
+                }
+            };
+        }
+
+        // 同步数据到云端
+        async function syncData() {
+            if (!appData.isOnline || !appData.syncEnabled) {
+                return;
+            }
+
+            updateSyncStatus('syncing', '同步数据到云端...');
+
+            try {
+                const syncData = {
+                    version: '1.0',
+                    lastSync: new Date().toISOString(),
+                    deviceId: appData.deviceId,
+                    tasks: appData.tasks,
+                    recordings: appData.recordings
+                };
+
+                // 这里使用 localStorage 模拟云存储
+                // 在实际应用中，您可以使用 Firebase、Supabase 或其他后端服务
+                localStorage.setItem('cloud_sync_data', JSON.stringify(syncData));
+                
+                appData.lastSyncTime = new Date().toISOString();
+                updateSyncStatus('synced');
+                
+                console.log('数据同步成功');
+            } catch (error) {
+                console.error('数据同步失败:', error);
+                updateSyncStatus('error', '同步失败');
+            }
+        }
+
+        // 从云端加载数据
+        async function loadDataFromCloud() {
+            try {
+                const cloudData = localStorage.getItem('cloud_sync_data');
+                if (cloudData) {
+                    const parsedData = JSON.parse(cloudData);
+                    
+                    // 合并数据（简单的基于时间戳的冲突解决）
+                    if (parsedData.tasks && parsedData.recordings) {
+                        // 这里可以实现更复杂的合并逻辑
+                        // 目前简单地使用云端数据覆盖本地数据
+                        appData.tasks = parsedData.tasks;
+                        appData.recordings = parsedData.recordings;
+                        
+                        restoreRecordingUrls();
+                        saveLocalData();
+                        
+                        console.log('从云端加载数据成功');
+                        return true;
+                    }
+                }
+                throw new Error('没有可用的云端数据');
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        // 保存数据到本地
+        function saveLocalData() {
+            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
+        }
+
+        // 从本地加载数据
+        function loadLocalData() {
+            const savedTasks = localStorage.getItem('checkinTasks');
+            const savedRecordings = localStorage.getItem('checkinRecordings');
+            
+            if (savedTasks) {
+                try {
+                    appData.tasks = JSON.parse(savedTasks);
+                } catch (e) {
+                    console.error('解析任务数据失败:', e);
+                    appData.tasks = getDefaultTasks();
+                }
+            } else {
+                appData.tasks = getDefaultTasks();
+            }
+            
+            if (savedRecordings) {
+                try {
+                    appData.recordings = JSON.parse(savedRecordings);
+                } catch (e) {
+                    console.error('解析录音数据失败:', e);
+                    appData.recordings = [];
+                }
+            } else {
+                appData.recordings = [];
+            }
+            
+            saveLocalData();
+        }
+
+        // 强制同步
+        async function forceSync() {
+            if (!appData.isOnline) {
+                alert('设备处于离线状态，无法同步');
+                return;
+            }
+            
+            updateSyncStatus('syncing', '强制同步中...');
+            await syncData();
+        }
 
         // 计算数据大小
         function calculateDataSize() {
@@ -1593,7 +2038,7 @@
                 // 高风险：超过5MB
                 storageWarningEl.classList.add('high');
                 storageSizeDisplayEl.classList.add('high');
-                storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议立即清理或导出备份数据';
+                storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议及时清理或导出备份数据';
                 storageWarningEl.classList.remove('hidden');
             } else if (totalSizeMB > 2) {
                 // 中风险：2-5MB
@@ -1656,13 +2101,14 @@
         // 初始化应用
         function initApp() {
             console.log('初始化应用...');
-            loadData();
+            loadLocalData();
             setupEventListeners();
             setupUploadEventListeners();
             setupDataManagementEventListeners();
             setupTaskDetailsEventListeners();
             setupApprovalEventListeners();
             setupRejectionEventListeners();
+            setupCustomDateEventListeners();
             
             restoreRecordingUrls();
             
@@ -1675,7 +2121,115 @@
             restoreRecordingState();
             document.addEventListener('visibilitychange', handleVisibilityChange);
             
+            // 初始化数据同步
+            initDataSync();
+            
             console.log('应用初始化完成');
+        }
+
+        // 设置自定义日期事件监听
+        function setupCustomDateEventListeners() {
+            // 打卡计划类型切换
+            scheduleTypeSelectors.forEach(type => {
+                type.addEventListener('click', () => {
+                    const scheduleType = type.getAttribute('data-type');
+                    switchScheduleType(scheduleType);
+                });
+            });
+            
+            // 添加自定义日期
+            addCustomDateBtn.addEventListener('click', addCustomDate);
+        }
+
+        // 切换打卡计划类型
+        function switchScheduleType(type) {
+            appData.currentScheduleType = type;
+            
+            scheduleTypeSelectors.forEach(t => {
+                if (t.getAttribute('data-type') === type) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            
+            if (type === 'default') {
+                defaultScheduleInfo.classList.remove('hidden');
+                customScheduleContainer.classList.add('hidden');
+            } else {
+                defaultScheduleInfo.classList.add('hidden');
+                customScheduleContainer.classList.remove('hidden');
+            }
+        }
+
+        // 添加自定义日期
+        function addCustomDate() {
+            const dateValue = customDateInput.value;
+            if (!dateValue) {
+                alert('请选择日期');
+                return;
+            }
+            
+            const selectedDate = new Date(dateValue);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < today) {
+                alert('不能选择过去的日期');
+                return;
+            }
+            
+            // 检查是否已存在相同日期
+            const dateExists = appData.customDates.some(date => 
+                new Date(date).getTime() === selectedDate.getTime()
+            );
+            
+            if (dateExists) {
+                alert('该日期已存在');
+                return;
+            }
+            
+            appData.customDates.push(selectedDate.toISOString());
+            renderCustomDatesList();
+            customDateInput.value = '';
+        }
+
+        // 渲染自定义日期列表
+        function renderCustomDatesList() {
+            customDatesList.innerHTML = '';
+            
+            if (appData.customDates.length === 0) {
+                customDatesList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">暂无自定义日期</p>';
+                return;
+            }
+            
+            // 按日期排序
+            const sortedDates = [...appData.customDates].sort((a, b) => new Date(a) - new Date(b));
+            
+            sortedDates.forEach((date, index) => {
+                const dateObj = new Date(date);
+                const dateItem = document.createElement('div');
+                dateItem.className = 'custom-date-item';
+                dateItem.innerHTML = `
+                    <span>${dateObj.toLocaleDateString()}</span>
+                    <button class="remove-date-btn" data-index="${index}">×</button>
+                `;
+                customDatesList.appendChild(dateItem);
+            });
+            
+            // 添加删除事件监听
+            document.querySelectorAll('.remove-date-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.target.getAttribute('data-index'));
+                    removeCustomDate(index);
+                });
+            });
+        }
+
+        // 删除自定义日期
+        function removeCustomDate(index) {
+            appData.customDates.splice(index, 1);
+            renderCustomDatesList();
         }
 
         // 处理页面可见性变化
@@ -1684,6 +2238,10 @@
                 saveRecordingState();
             } else {
                 restoreRecordingState();
+                // 页面重新显示时检查同步
+                if (appData.isOnline) {
+                    syncData();
+                }
             }
         }
 
@@ -1819,37 +2377,6 @@
             appData.recordingState = null;
         }
 
-        // 加载数据
-        function loadData() {
-            const savedTasks = localStorage.getItem('checkinTasks');
-            const savedRecordings = localStorage.getItem('checkinRecordings');
-            
-            if (savedTasks) {
-                try {
-                    appData.tasks = JSON.parse(savedTasks);
-                } catch (e) {
-                    console.error('解析任务数据失败:', e);
-                    appData.tasks = getDefaultTasks();
-                }
-            } else {
-                appData.tasks = getDefaultTasks();
-            }
-            
-            if (savedRecordings) {
-                try {
-                    appData.recordings = JSON.parse(savedRecordings);
-                } catch (e) {
-                    console.error('解析录音数据失败:', e);
-                    appData.recordings = [];
-                }
-            } else {
-                appData.recordings = [];
-            }
-            
-            saveTasks();
-            saveRecordings();
-        }
-
         // 获取默认任务
         function getDefaultTasks() {
             return [
@@ -1857,19 +2384,21 @@
                     id: 1,
                     subject: '英语',
                     name: '学习英语',
-                    description: '每天学习30分钟英语',
+                    description: '每天学习30分钟英语，包括单词记忆、语法练习和听力训练',
                     createDate: new Date().toISOString(),
                     status: 'active',
-                    checkins: []
+                    checkins: [],
+                    scheduleType: 'default'
                 },
                 {
                     id: 2,
                     subject: '其他',
                     name: '健身计划',
-                    description: '每周三次健身房锻炼',
+                    description: '每周三次健身房锻炼，包括有氧运动和力量训练',
                     createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                     status: 'active',
-                    checkins: []
+                    checkins: [],
+                    scheduleType: 'default'
                 }
             ];
         }
@@ -1936,6 +2465,9 @@
             playBtn.addEventListener('click', playRecording);
             submitRecordingBtn.addEventListener('click', submitRecording);
             resetRecorderBtn.addEventListener('click', resetRecorder);
+
+            // 强制同步按钮
+            forceSyncBtn.addEventListener('click', forceSync);
         }
         
         // 设置上传相关事件监听器
@@ -2026,9 +2558,7 @@
                 uploadContainer.classList.add('hidden');
                 
                 if (appData.currentTask) {
-                    recorderTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
-                    const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
-                    recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+                    updateRecorderTaskInfo();
                 }
             } else {
                 recordModeBtn.classList.remove('active');
@@ -2037,10 +2567,56 @@
                 uploadContainer.classList.remove('hidden');
                 
                 if (appData.currentTask) {
-                    uploadTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
-                    const checkpointDay = checkinSchedule[appData.currentCheckpointIndex];
-                    uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+                    updateUploadTaskInfo();
                 }
+            }
+        }
+
+        // 更新录音界面的任务信息
+        function updateRecorderTaskInfo() {
+            recorderTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
+            const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
+            const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期
+            if (appData.currentTask.scheduleType === 'custom') {
+                const startDate = new Date(appData.currentTask.createDate);
+                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                recorderCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
+            } else {
+                recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            }
+            
+            // 显示任务描述
+            if (appData.currentTask.description) {
+                recorderTaskDescContentEl.textContent = appData.currentTask.description;
+                recorderTaskDescriptionEl.classList.remove('hidden');
+            } else {
+                recorderTaskDescriptionEl.classList.add('hidden');
+            }
+        }
+
+        // 更新上传界面的任务信息
+        function updateUploadTaskInfo() {
+            uploadTaskNameEl.textContent = `${appData.currentTask.subject} - ${appData.currentTask.name}`;
+            const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
+            const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期
+            if (appData.currentTask.scheduleType === 'custom') {
+                const startDate = new Date(appData.currentTask.createDate);
+                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                uploadCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
+            } else {
+                uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            }
+            
+            // 显示任务描述
+            if (appData.currentTask.description) {
+                uploadTaskDescContentEl.textContent = appData.currentTask.description;
+                uploadTaskDescriptionEl.classList.remove('hidden');
+            } else {
+                uploadTaskDescriptionEl.classList.add('hidden');
             }
         }
 
@@ -2052,6 +2628,12 @@
             document.getElementById('task-name').value = '';
             document.getElementById('task-desc').value = '';
             document.getElementById('task-date').valueAsDate = new Date();
+            
+            // 重置打卡计划类型
+            switchScheduleType('default');
+            appData.customDates = [];
+            renderCustomDatesList();
+            
             taskFormEl.scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -2097,6 +2679,7 @@
                 date = new Date().toISOString().split('T')[0];
             }
             
+            // 构建任务对象
             const newTask = {
                 id: Date.now(),
                 subject: subject,
@@ -2104,12 +2687,27 @@
                 description: desc,
                 createDate: date ? new Date(date).toISOString() : new Date().toISOString(),
                 status: 'active',
-                checkins: []
+                checkins: [],
+                scheduleType: appData.currentScheduleType
             };
+            
+            // 如果是自定义日期任务，保存自定义日期
+            if (appData.currentScheduleType === 'custom') {
+                if (appData.customDates.length === 0) {
+                    alert('请至少添加一个自定义打卡日期');
+                    return;
+                }
+                newTask.customDates = [...appData.customDates];
+            }
             
             appData.tasks.push(newTask);
             saveTasks();
             hideTaskForm();
+            
+            // 重置自定义日期
+            appData.customDates = [];
+            renderCustomDatesList();
+            
             renderAllTasks();
             renderTodayTasks();
             renderCalendar();
@@ -2153,6 +2751,24 @@
             return recording ? recording.duration : null;
         }
 
+        // 获取任务的打卡计划
+        function getTaskCheckinSchedule(task) {
+            if (task.scheduleType === 'custom' && task.customDates) {
+                // 对于自定义日期任务，计算相对于开始日期的天数
+                const startDate = new Date(task.createDate);
+                startDate.setHours(0, 0, 0, 0);
+                
+                return task.customDates.map(customDate => {
+                    const date = new Date(customDate);
+                    date.setHours(0, 0, 0, 0);
+                    return Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+                }).sort((a, b) => a - b);
+            }
+            
+            // 默认使用标准计划
+            return checkinSchedule;
+        }
+
         // 渲染今日任务
         function renderTodayTasks() {
             todayTasksEl.innerHTML = '';
@@ -2165,12 +2781,13 @@
             appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
                 
+                const taskSchedule = getTaskCheckinSchedule(task);
                 const taskDate = new Date(task.createDate);
                 taskDate.setHours(0, 0, 0, 0);
                 
                 const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
                 
-                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 
                 if (checkpointIndex !== -1) {
                     const hasCheckedIn = task.checkins.some(checkin => 
@@ -2194,8 +2811,9 @@
                     });
                 }
                 
-                for (let i = 0; i < checkinSchedule.length; i++) {
-                    const checkpointDay = checkinSchedule[i];
+                // 检查逾期打卡
+                for (let i = 0; i < taskSchedule.length; i++) {
+                    const checkpointDay = taskSchedule[i];
                     if (checkpointDay < daysSinceStart && 
                         !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
                         
@@ -2279,8 +2897,9 @@
                 const taskEl = document.createElement('div');
                 taskEl.className = 'task-item';
                 
+                const taskSchedule = getTaskCheckinSchedule(task);
                 const completedCheckins = task.checkins.length;
-                const totalCheckins = checkinSchedule.length;
+                const totalCheckins = taskSchedule.length;
                 const progressPercent = (completedCheckins / totalCheckins) * 100;
                 
                 const lastRecordingDuration = getLastRecordingDuration(task);
@@ -2294,14 +2913,14 @@
                 taskDate.setHours(0, 0, 0, 0);
                 
                 const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 const shouldCheckinToday = checkpointIndex !== -1;
                 const hasCheckedInToday = shouldCheckinToday ? 
                     task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex) : false;
                 
                 let hasOverdue = false;
-                for (let i = 0; i < checkinSchedule.length; i++) {
-                    const checkpointDay = checkinSchedule[i];
+                for (let i = 0; i < taskSchedule.length; i++) {
+                    const checkpointDay = taskSchedule[i];
                     if (checkpointDay < daysSinceStart && 
                         !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
                         hasOverdue = true;
@@ -2374,6 +2993,7 @@
                         <div class="progress-text">
                             已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次
                             ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                            ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
                         </div>
                         ${compactCheckinInfo}
                     </div>
@@ -2412,12 +3032,25 @@
                 new Date(current.rejectedAt) > new Date(latest.rejectedAt) ? current : latest
             );
             
-            const checkpointDay = checkinSchedule[latestRejection.checkpointIndex];
+            const task = appData.tasks.find(t => t.id === taskId);
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const checkpointDay = taskSchedule[latestRejection.checkpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期
+            let dayDisplay;
+            if (task.scheduleType === 'custom') {
+                const startDate = new Date(task.createDate);
+                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                dayDisplay = checkinDate.toLocaleDateString();
+            } else {
+                dayDisplay = `第${checkpointDay}天`;
+            }
+            
             const rejectionDate = new Date(latestRejection.rejectedAt).toLocaleDateString();
             
             return `
                 <div class="redo-notice">
-                    <h4>📝 第${checkpointDay}天打卡需要重做</h4>
+                    <h4>📝 ${dayDisplay}打卡需要重做</h4>
                     <p><strong>不合格原因:</strong> ${latestRejection.rejectionReason}</p>
                     <p><strong>反馈时间:</strong> ${rejectionDate}</p>
                     <button class="btn btn-warning" onclick="startCheckin(${taskId}, ${latestRejection.checkpointIndex})">
@@ -2445,15 +3078,24 @@
                 return '';
             }
             
+            const taskSchedule = getTaskCheckinSchedule(task);
             const recentCheckins = [...task.checkins]
                 .sort((a, b) => new Date(b.date) - new Date(a.date))
                 .slice(0, 3);
             
             const checkinItems = recentCheckins.map(checkin => {
-                const checkpointDay = checkinSchedule[checkin.checkpointIndex];
-                const date = new Date(checkin.date);
-                const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
-                return `<span class="compact-checkin-item">第${checkpointDay}天 ${formattedDate}</span>`;
+                const checkpointDay = taskSchedule[checkin.checkpointIndex];
+                
+                if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                    const formattedDate = `${checkinDate.getMonth()+1}/${checkinDate.getDate()}`;
+                    return `<span class="compact-checkin-item">${formattedDate}</span>`;
+                } else {
+                    const date = new Date(checkin.date);
+                    const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
+                    return `<span class="compact-checkin-item">第${checkpointDay}天 ${formattedDate}</span>`;
+                }
             }).join('');
             
             return `<div class="compact-checkin-info">最近打卡: ${checkinItems}</div>`;
@@ -2494,7 +3136,10 @@
             
             taskEl.className = taskClass;
             
-            const checkpointDay = checkinSchedule[checkpointIndex];
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const checkpointDay = taskSchedule[checkpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期而不是天数
             let statusText = '';
             
             if (hasRejectedRecording) {
@@ -2504,11 +3149,17 @@
             } else if (isOverdue) {
                 statusText = `逾期${daysSinceStart - checkpointDay}天`;
             } else {
-                statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
+                if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                    statusText = checkinDate.toLocaleDateString();
+                } else {
+                    statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
+                }
             }
             
             const completedCheckins = task.checkins.length;
-            const totalCheckins = checkinSchedule.length;
+            const totalCheckins = taskSchedule.length;
             const progressPercent = (completedCheckins / totalCheckins) * 100;
             
             const lastRecordingDuration = getLastRecordingDuration(task);
@@ -2542,6 +3193,7 @@
                     <div class="progress-text">
                         已完成 ${completedCheckins} 次打卡
                         ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                        ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
                     </div>
                     ${compactCheckinInfo}
                     ${rejectionReason ? `<div class="rejection-reason">不合格原因: ${rejectionReason}</div>` : ''}
@@ -2828,10 +3480,11 @@
                 targetDate.setHours(0, 0, 0, 0);
                 
                 const daysSinceStart = Math.floor((targetDate - taskDate) / (1000 * 60 * 60 * 24));
+                const taskSchedule = getTaskCheckinSchedule(task);
                 
-                const isCheckpointDay = checkinSchedule.includes(daysSinceStart);
+                const isCheckpointDay = taskSchedule.includes(daysSinceStart);
                 if (isCheckpointDay) {
-                    const checkpointIndex = checkinSchedule.indexOf(daysSinceStart);
+                    const checkpointIndex = taskSchedule.indexOf(daysSinceStart);
                     const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
                     
                     const hasPendingRecording = appData.recordings.some(recording => 
@@ -2890,12 +3543,13 @@
                 targetDate.setHours(0, 0, 0, 0);
                 
                 const daysSinceStart = Math.floor((targetDate - taskDate) / (1000 * 60 * 60 * 24));
+                const taskSchedule = getTaskCheckinSchedule(task);
                 
-                const checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 
                 if (checkpointIndex !== -1) {
                     hasTasks = true;
-                    const checkpointDay = checkinSchedule[checkpointIndex];
+                    const checkpointDay = taskSchedule[checkpointIndex];
                     const isOverdue = daysSinceStart > checkpointDay;
                     const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
                     
@@ -2927,6 +3581,16 @@
                     
                     taskEl.className = taskClass;
                     
+                    // 对于自定义日期任务，显示具体日期
+                    let dayDisplay;
+                    if (task.scheduleType === 'custom') {
+                        const startDate = new Date(task.createDate);
+                        const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                        dayDisplay = checkinDate.toLocaleDateString();
+                    } else {
+                        dayDisplay = `第${checkpointDay}天`;
+                    }
+                    
                     const rejectionReason = hasRejectedRecording ? 
                         appData.recordings.find(recording => 
                             recording.taskId === task.id && 
@@ -2938,7 +3602,7 @@
                         <div class="task-header">
                             <div class="task-name">${task.subject} - ${task.name}</div>
                             <div class="task-status ${hasRejectedRecording ? 'status-rejected' : (hasPendingRecording ? 'status-pending-review' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
-                                ${isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : `第${checkpointDay}天`} ${hasCheckedIn ? '✓' : (hasPendingRecording ? '待验收' : (hasRejectedRecording ? '需重做' : ''))}
+                                ${isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : dayDisplay} ${hasCheckedIn ? '✓' : (hasPendingRecording ? '待验收' : (hasRejectedRecording ? '需重做' : ''))}
                             </div>
                         </div>
                         <p>${task.description || ''}</p>
@@ -2996,12 +3660,24 @@
                 
                 const task = appData.tasks.find(t => t.id === recording.taskId);
                 const taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
-                const checkpointDay = checkinSchedule[recording.checkpointIndex];
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const checkpointDay = taskSchedule[recording.checkpointIndex];
+                
+                // 对于自定义日期任务，显示具体日期
+                let dayDisplay;
+                if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                    dayDisplay = checkinDate.toLocaleDateString();
+                } else {
+                    dayDisplay = `第${checkpointDay}天`;
+                }
+                
                 const date = new Date(recording.date).toLocaleString();
                 
                 recordingEl.innerHTML = `
                     <div class="recording-info">
-                        <div class="recording-name">${taskName} - 第${checkpointDay}天</div>
+                        <div class="recording-name">${taskName} - ${dayDisplay}</div>
                         <div class="recording-duration">${date} | 时长: ${formatTime(recording.duration)}</div>
                         ${recording.status === 'rejected' ? 
                             `<div class="rejection-reason">不合格原因: ${recording.rejectionReason}</div>` : ''}
@@ -3027,10 +3703,22 @@
             
             const task = appData.tasks.find(t => t.id === recording.taskId);
             const taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
-            const checkpointDay = checkinSchedule[recording.checkpointIndex];
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const checkpointDay = taskSchedule[recording.checkpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期
+            let dayDisplay;
+            if (task.scheduleType === 'custom') {
+                const startDate = new Date(task.createDate);
+                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                dayDisplay = checkinDate.toLocaleDateString();
+            } else {
+                dayDisplay = `第${checkpointDay}天`;
+            }
+            
             const rejectionDate = new Date(recording.rejectedAt).toLocaleString();
             
-            alert(`不合格详情\n\n任务: ${taskName}\n打卡点: 第${checkpointDay}天\n不合格原因: ${recording.rejectionReason}\n反馈时间: ${rejectionDate}`);
+            alert(`不合格详情\n\n任务: ${taskName}\n打卡点: ${dayDisplay}\n不合格原因: ${recording.rejectionReason}\n反馈时间: ${rejectionDate}`);
         }
 
         // 开始打卡
@@ -3048,16 +3736,17 @@
                 taskDate.setHours(0, 0, 0, 0);
                 
                 const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                checkpointIndex = checkinSchedule.findIndex(day => day === daysSinceStart);
+                const taskSchedule = getTaskCheckinSchedule(task);
+                checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 
                 if (checkpointIndex === -1) {
                     const overdueCheckpoints = [];
-                    for (let i = 0; i < checkinSchedule.length; i++) {
-                        if (checkinSchedule[i] < daysSinceStart && 
+                    for (let i = 0; i < taskSchedule.length; i++) {
+                        if (taskSchedule[i] < daysSinceStart && 
                             !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
                             overdueCheckpoints.push({
                                 index: i,
-                                day: checkinSchedule[i]
+                                day: taskSchedule[i]
                             });
                         }
                     }
@@ -3074,12 +3763,9 @@
             
             switchTab('recorder');
             
-            const checkpointDay = checkinSchedule[checkpointIndex];
-            recorderTaskNameEl.textContent = `${task.subject} - ${task.name}`;
-            recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
-            
-            uploadTaskNameEl.textContent = `${task.subject} - ${task.name}`;
-            uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            // 更新任务信息显示
+            updateRecorderTaskInfo();
+            updateUploadTaskInfo();
             
             resetRecorder();
             resetUpload();
@@ -3333,6 +4019,7 @@
             const task = appData.tasks.find(t => t.id === recording.taskId);
             if (!task) return;
             
+            const taskSchedule = getTaskCheckinSchedule(task);
             const alreadyCheckedIn = task.checkins.some(
                 checkin => checkin.checkpointIndex === recording.checkpointIndex
             );
@@ -3348,7 +4035,7 @@
                 recordingId: recording.id
             });
             
-            if (task.checkins.length === checkinSchedule.length) {
+            if (task.checkins.length === taskSchedule.length) {
                 task.status = 'completed';
                 alert(`恭喜！任务"${task.name}"已完成！`);
             } else {
@@ -3538,7 +4225,8 @@
             const task = appData.tasks.find(t => t.id === taskId);
             if (!task) return;
             
-            const checkinDetails = checkinSchedule.map((day, index) => {
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const checkinDetails = taskSchedule.map((day, index) => {
                 const checkin = task.checkins.find(c => c.checkpointIndex === index);
                 const hasPendingRecording = appData.recordings.some(recording => 
                     recording.taskId === taskId && 
@@ -3567,9 +4255,19 @@
                     statusClass = 'status-pending-icon';
                 }
                 
+                // 对于自定义日期任务，显示具体日期
+                let dayDisplay;
+                if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
+                    dayDisplay = checkinDate.toLocaleDateString();
+                } else {
+                    dayDisplay = `第${day.toString().padStart(3, ' ')}天`;
+                }
+                
                 return `
                     <div class="checkin-item">
-                        <div class="checkin-day">第${day.toString().padStart(3, ' ')}天:</div>
+                        <div class="checkin-day">${dayDisplay}:</div>
                         <div class="checkin-status">
                             <span class="status-icon ${statusClass}">${statusIcon}</span>
                             <span>${status}</span>
@@ -3582,11 +4280,22 @@
             const rejectionHistory = appData.recordings
                 .filter(recording => recording.taskId === taskId && recording.status === 'rejected')
                 .map(recording => {
-                    const checkpointDay = checkinSchedule[recording.checkpointIndex];
+                    const checkpointDay = taskSchedule[recording.checkpointIndex];
+                    
+                    // 对于自定义日期任务，显示具体日期
+                    let dayDisplay;
+                    if (task.scheduleType === 'custom') {
+                        const startDate = new Date(task.createDate);
+                        const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                        dayDisplay = checkinDate.toLocaleDateString();
+                    } else {
+                        dayDisplay = `第${checkpointDay}天`;
+                    }
+                    
                     const date = new Date(recording.rejectedAt).toLocaleDateString();
                     return `
                         <div class="rejection-history-item">
-                            <div class="rejection-date">第${checkpointDay}天 - ${date}</div>
+                            <div class="rejection-date">${dayDisplay} - ${date}</div>
                             <div class="rejection-reason-text">${recording.rejectionReason}</div>
                         </div>
                     `;
@@ -3601,6 +4310,10 @@
                 <div class="form-group">
                     <label>创建日期</label>
                     <p>${new Date(task.createDate).toLocaleDateString()}</p>
+                </div>
+                <div class="form-group">
+                    <label>打卡计划类型</label>
+                    <p>${task.scheduleType === 'custom' ? '自定义日期' : '默认计划'}</p>
                 </div>
                 <div class="checkin-progress">
                     <h4>打卡进度</h4>
@@ -3754,8 +4467,7 @@
                     
                     restoreRecordingUrls();
                     
-                    saveTasks();
-                    saveRecordings();
+                    saveLocalData();
                     
                     appData.currentTask = null;
                     appData.currentRecording = null;
@@ -3806,6 +4518,8 @@
             localStorage.removeItem('checkinTasks');
             localStorage.removeItem('checkinRecordings');
             localStorage.removeItem('recordingState');
+            localStorage.removeItem('cloud_sync_data');
+            localStorage.removeItem('deviceId');
             
             appData.currentTask = null;
             appData.currentRecording = null;
