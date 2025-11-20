@@ -1174,6 +1174,7 @@
             padding: 15px;
             margin: 15px 0;
             border-left: 4px solid #4facfe;
+            white-space: pre-line; /* 保留换行符 */
         }
 
         .task-description-title {
@@ -1185,6 +1186,7 @@
         .task-description-content {
             color: #64748b;
             line-height: 1.5;
+            white-space: pre-line; /* 保留换行符 */
         }
 
         /* 新增样式 - 同步状态 */
@@ -1288,8 +1290,8 @@
                 </div>
                 
                 <!-- 默认计划说明 -->
-                <div id="default-schedule-info" class="custom-schedule-container">
-                    <p><strong>默认打卡计划:</strong> 第 1, 2, 3, 5, 8, 15, 30, 90, 180 天</p>
+                <div id="default-schedule-info" class="custom-schedule-container hidden">
+                    <!-- 隐藏默认计划说明 -->
                 </div>
                 
                 <!-- 自定义日期设置 -->
@@ -2154,7 +2156,7 @@
             });
             
             if (type === 'default') {
-                defaultScheduleInfo.classList.remove('hidden');
+                defaultScheduleInfo.classList.add('hidden');
                 customScheduleContainer.classList.add('hidden');
             } else {
                 defaultScheduleInfo.classList.add('hidden');
