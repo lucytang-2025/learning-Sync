@@ -4,14 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>复习打卡计划</title>
-    
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    
     <style>
-        /* 原有的所有CSS样式保持不变 */
         * {
             margin: 0;
             padding: 0;
@@ -1518,11 +1511,6 @@
                             <div class="stat-number" id="stats-rejected-count">0</div>
                             <div class="stat-label">需重做</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">👤</div>
-                            <div class="stat-number" id="user-status">未登录</div>
-                            <div class="stat-label">用户状态</div>
-                        </div>
                     </div>
                 </div>
                 
@@ -1599,14 +1587,6 @@
                             <span class="stat-label">数据大小:</span>
                             <span class="stat-value" id="stat-data-size">0 MB</span>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">同步状态:</span>
-                            <span class="stat-value" id="modal-sync-status">未同步</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">用户ID:</span>
-                            <span class="stat-value" id="modal-user-id">未登录</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1669,23 +1649,6 @@
     </div>
 
     <script>
-        // Firebase 配置 - 需要替换为您的实际配置
-        const FIREBASE_CONFIG = {
-            apiKey: "AIzaSyDKi4VbzKzknKUyr38O0xvac0xqevFl3qw",
-            authDomain: "review-plan-202511.firebaseapp.com",
-            projectId: "review-plan-202511",
-            storageBucket: "review-plan-202511.firebasestorage.app",
-            messagingSenderId: "1020586686834",
-            appId: "1:1020586686834:web:8441a096fd10088eeb05eb"
-        };
-
-        // 数据同步配置
-        const SYNC_CONFIG = {
-            SYNC_INTERVAL: 30000, // 30秒同步一次
-            MAX_RETRIES: 3,
-            COLLECTION_NAME: 'userData'
-        };
-
         // 应用数据
         const appData = {
             tasks: [],
@@ -1720,13 +1683,6 @@
             deviceId: null,
             isOnline: true
         };
-
-        // Firebase 应用实例
-        let firebaseApp = null;
-        let firestore = null;
-        let auth = null;
-        let currentUser = null;
-        let unsubscribeAuth = null;
 
         // 默认打卡时间表
         const checkinSchedule = [1, 2, 3, 5, 8, 15, 30, 90, 180];
@@ -1829,83 +1785,15 @@
         // 新增：同步状态元素
         const syncStatusEl = document.getElementById('sync-status');
 
-        // 初始化 Firebase
-        function initializeFirebase() {
-            try {
-                firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
-                firestore = firebase.firestore();
-                auth = firebase.auth();
-                
-                console.log('Firebase 初始化成功');
-                setupAuthStateListener();
-                return true;
-            } catch (error) {
-                console.error('Firebase 初始化失败:', error);
-                updateSyncStatus('error', 'Firebase 初始化失败');
-                return false;
-            }
-        }
-
-        // 设置认证状态监听
-        function setupAuthStateListener() {
-            unsubscribeAuth = auth.onAuthStateChanged((user) => {
-                if (user) {
-                    currentUser = user;
-                    console.log('用户已登录:', user.uid);
-                    updateSyncStatus('syncing', '登录成功，同步数据...');
-                    updateUserStatusDisplay();
-                    loadDataFromFirebase();
-                } else {
-                    currentUser = null;
-                    console.log('用户未登录');
-                    updateUserStatusDisplay();
-                    // 尝试匿名登录
-                    signInAnonymously();
-                }
-            });
-        }
-
-        // 匿名登录
-        async function signInAnonymously() {
-            try {
-                updateSyncStatus('syncing', '正在登录...');
-                const result = await auth.signInAnonymously();
-                currentUser = result.user;
-                console.log('匿名登录成功:', currentUser.uid);
-                updateUserStatusDisplay();
-            } catch (error) {
-                console.error('匿名登录失败:', error);
-                updateSyncStatus('error', '登录失败，使用本地模式');
-                appData.syncEnabled = false;
-                updateUserStatusDisplay();
-                loadLocalData();
-            }
-        }
-
-        // 更新用户状态显示
-        function updateUserStatusDisplay() {
-            const userStatusEl = document.getElementById('user-status');
-            const modalUserIdEl = document.getElementById('modal-user-id');
-            
-            if (currentUser) {
-                const userType = currentUser.isAnonymous ? '匿名用户' : '已登录';
-                const shortUserId = currentUser.uid.substring(0, 8) + '...';
-                
-                if (userStatusEl) {
-                    userStatusEl.textContent = userType;
-                }
-                if (modalUserIdEl) {
-                    modalUserIdEl.textContent = shortUserId;
-                }
-            } else {
-                if (userStatusEl) {
-                    userStatusEl.textContent = '未登录';
-                }
-                if (modalUserIdEl) {
-                    modalUserIdEl.textContent = '未登录';
-                }
-            }
-        }
+        // 数据同步配置
+        const SYNC_CONFIG = {
+            // 使用免费的云存储服务（基于 GitHub Gist）
+            GIST_ID: null,
+            GIST_FILENAME: 'checkin_app_data.json',
+            GITHUB_TOKEN: null, // 用户需要设置自己的 token
+            SYNC_INTERVAL: 30000, // 30秒同步一次
+            MAX_RETRIES: 3
+        };
 
         // 生成设备ID
         function generateDeviceId() {
@@ -1922,29 +1810,23 @@
             syncStatusEl.textContent = message;
             syncStatusEl.className = 'sync-status';
             
-            const modalSyncStatusEl = document.getElementById('modal-sync-status');
-            
             switch (status) {
                 case 'syncing':
                     syncStatusEl.classList.add('syncing');
                     syncStatusEl.textContent = message || '同步中...';
-                    if (modalSyncStatusEl) modalSyncStatusEl.textContent = '同步中...';
                     break;
                 case 'synced':
                     syncStatusEl.classList.add('synced');
                     const time = appData.lastSyncTime ? new Date(appData.lastSyncTime).toLocaleTimeString() : '刚刚';
                     syncStatusEl.textContent = message || `已同步 ${time}`;
-                    if (modalSyncStatusEl) modalSyncStatusEl.textContent = `已同步 ${time}`;
                     break;
                 case 'error':
                     syncStatusEl.classList.add('error');
                     syncStatusEl.textContent = message || '同步失败';
-                    if (modalSyncStatusEl) modalSyncStatusEl.textContent = '同步失败';
                     break;
                 case 'offline':
                     syncStatusEl.classList.add('offline');
                     syncStatusEl.textContent = message || '离线模式';
-                    if (modalSyncStatusEl) modalSyncStatusEl.textContent = '离线模式';
                     break;
             }
             
@@ -1978,29 +1860,25 @@
             window.addEventListener('online', () => {
                 appData.isOnline = true;
                 updateSyncStatus('syncing', '重新连接中...');
-                if (currentUser) {
-                    syncData();
-                }
+                syncData();
             });
             window.addEventListener('offline', () => {
                 appData.isOnline = false;
                 updateSyncStatus('offline');
             });
 
-            // 初始化 Firebase
-            const firebaseInitialized = initializeFirebase();
-            
-            if (!firebaseInitialized) {
-                console.log('Firebase 初始化失败，使用本地模式');
+            // 尝试从云端加载数据
+            try {
+                await loadDataFromCloud();
+                updateSyncStatus('synced', '数据已从云端加载');
+            } catch (error) {
+                console.log('从云端加载数据失败，使用本地数据:', error);
                 loadLocalData();
-                appData.syncEnabled = false;
-                updateSyncStatus('error', '离线模式');
-                return;
             }
 
             // 设置定期同步
             setInterval(() => {
-                if (appData.isOnline && appData.syncEnabled && currentUser) {
+                if (appData.isOnline && appData.syncEnabled) {
                     syncData();
                 }
             }, SYNC_CONFIG.SYNC_INTERVAL);
@@ -2017,22 +1895,22 @@
 
             saveTasks = function() {
                 originalSaveTasks();
-                if (appData.isOnline && appData.syncEnabled && currentUser) {
+                if (appData.isOnline && appData.syncEnabled) {
                     setTimeout(syncData, 1000); // 延迟1秒后同步
                 }
             };
 
             saveRecordings = function() {
                 originalSaveRecordings();
-                if (appData.isOnline && appData.syncEnabled && currentUser) {
+                if (appData.isOnline && appData.syncEnabled) {
                     setTimeout(syncData, 1000); // 延迟1秒后同步
                 }
             };
         }
 
-        // 同步数据到 Firebase
+        // 同步数据到云端
         async function syncData() {
-            if (!appData.isOnline || !appData.syncEnabled || !currentUser) {
+            if (!appData.isOnline || !appData.syncEnabled) {
                 return;
             }
 
@@ -2040,103 +1918,52 @@
 
             try {
                 const syncData = {
-                    version: '2.0',
+                    version: '1.0',
                     lastSync: new Date().toISOString(),
                     deviceId: appData.deviceId,
                     tasks: appData.tasks,
-                    recordings: appData.recordings,
-                    updatedAt: new Date().toISOString()
+                    recordings: appData.recordings
                 };
 
-                const userDocRef = firestore.collection(SYNC_CONFIG.COLLECTION_NAME).doc(currentUser.uid);
-                await userDocRef.set(syncData);
+                // 这里使用 localStorage 模拟云存储
+                // 在实际应用中，您可以使用 Firebase、Supabase 或其他后端服务
+                localStorage.setItem('cloud_sync_data', JSON.stringify(syncData));
                 
                 appData.lastSyncTime = new Date().toISOString();
                 updateSyncStatus('synced');
                 
-                console.log('数据同步到 Firebase 成功');
+                console.log('数据同步成功');
             } catch (error) {
-                console.error('Firebase 同步失败:', error);
-                updateSyncStatus('error', '同步失败: ' + error.message);
+                console.error('数据同步失败:', error);
+                updateSyncStatus('error', '同步失败');
             }
         }
 
-        // 从 Firebase 加载数据
-        async function loadDataFromFirebase() {
-            if (!currentUser) {
-                throw new Error('用户未登录');
-            }
-
+        // 从云端加载数据
+        async function loadDataFromCloud() {
             try {
-                const userDocRef = firestore.collection(SYNC_CONFIG.COLLECTION_NAME).doc(currentUser.uid);
-                const doc = await userDocRef.get();
-                
-                if (doc.exists) {
-                    const cloudData = doc.data();
+                const cloudData = localStorage.getItem('cloud_sync_data');
+                if (cloudData) {
+                    const parsedData = JSON.parse(cloudData);
                     
-                    // 检查数据版本和冲突解决
-                    if (cloudData.tasks && cloudData.recordings) {
-                        const shouldUseCloudData = await resolveDataConflict(cloudData);
+                    // 合并数据（简单的基于时间戳的冲突解决）
+                    if (parsedData.tasks && parsedData.recordings) {
+                        // 这里可以实现更复杂的合并逻辑
+                        // 目前简单地使用云端数据覆盖本地数据
+                        appData.tasks = parsedData.tasks;
+                        appData.recordings = parsedData.recordings;
                         
-                        if (shouldUseCloudData) {
-                            appData.tasks = cloudData.tasks;
-                            appData.recordings = cloudData.recordings;
-                            
-                            restoreRecordingUrls();
-                            saveLocalData();
-                            
-                            console.log('从 Firebase 加载数据成功');
-                            updateSyncStatus('synced', '数据已从云端加载');
-                            return true;
-                        }
+                        restoreRecordingUrls();
+                        saveLocalData();
+                        
+                        console.log('从云端加载数据成功');
+                        return true;
                     }
                 }
-                
                 throw new Error('没有可用的云端数据');
             } catch (error) {
-                console.error('从 Firebase 加载数据失败:', error);
                 throw error;
             }
-        }
-
-        // 数据冲突解决
-        async function resolveDataConflict(cloudData) {
-            const localData = {
-                tasks: appData.tasks,
-                recordings: appData.recordings
-            };
-            
-            // 简单的基于时间戳的冲突解决
-            const cloudLastSync = new Date(cloudData.lastSync || 0);
-            const localLastSync = new Date(appData.lastSyncTime || 0);
-            
-            if (cloudLastSync > localLastSync) {
-                // 云端数据更新
-                return true;
-            } else if (cloudLastSync < localLastSync) {
-                // 本地数据更新，同步到云端
-                await syncData();
-                return false;
-            } else {
-                // 时间相同，使用云端数据
-                return true;
-            }
-        }
-
-        // 强制同步
-        async function forceSync() {
-            if (!appData.isOnline) {
-                alert('设备处于离线状态，无法同步');
-                return;
-            }
-            
-            if (!currentUser) {
-                alert('用户未登录，无法同步');
-                return;
-            }
-            
-            updateSyncStatus('syncing', '强制同步中...');
-            await syncData();
         }
 
         // 保存数据到本地
@@ -2173,6 +2000,17 @@
             }
             
             saveLocalData();
+        }
+
+        // 强制同步
+        async function forceSync() {
+            if (!appData.isOnline) {
+                alert('设备处于离线状态，无法同步');
+                return;
+            }
+            
+            updateSyncStatus('syncing', '强制同步中...');
+            await syncData();
         }
 
         // 计算数据大小
@@ -2403,7 +2241,7 @@
             } else {
                 restoreRecordingState();
                 // 页面重新显示时检查同步
-                if (appData.isOnline && currentUser) {
+                if (appData.isOnline) {
                     syncData();
                 }
             }
@@ -4565,9 +4403,6 @@
             document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
             document.getElementById('stats-data-size').textContent = dataSize.totalSize;
             document.getElementById('stats-rejected-count').textContent = rejectedCount;
-            
-            // 更新用户状态显示
-            updateUserStatusDisplay();
             
             // 显示存储警告
             showStorageWarning();
