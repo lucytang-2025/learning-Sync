@@ -1188,50 +1188,13 @@
             line-height: 1.5;
             white-space: pre-line; /* 保留换行符 */
         }
-
-        /* 新增样式 - 同步状态 */
-        .sync-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1000;
-            transition: all 0.3s;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .sync-status.syncing {
-            background: #feca57;
-            color: #000;
-        }
-
-        .sync-status.synced {
-            background: #1dd1a1;
-            color: white;
-        }
-
-        .sync-status.error {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .sync-status.offline {
-            background: #64748b;
-            color: white;
-        }
     </style>
 </head>
 <body>
-    <!-- 同步状态指示器 -->
-    <div id="sync-status" class="sync-status hidden"></div>
-
     <div class="container">
         <header>
             <h1>复习打卡计划</h1>
-            <p class="app-description">日积月累、持之以恒，冲刺100分 - 数据自动同步</p>
+            <p class="app-description">日积月累、持之以恒，冲刺100分</p>
         </header>
 
         <div class="tabs">
@@ -1463,13 +1426,12 @@
             
             <div class="data-management-container">
                 <div class="data-card">
-                    <h3>数据备份与同步</h3>
-                    <p>您的数据会自动同步到云端，在不同设备上打开此页面即可访问相同的数据。</p>
+                    <h3>数据备份与恢复</h3>
+                    <p>您可以导出数据作为备份，或在需要时导入之前备份的数据。</p>
                     
                     <div class="data-actions">
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
-                        <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
-                        <button class="btn btn-secondary" id="force-sync-btn">强制同步</button>
+                        <button class="btn btn-danger" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
                 
@@ -1506,29 +1468,23 @@
                             <div class="stat-number" id="stats-data-size">0 MB</div>
                             <div class="stat-label">数据大小</div>
                         </div>
-                        <div class="stat-card">
-                            <div class="stat-icon">🔄</div>
-                            <div class="stat-number" id="stats-rejected-count">0</div>
-                            <div class="stat-label">需重做</div>
-                        </div>
                     </div>
                 </div>
                 
                 <div class="data-card">
                     <h3>使用说明</h3>
                     <ol class="instructions-list">
-                        <li>数据会自动同步到云端，在不同设备上打开此页面即可访问相同数据</li>
-                        <li>点击"强制同步"按钮可以立即同步数据</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>在其他设备上使用"导入数据"功能恢复备份</li>
                         <li>注意：导入数据将覆盖当前设备上的所有数据</li>
+                        <li>删除任务将永久删除相关数据，释放存储空间</li>
                     </ol>
                 </div>
             </div>
         </div>
 
         <footer>
-            <p>复习打卡计划 &copy; 2023 - 第180天打卡完成后任务完成 - 数据自动同步</p>
+            <p>复习打卡计划 &copy; 2023 - 第180天打卡完成后任务完成</p>
         </footer>
     </div>
 
@@ -1580,10 +1536,6 @@
                             <span class="stat-value" id="stat-pending-recordings">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">需重做任务:</span>
-                            <span class="stat-value" id="stat-rejected-recordings">0</span>
-                        </div>
-                        <div class="stat-item">
                             <span class="stat-label">数据大小:</span>
                             <span class="stat-value" id="stat-data-size">0 MB</span>
                         </div>
@@ -1616,12 +1568,9 @@
                 <button class="close-btn" id="close-approval-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label for="approval-password">请输入验收密码</label>
-                    <input type="password" id="approval-password" placeholder="请输入密码">
-                </div>
+                <p>确定要签收这个录音吗？</p>
                 <div class="task-actions">
-                    <button class="btn btn-primary" id="confirm-approval">确认</button>
+                    <button class="btn btn-primary" id="confirm-approval">确认签收</button>
                     <button class="btn btn-secondary" id="cancel-approval">取消</button>
                 </div>
             </div>
@@ -1671,17 +1620,11 @@
             currentCheckpointIndex: null,
             uploadedAudio: null,
             currentMode: 'record',
-            approvalPassword: "123456",
             pendingApprovalRecordingId: null,
             pendingRejectionRecordingId: null,
             // 新增：自定义日期相关
             customDates: [],
-            currentScheduleType: 'default', // 'default' 或 'custom'
-            // 新增：数据同步相关
-            syncEnabled: true,
-            lastSyncTime: null,
-            deviceId: null,
-            isOnline: true
+            currentScheduleType: 'default' // 'default' 或 'custom'
         };
 
         // 默认打卡时间表
@@ -1745,7 +1688,6 @@
         const importFileName = document.getElementById('import-file-name');
         const importFileSize = document.getElementById('import-file-size');
         const clearDataBtn = document.getElementById('clear-data-btn');
-        const forceSyncBtn = document.getElementById('force-sync-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -1753,7 +1695,6 @@
         const closeTaskDetailsBtn = document.getElementById('close-task-details');
 
         const approvalModal = document.getElementById('approval-modal');
-        const approvalPasswordInput = document.getElementById('approval-password');
         const confirmApprovalBtn = document.getElementById('confirm-approval');
         const cancelApprovalBtn = document.getElementById('cancel-approval');
         const closeApprovalModalBtn = document.getElementById('close-approval-modal');
@@ -1782,324 +1723,6 @@
         const uploadTaskDescriptionEl = document.getElementById('upload-task-description');
         const uploadTaskDescContentEl = document.getElementById('upload-task-desc-content');
 
-        // 新增：同步状态元素
-        const syncStatusEl = document.getElementById('sync-status');
-
-        // 数据同步配置
-        const SYNC_CONFIG = {
-            // 使用免费的云存储服务（基于 GitHub Gist）
-            GIST_ID: null,
-            GIST_FILENAME: 'checkin_app_data.json',
-            GITHUB_TOKEN: null, // 用户需要设置自己的 token
-            SYNC_INTERVAL: 30000, // 30秒同步一次
-            MAX_RETRIES: 3
-        };
-
-        // 生成设备ID
-        function generateDeviceId() {
-            let deviceId = localStorage.getItem('deviceId');
-            if (!deviceId) {
-                deviceId = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                localStorage.setItem('deviceId', deviceId);
-            }
-            return deviceId;
-        }
-
-        // 更新同步状态显示
-        function updateSyncStatus(status, message = '') {
-            syncStatusEl.textContent = message;
-            syncStatusEl.className = 'sync-status';
-            
-            switch (status) {
-                case 'syncing':
-                    syncStatusEl.classList.add('syncing');
-                    syncStatusEl.textContent = message || '同步中...';
-                    break;
-                case 'synced':
-                    syncStatusEl.classList.add('synced');
-                    const time = appData.lastSyncTime ? new Date(appData.lastSyncTime).toLocaleTimeString() : '刚刚';
-                    syncStatusEl.textContent = message || `已同步 ${time}`;
-                    break;
-                case 'error':
-                    syncStatusEl.classList.add('error');
-                    syncStatusEl.textContent = message || '同步失败';
-                    break;
-                case 'offline':
-                    syncStatusEl.classList.add('offline');
-                    syncStatusEl.textContent = message || '离线模式';
-                    break;
-            }
-            
-            syncStatusEl.classList.remove('hidden');
-            
-            // 3秒后隐藏成功状态
-            if (status === 'synced') {
-                setTimeout(() => {
-                    if (syncStatusEl.classList.contains('synced')) {
-                        syncStatusEl.classList.add('hidden');
-                    }
-                }, 3000);
-            }
-        }
-
-        // 检查网络状态
-        function checkNetworkStatus() {
-            appData.isOnline = navigator.onLine;
-            if (!appData.isOnline) {
-                updateSyncStatus('offline');
-            }
-            return appData.isOnline;
-        }
-
-        // 初始化数据同步
-        async function initDataSync() {
-            appData.deviceId = generateDeviceId();
-            
-            // 检查网络状态
-            checkNetworkStatus();
-            window.addEventListener('online', () => {
-                appData.isOnline = true;
-                updateSyncStatus('syncing', '重新连接中...');
-                syncData();
-            });
-            window.addEventListener('offline', () => {
-                appData.isOnline = false;
-                updateSyncStatus('offline');
-            });
-
-            // 尝试从云端加载数据
-            try {
-                await loadDataFromCloud();
-                updateSyncStatus('synced', '数据已从云端加载');
-            } catch (error) {
-                console.log('从云端加载数据失败，使用本地数据:', error);
-                loadLocalData();
-            }
-
-            // 设置定期同步
-            setInterval(() => {
-                if (appData.isOnline && appData.syncEnabled) {
-                    syncData();
-                }
-            }, SYNC_CONFIG.SYNC_INTERVAL);
-
-            // 监听数据变化，自动同步
-            setupDataChangeListener();
-        }
-
-        // 设置数据变化监听
-        function setupDataChangeListener() {
-            // 重写保存函数以触发同步
-            const originalSaveTasks = saveTasks;
-            const originalSaveRecordings = saveRecordings;
-
-            saveTasks = function() {
-                originalSaveTasks();
-                if (appData.isOnline && appData.syncEnabled) {
-                    setTimeout(syncData, 1000); // 延迟1秒后同步
-                }
-            };
-
-            saveRecordings = function() {
-                originalSaveRecordings();
-                if (appData.isOnline && appData.syncEnabled) {
-                    setTimeout(syncData, 1000); // 延迟1秒后同步
-                }
-            };
-        }
-
-        // 同步数据到云端
-        async function syncData() {
-            if (!appData.isOnline || !appData.syncEnabled) {
-                return;
-            }
-
-            updateSyncStatus('syncing', '同步数据到云端...');
-
-            try {
-                const syncData = {
-                    version: '1.0',
-                    lastSync: new Date().toISOString(),
-                    deviceId: appData.deviceId,
-                    tasks: appData.tasks,
-                    recordings: appData.recordings
-                };
-
-                // 这里使用 localStorage 模拟云存储
-                // 在实际应用中，您可以使用 Firebase、Supabase 或其他后端服务
-                localStorage.setItem('cloud_sync_data', JSON.stringify(syncData));
-                
-                appData.lastSyncTime = new Date().toISOString();
-                updateSyncStatus('synced');
-                
-                console.log('数据同步成功');
-            } catch (error) {
-                console.error('数据同步失败:', error);
-                updateSyncStatus('error', '同步失败');
-            }
-        }
-
-        // 从云端加载数据
-        async function loadDataFromCloud() {
-            try {
-                const cloudData = localStorage.getItem('cloud_sync_data');
-                if (cloudData) {
-                    const parsedData = JSON.parse(cloudData);
-                    
-                    // 合并数据（简单的基于时间戳的冲突解决）
-                    if (parsedData.tasks && parsedData.recordings) {
-                        // 这里可以实现更复杂的合并逻辑
-                        // 目前简单地使用云端数据覆盖本地数据
-                        appData.tasks = parsedData.tasks;
-                        appData.recordings = parsedData.recordings;
-                        
-                        restoreRecordingUrls();
-                        saveLocalData();
-                        
-                        console.log('从云端加载数据成功');
-                        return true;
-                    }
-                }
-                throw new Error('没有可用的云端数据');
-            } catch (error) {
-                throw error;
-            }
-        }
-
-        // 保存数据到本地
-        function saveLocalData() {
-            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
-            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
-        }
-
-        // 从本地加载数据
-        function loadLocalData() {
-            const savedTasks = localStorage.getItem('checkinTasks');
-            const savedRecordings = localStorage.getItem('checkinRecordings');
-            
-            if (savedTasks) {
-                try {
-                    appData.tasks = JSON.parse(savedTasks);
-                } catch (e) {
-                    console.error('解析任务数据失败:', e);
-                    appData.tasks = getDefaultTasks();
-                }
-            } else {
-                appData.tasks = getDefaultTasks();
-            }
-            
-            if (savedRecordings) {
-                try {
-                    appData.recordings = JSON.parse(savedRecordings);
-                } catch (e) {
-                    console.error('解析录音数据失败:', e);
-                    appData.recordings = [];
-                }
-            } else {
-                appData.recordings = [];
-            }
-            
-            saveLocalData();
-        }
-
-        // 强制同步
-        async function forceSync() {
-            if (!appData.isOnline) {
-                alert('设备处于离线状态，无法同步');
-                return;
-            }
-            
-            updateSyncStatus('syncing', '强制同步中...');
-            await syncData();
-        }
-
-        // 计算数据大小
-        function calculateDataSize() {
-            const tasksSize = JSON.stringify(appData.tasks).length;
-            const recordingsSize = JSON.stringify(appData.recordings).length;
-            const totalSizeBytes = tasksSize + recordingsSize;
-            const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
-            
-            return {
-                tasksSize: (tasksSize / 1024).toFixed(2) + ' KB',
-                recordingsSize: (recordingsSize / 1024).toFixed(2) + ' KB',
-                totalSize: totalSizeMB + ' MB',
-                totalSizeBytes: totalSizeBytes
-            };
-        }
-
-        // 显示存储警告
-        function showStorageWarning() {
-            const dataSize = calculateDataSize();
-            const totalSizeMB = parseFloat(dataSize.totalSize);
-            
-            storageSizeDisplayEl.textContent = dataSize.totalSize;
-            storageWarningEl.classList.remove('hidden', 'low', 'medium', 'high');
-            
-            if (totalSizeMB > 5) {
-                // 高风险：超过5MB
-                storageWarningEl.classList.add('high');
-                storageSizeDisplayEl.classList.add('high');
-                storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议及时清理或导出备份数据';
-                storageWarningEl.classList.remove('hidden');
-            } else if (totalSizeMB > 2) {
-                // 中风险：2-5MB
-                storageWarningEl.classList.add('medium');
-                storageSizeDisplayEl.classList.add('medium');
-                storageMessageEl.textContent = '数据存储量适中，建议定期导出备份';
-                storageWarningEl.classList.remove('hidden');
-            } else {
-                // 低风险：小于2MB
-                storageWarningEl.classList.add('low');
-                storageSizeDisplayEl.classList.add('low');
-                storageMessageEl.textContent = '数据存储量正常';
-                storageWarningEl.classList.remove('hidden');
-            }
-        }
-
-        // 从Base64数据创建可播放的URL
-        function createAudioUrlFromData(recording) {
-            if (recording.audioData && !recording.audioUrl) {
-                try {
-                    const parts = recording.audioData.split(',');
-                    if (parts.length < 2) {
-                        console.error('Base64数据格式不正确');
-                        return;
-                    }
-                    
-                    const mimeType = parts[0].match(/:(.*?);/)[1];
-                    const base64Data = parts[1];
-                    
-                    const byteCharacters = atob(base64Data);
-                    const byteArrays = [];
-                    
-                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-                        const slice = byteCharacters.slice(offset, offset + 512);
-                        
-                        const byteNumbers = new Array(slice.length);
-                        for (let i = 0; i < slice.length; i++) {
-                            byteNumbers[i] = slice.charCodeAt(i);
-                        }
-                        
-                        const byteArray = new Uint8Array(byteNumbers);
-                        byteArrays.push(byteArray);
-                    }
-                    
-                    const blob = new Blob(byteArrays, { type: mimeType });
-                    recording.audioUrl = URL.createObjectURL(blob);
-                } catch (error) {
-                    console.error('创建音频URL失败:', error);
-                }
-            }
-        }
-
-        // 加载录音数据时恢复所有录音的URL
-        function restoreRecordingUrls() {
-            appData.recordings.forEach(recording => {
-                createAudioUrlFromData(recording);
-            });
-        }
-
         // 初始化应用
         function initApp() {
             console.log('初始化应用...');
@@ -2122,9 +1745,6 @@
             
             restoreRecordingState();
             document.addEventListener('visibilitychange', handleVisibilityChange);
-            
-            // 初始化数据同步
-            initDataSync();
             
             console.log('应用初始化完成');
         }
@@ -2240,10 +1860,6 @@
                 saveRecordingState();
             } else {
                 restoreRecordingState();
-                // 页面重新显示时检查同步
-                if (appData.isOnline) {
-                    syncData();
-                }
             }
         }
 
@@ -2467,9 +2083,6 @@
             playBtn.addEventListener('click', playRecording);
             submitRecordingBtn.addEventListener('click', submitRecording);
             resetRecorderBtn.addEventListener('click', resetRecorder);
-
-            // 强制同步按钮
-            forceSyncBtn.addEventListener('click', forceSync);
         }
         
         // 设置上传相关事件监听器
@@ -3941,7 +3554,6 @@
         function showApprovalModal(recordingId) {
             appData.pendingApprovalRecordingId = recordingId;
             approvalModal.classList.remove('hidden');
-            approvalPasswordInput.value = '';
         }
 
         // 隐藏验收模态框
@@ -3952,13 +3564,6 @@
 
         // 处理验收
         function handleApproval() {
-            const password = approvalPasswordInput.value;
-            
-            if (password !== appData.approvalPassword) {
-                alert('密码错误，请重试');
-                return;
-            }
-            
             confirmCheckin(appData.pendingApprovalRecordingId);
             hideApprovalModal();
         }
@@ -4340,8 +3945,14 @@
         // 删除任务
         function deleteTask(taskId) {
             if (confirm('确定要删除这个任务吗？')) {
+                // 删除任务
                 appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+                
+                // 删除与该任务相关的所有录音记录
+                appData.recordings = appData.recordings.filter(r => r.taskId !== taskId);
+                
                 saveTasks();
+                saveRecordings();
                 renderAllTasks();
                 renderTodayTasks();
                 renderCalendar();
@@ -4369,17 +3980,12 @@
                 return !task.checkins.some(checkin => checkin.recordingId === recording.id);
             }).length;
             
-            const rejectedRecordings = appData.recordings.filter(recording => 
-                recording.status === 'rejected'
-            ).length;
-            
             const dataSize = calculateDataSize();
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
             document.getElementById('stat-total-recordings').textContent = totalRecordings;
             document.getElementById('stat-pending-recordings').textContent = pendingRecordings;
-            document.getElementById('stat-rejected-recordings').textContent = rejectedRecordings;
             document.getElementById('stat-data-size').textContent = dataSize.totalSize;
         }
 
@@ -4391,10 +3997,6 @@
             const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
-            const rejectedCount = appData.recordings.filter(recording => 
-                recording.status === 'rejected'
-            ).length;
-            
             const dataSize = calculateDataSize();
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
@@ -4402,7 +4004,6 @@
             document.getElementById('stats-total-recordings').textContent = totalRecordings;
             document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
             document.getElementById('stats-data-size').textContent = dataSize.totalSize;
-            document.getElementById('stats-rejected-count').textContent = rejectedCount;
             
             // 显示存储警告
             showStorageWarning();
@@ -4520,8 +4121,6 @@
             localStorage.removeItem('checkinTasks');
             localStorage.removeItem('checkinRecordings');
             localStorage.removeItem('recordingState');
-            localStorage.removeItem('cloud_sync_data');
-            localStorage.removeItem('deviceId');
             
             appData.currentTask = null;
             appData.currentRecording = null;
@@ -4536,6 +4135,129 @@
             renderDataStats();
             
             alert('所有数据已清除！');
+        }
+
+        // 从本地加载数据
+        function loadLocalData() {
+            const savedTasks = localStorage.getItem('checkinTasks');
+            const savedRecordings = localStorage.getItem('checkinRecordings');
+            
+            if (savedTasks) {
+                try {
+                    appData.tasks = JSON.parse(savedTasks);
+                } catch (e) {
+                    console.error('解析任务数据失败:', e);
+                    appData.tasks = getDefaultTasks();
+                }
+            } else {
+                appData.tasks = getDefaultTasks();
+            }
+            
+            if (savedRecordings) {
+                try {
+                    appData.recordings = JSON.parse(savedRecordings);
+                } catch (e) {
+                    console.error('解析录音数据失败:', e);
+                    appData.recordings = [];
+                }
+            } else {
+                appData.recordings = [];
+            }
+            
+            saveLocalData();
+        }
+
+        // 保存数据到本地
+        function saveLocalData() {
+            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
+        }
+
+        // 从Base64数据创建可播放的URL
+        function createAudioUrlFromData(recording) {
+            if (recording.audioData && !recording.audioUrl) {
+                try {
+                    const parts = recording.audioData.split(',');
+                    if (parts.length < 2) {
+                        console.error('Base64数据格式不正确');
+                        return;
+                    }
+                    
+                    const mimeType = parts[0].match(/:(.*?);/)[1];
+                    const base64Data = parts[1];
+                    
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    
+                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                        const slice = byteCharacters.slice(offset, offset + 512);
+                        
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        
+                        const byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                    }
+                    
+                    const blob = new Blob(byteArrays, { type: mimeType });
+                    recording.audioUrl = URL.createObjectURL(blob);
+                } catch (error) {
+                    console.error('创建音频URL失败:', error);
+                }
+            }
+        }
+
+        // 加载录音数据时恢复所有录音的URL
+        function restoreRecordingUrls() {
+            appData.recordings.forEach(recording => {
+                createAudioUrlFromData(recording);
+            });
+        }
+
+        // 计算数据大小
+        function calculateDataSize() {
+            const tasksSize = JSON.stringify(appData.tasks).length;
+            const recordingsSize = JSON.stringify(appData.recordings).length;
+            const totalSizeBytes = tasksSize + recordingsSize;
+            const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
+            
+            return {
+                tasksSize: (tasksSize / 1024).toFixed(2) + ' KB',
+                recordingsSize: (recordingsSize / 1024).toFixed(2) + ' KB',
+                totalSize: totalSizeMB + ' MB',
+                totalSizeBytes: totalSizeBytes
+            };
+        }
+
+        // 显示存储警告
+        function showStorageWarning() {
+            const dataSize = calculateDataSize();
+            const totalSizeMB = parseFloat(dataSize.totalSize);
+            
+            storageSizeDisplayEl.textContent = dataSize.totalSize;
+            storageWarningEl.classList.remove('hidden', 'low', 'medium', 'high');
+            
+            if (totalSizeMB > 5) {
+                // 高风险：超过5MB
+                storageWarningEl.classList.add('high');
+                storageSizeDisplayEl.classList.add('high');
+                storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议及时清理或导出备份数据';
+                storageWarningEl.classList.remove('hidden');
+            } else if (totalSizeMB > 2) {
+                // 中风险：2-5MB
+                storageWarningEl.classList.add('medium');
+                storageSizeDisplayEl.classList.add('medium');
+                storageMessageEl.textContent = '数据存储量适中，建议定期导出备份';
+                storageWarningEl.classList.remove('hidden');
+            } else {
+                // 低风险：小于2MB
+                storageWarningEl.classList.add('low');
+                storageSizeDisplayEl.classList.add('low');
+                storageMessageEl.textContent = '数据存储量正常';
+                storageWarningEl.classList.remove('hidden');
+            }
         }
 
         // 初始化应用
