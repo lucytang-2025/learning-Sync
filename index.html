@@ -935,7 +935,7 @@
 
         .checkin-day {
             font-weight: 600;
-            width: 120px;
+            width: 80px;
         }
 
         .checkin-status {
@@ -1189,90 +1189,38 @@
             white-space: pre-line; /* 保留换行符 */
         }
 
-        /* 日历任务数量指示器 */
-        .task-count-indicator {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            background: #ff6b6b;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .calendar-day {
-            position: relative;
-        }
-
-        /* 新增样式 - 每日打卡设置 */
-        .daily-schedule-container {
-            margin-top: 15px;
+        /* 新增样式 - 点评功能 */
+        .feedback-section {
+            margin-top: 20px;
             padding: 15px;
             background: #f8fafc;
             border-radius: 8px;
             border: 1px solid #e2e8f0;
         }
 
-        .date-range-input {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+        .feedback-title {
+            font-weight: 600;
             margin-bottom: 10px;
+            color: #475569;
         }
 
-        .date-range-input input {
-            flex: 1;
-        }
-
-        .weekday-selector {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-            margin: 10px 0;
-        }
-
-        .weekday-option {
-            padding: 8px;
-            text-align: center;
-            background: white;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .weekday-option.selected {
-            background: #4facfe;
-            color: white;
-            border-color: #4facfe;
-        }
-
-        .daily-schedule-preview {
-            margin-top: 15px;
+        .feedback-item {
             padding: 10px;
+            margin-bottom: 10px;
             background: white;
             border-radius: 6px;
-            border-left: 3px solid #1dd1a1;
+            border-left: 3px solid #4facfe;
         }
 
-        .preview-dates {
-            max-height: 150px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .preview-date-item {
-            padding: 5px 8px;
-            margin-bottom: 3px;
-            background: #f8fafc;
-            border-radius: 4px;
+        .feedback-date {
             font-size: 12px;
+            color: #64748b;
+            margin-bottom: 5px;
+        }
+
+        .feedback-content {
+            color: #475569;
+            line-height: 1.4;
         }
     </style>
 </head>
@@ -1334,50 +1282,13 @@
                     <label>打卡计划类型</label>
                     <div class="schedule-type-selector">
                         <div class="schedule-type active" data-type="default">默认计划</div>
-                        <div class="schedule-type" data-type="daily">每日打卡</div>
                         <div class="schedule-type" data-type="custom">自定义日期</div>
                     </div>
                 </div>
                 
                 <!-- 默认计划说明 -->
-                <div id="default-schedule-info" class="custom-schedule-container">
-                    <p><strong>默认计划:</strong> 按照艾宾浩斯遗忘曲线设置打卡点：第1, 2, 3, 5, 8, 15, 30, 90, 180天</p>
-                </div>
-                
-                <!-- 每日打卡设置 -->
-                <div id="daily-schedule-container" class="daily-schedule-container hidden">
-                    <p><strong>每日打卡计划:</strong> 设置一个时间段内的每日打卡</p>
-                    
-                    <div class="date-range-input">
-                        <div style="flex: 1;">
-                            <label for="daily-start-date">开始日期</label>
-                            <input type="date" id="daily-start-date">
-                        </div>
-                        <div style="flex: 1;">
-                            <label for="daily-end-date">结束日期</label>
-                            <input type="date" id="daily-end-date">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>选择星期几打卡</label>
-                        <div class="weekday-selector">
-                            <div class="weekday-option selected" data-day="0">日</div>
-                            <div class="weekday-option selected" data-day="1">一</div>
-                            <div class="weekday-option selected" data-day="2">二</div>
-                            <div class="weekday-option selected" data-day="3">三</div>
-                            <div class="weekday-option selected" data-day="4">四</div>
-                            <div class="weekday-option selected" data-day="5">五</div>
-                            <div class="weekday-option selected" data-day="6">六</div>
-                        </div>
-                    </div>
-                    
-                    <div class="daily-schedule-preview">
-                        <strong>打卡日期预览:</strong>
-                        <div class="preview-dates" id="daily-preview-dates">
-                            <!-- 预览日期将在这里动态生成 -->
-                        </div>
-                    </div>
+                <div id="default-schedule-info" class="custom-schedule-container hidden">
+                    <!-- 隐藏默认计划说明 -->
                 </div>
                 
                 <!-- 自定义日期设置 -->
@@ -1579,7 +1490,7 @@
                         <div class="stat-card">
                             <div class="stat-icon">🎤</div>
                             <div class="stat-number" id="stats-total-recordings">0</div>
-                            <div class="stat-label">今日录音</div>
+                            <div class="stat-label">录音总数</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">⏱️</div>
@@ -1653,7 +1564,7 @@
                             <span class="stat-value" id="stat-completed-tasks">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">今日录音:</span>
+                            <span class="stat-label">打卡记录:</span>
                             <span class="stat-value" id="stat-total-recordings">0</span>
                         </div>
                         <div class="stat-item">
@@ -1677,149 +1588,27 @@
                 <div id="task-details-content">
                     <!-- 任务详情内容将通过JavaScript动态生成 -->
                 </div>
+                <!-- 新增：点评区域 -->
+                <div class="feedback-section" id="feedback-section">
+                    <div class="feedback-title">任务点评</div>
+                    <textarea id="feedback-input" placeholder="请输入对本次打卡的点评..." rows="3"></textarea>
+                    <div class="task-actions" style="margin-top: 10px;">
+                        <button class="btn btn-primary" id="save-feedback">保存点评</button>
+                    </div>
+                    <div id="feedback-list">
+                        <!-- 点评列表将在这里动态生成 -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // IndexedDB 存储管理器
-        class RecordingStorage {
-            constructor() {
-                this.dbName = 'AudioRecorderDB';
-                this.version = 1;
-                this.storeName = 'recordings';
-                this.db = null;
-            }
-
-            async init() {
-                return new Promise((resolve, reject) => {
-                    if (!('indexedDB' in window)) {
-                        reject(new Error('浏览器不支持 IndexedDB'));
-                        return;
-                    }
-
-                    const request = indexedDB.open(this.dbName, this.version);
-                    
-                    request.onerror = () => {
-                        console.error('IndexedDB 打开失败:', request.error);
-                        reject(request.error);
-                    };
-                    
-                    request.onsuccess = () => {
-                        this.db = request.result;
-                        console.log('IndexedDB 初始化成功');
-                        resolve();
-                    };
-                    
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        if (!db.objectStoreNames.contains(this.storeName)) {
-                            const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
-                            store.createIndex('taskId', 'taskId', { unique: false });
-                            store.createIndex('date', 'date', { unique: false });
-                            console.log('IndexedDB 对象存储创建成功');
-                        }
-                    };
-                });
-            }
-
-            async saveRecording(recording) {
-                if (!this.db) {
-                    throw new Error('IndexedDB 未初始化');
-                }
-
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([this.storeName], 'readwrite');
-                    const store = transaction.objectStore(this.storeName);
-                    
-                    const request = store.put(recording);
-                    
-                    request.onsuccess = () => {
-                        console.log('录音保存成功，ID:', recording.id);
-                        resolve();
-                    };
-                    
-                    request.onerror = () => {
-                        console.error('保存失败:', request.error);
-                        reject(request.error);
-                    };
-                });
-            }
-
-            async getRecording(id) {
-                if (!this.db) {
-                    throw new Error('IndexedDB 未初始化');
-                }
-
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([this.storeName], 'readonly');
-                    const store = transaction.objectStore(this.storeName);
-                    
-                    const request = store.get(id);
-                    
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async getAllRecordings() {
-                if (!this.db) {
-                    throw new Error('IndexedDB 未初始化');
-                }
-
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([this.storeName], 'readonly');
-                    const store = transaction.objectStore(this.storeName);
-                    
-                    const request = store.getAll();
-                    
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async deleteRecording(id) {
-                if (!this.db) {
-                    throw new Error('IndexedDB 未初始化');
-                }
-
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([this.storeName], 'readwrite');
-                    const store = transaction.objectStore(this.storeName);
-                    
-                    const request = store.delete(id);
-                    
-                    request.onsuccess = () => resolve();
-                    request.onerror = () => reject(request.error);
-                });
-            }
-
-            async getRecordingsByTask(taskId) {
-                if (!this.db) {
-                    throw new Error('IndexedDB 未初始化');
-                }
-
-                return new Promise((resolve, reject) => {
-                    const transaction = this.db.transaction([this.storeName], 'readonly');
-                    const store = transaction.objectStore(this.storeName);
-                    const index = store.index('taskId');
-                    
-                    const request = index.getAll(taskId);
-                    
-                    request.onsuccess = () => resolve(request.result);
-                    request.onerror = () => reject(request.error);
-                });
-            }
-        }
-
-        // 初始化存储管理器
-        const recordingStorage = new RecordingStorage();
-
         // 应用数据
         const appData = {
             tasks: [],
-            recordings: [], // 现在只存储元数据
-            feedbacks: [],
+            recordings: [],
+            feedbacks: [], // 新增：存储点评数据
             currentTask: null,
             currentRecording: null,
             isRecording: false,
@@ -1838,13 +1627,9 @@
             currentCheckpointIndex: null,
             uploadedAudio: null,
             currentMode: 'record',
+            // 新增：自定义日期相关
             customDates: [],
-            dailySchedule: {
-                startDate: null,
-                endDate: null,
-                weekdays: [0, 1, 2, 3, 4, 5, 6] // 默认全选
-            },
-            currentScheduleType: 'default'
+            currentScheduleType: 'default' // 'default' 或 'custom'
         };
 
         // 默认打卡时间表
@@ -1914,15 +1699,15 @@
         const taskDetailsContent = document.getElementById('task-details-content');
         const closeTaskDetailsBtn = document.getElementById('close-task-details');
 
-        // 新增：打卡计划类型相关元素
+        // 新增：点评相关元素
+        const feedbackInput = document.getElementById('feedback-input');
+        const saveFeedbackBtn = document.getElementById('save-feedback');
+        const feedbackList = document.getElementById('feedback-list');
+
+        // 新增：自定义日期相关元素
         const scheduleTypeSelectors = document.querySelectorAll('.schedule-type');
         const defaultScheduleInfo = document.getElementById('default-schedule-info');
-        const dailyScheduleContainer = document.getElementById('daily-schedule-container');
         const customScheduleContainer = document.getElementById('custom-schedule-container');
-        const dailyStartDateInput = document.getElementById('daily-start-date');
-        const dailyEndDateInput = document.getElementById('daily-end-date');
-        const weekdayOptions = document.querySelectorAll('.weekday-option');
-        const dailyPreviewDates = document.getElementById('daily-preview-dates');
         const customDateInput = document.getElementById('custom-date');
         const addCustomDateBtn = document.getElementById('add-custom-date');
         const customDatesList = document.getElementById('custom-dates-list');
@@ -1939,27 +1724,21 @@
         const storageMessageEl = document.getElementById('storage-message');
 
         // 初始化应用
-        async function initApp() {
+        function initApp() {
             console.log('初始化应用...');
-            
-            try {
-                await recordingStorage.init();
-                console.log('✅ IndexedDB 初始化成功，可以存储大文件录音');
-            } catch (error) {
-                console.error('❌ IndexedDB 初始化失败:', error);
-                alert('存储初始化失败，长录音可能无法保存');
-            }
             
             // 添加每日清理检查
             checkDailyCleanup();
             
-            await loadLocalData();
+            loadLocalData();
             setupEventListeners();
             setupUploadEventListeners();
             setupDataManagementEventListeners();
             setupTaskDetailsEventListeners();
-            setupScheduleTypeEventListeners();
-            setupTabletSupport();
+            setupCustomDateEventListeners();
+            setupFeedbackEventListeners();
+            
+            restoreRecordingUrls();
             
             renderTodayTasks();
             renderAllTasks();
@@ -1973,27 +1752,118 @@
             console.log('应用初始化完成');
         }
 
-        // 平板设备支持
-        function setupTabletSupport() {
-            console.log('📱 初始化平板设备支持');
+        // 每日清理检查
+        function checkDailyCleanup() {
+            const lastCleanupDate = localStorage.getItem('lastCleanupDate');
+            const today = new Date().toDateString();
             
-            // 为音频元素添加触摸支持
-            audioPlayer.addEventListener('touchstart', function(e) {
-                e.stopPropagation();
-            }, { passive: true });
-            
-            // 防止触摸时的默认行为
-            document.addEventListener('touchstart', function(e) {
-                if (e.target.classList.contains('btn') || 
-                    e.target.classList.contains('recorder-btn') ||
-                    e.target.classList.contains('tab')) {
-                    e.preventDefault();
-                }
-            }, { passive: false });
+            // 如果今天还没有进行清理，或者从未清理过
+            if (lastCleanupDate !== today) {
+                strictDailyCleanup();
+                localStorage.setItem('lastCleanupDate', today);
+            }
         }
 
-        // 设置打卡计划类型事件监听
-        function setupScheduleTypeEventListeners() {
+        // 严格的每日清零 - 只保留今天的录音
+        function strictDailyCleanup() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const originalCount = appData.recordings.length;
+            
+            // 只保留今天的录音
+            appData.recordings = appData.recordings.filter(recording => {
+                const recordingDate = new Date(recording.date);
+                recordingDate.setHours(0, 0, 0, 0);
+                return recordingDate.getTime() === today.getTime();
+            });
+            
+            const deletedCount = originalCount - appData.recordings.length;
+            if (deletedCount > 0) {
+                saveRecordings();
+                console.log(`严格清理：删除了 ${deletedCount} 个非今日录音`);
+                
+                // 同时清理对应的打卡记录
+                appData.tasks.forEach(task => {
+                    task.checkins = task.checkins.filter(checkin => {
+                        const checkinDate = new Date(checkin.date);
+                        checkinDate.setHours(0, 0, 0, 0);
+                        return checkinDate.getTime() === today.getTime();
+                    });
+                });
+                saveTasks();
+            }
+        }
+
+        // 设置点评事件监听
+        function setupFeedbackEventListeners() {
+            saveFeedbackBtn.addEventListener('click', saveFeedback);
+        }
+
+        // 保存点评
+        function saveFeedback() {
+            const feedbackText = feedbackInput.value.trim();
+            if (!feedbackText) {
+                alert('请输入点评内容');
+                return;
+            }
+
+            if (!appData.currentTask) {
+                alert('请先选择任务');
+                return;
+            }
+
+            const feedback = {
+                id: Date.now(),
+                taskId: appData.currentTask.id,
+                date: new Date().toISOString(),
+                content: feedbackText
+            };
+
+            appData.feedbacks.push(feedback);
+            saveFeedbacks();
+
+            feedbackInput.value = '';
+            renderFeedbackList(appData.currentTask.id);
+
+            alert('点评保存成功！');
+        }
+
+        // 保存点评数据
+        function saveFeedbacks() {
+            try {
+                localStorage.setItem('checkinFeedbacks', JSON.stringify(appData.feedbacks));
+            } catch (e) {
+                console.error('保存点评数据失败:', e);
+            }
+        }
+
+        // 渲染点评列表
+        function renderFeedbackList(taskId) {
+            feedbackList.innerHTML = '';
+
+            const taskFeedbacks = appData.feedbacks.filter(feedback => feedback.taskId === taskId)
+                .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (taskFeedbacks.length === 0) {
+                feedbackList.innerHTML = '<p style="color: #64748b; text-align: center; padding: 10px;">暂无点评</p>';
+                return;
+            }
+
+            taskFeedbacks.forEach(feedback => {
+                const feedbackItem = document.createElement('div');
+                feedbackItem.className = 'feedback-item';
+                feedbackItem.innerHTML = `
+                    <div class="feedback-date">${new Date(feedback.date).toLocaleString()}</div>
+                    <div class="feedback-content">${feedback.content}</div>
+                `;
+                feedbackList.appendChild(feedbackItem);
+            });
+        }
+
+        // 设置自定义日期事件监听
+        function setupCustomDateEventListeners() {
+            // 打卡计划类型切换
             scheduleTypeSelectors.forEach(type => {
                 type.addEventListener('click', () => {
                     const scheduleType = type.getAttribute('data-type');
@@ -2001,18 +1871,7 @@
                 });
             });
             
-            // 每日打卡事件
-            dailyStartDateInput.addEventListener('change', updateDailyPreview);
-            dailyEndDateInput.addEventListener('change', updateDailyPreview);
-            weekdayOptions.forEach(option => {
-                option.addEventListener('click', () => {
-                    option.classList.toggle('selected');
-                    updateDailyWeekdays();
-                    updateDailyPreview();
-                });
-            });
-            
-            // 自定义日期事件
+            // 添加自定义日期
             addCustomDateBtn.addEventListener('click', addCustomDate);
         }
 
@@ -2028,86 +1887,13 @@
                 }
             });
             
-            // 隐藏所有容器
-            defaultScheduleInfo.classList.add('hidden');
-            dailyScheduleContainer.classList.add('hidden');
-            customScheduleContainer.classList.add('hidden');
-            
-            // 显示对应的容器
             if (type === 'default') {
-                defaultScheduleInfo.classList.remove('hidden');
-            } else if (type === 'daily') {
-                dailyScheduleContainer.classList.remove('hidden');
-                // 设置默认日期
-                const today = new Date();
-                dailyStartDateInput.valueAsDate = today;
-                const endDate = new Date(today);
-                endDate.setDate(today.getDate() + 30); // 默认30天
-                dailyEndDateInput.valueAsDate = endDate;
-                updateDailyPreview();
-            } else if (type === 'custom') {
+                defaultScheduleInfo.classList.add('hidden');
+                customScheduleContainer.classList.add('hidden');
+            } else {
+                defaultScheduleInfo.classList.add('hidden');
                 customScheduleContainer.classList.remove('hidden');
             }
-        }
-
-        // 更新每日打卡的星期选择
-        function updateDailyWeekdays() {
-            appData.dailySchedule.weekdays = [];
-            weekdayOptions.forEach((option, index) => {
-                if (option.classList.contains('selected')) {
-                    appData.dailySchedule.weekdays.push(index);
-                }
-            });
-        }
-
-        // 更新每日打卡预览
-        function updateDailyPreview() {
-            const startDate = dailyStartDateInput.valueAsDate;
-            const endDate = dailyEndDateInput.valueAsDate;
-            
-            if (!startDate || !endDate) {
-                dailyPreviewDates.innerHTML = '<div style="color: #64748b; text-align: center;">请选择开始和结束日期</div>';
-                return;
-            }
-            
-            if (startDate > endDate) {
-                dailyPreviewDates.innerHTML = '<div style="color: #ff6b6b; text-align: center;">结束日期不能早于开始日期</div>';
-                return;
-            }
-            
-            updateDailyWeekdays();
-            const dates = generateDailySchedule(startDate, endDate, appData.dailySchedule.weekdays);
-            
-            if (dates.length === 0) {
-                dailyPreviewDates.innerHTML = '<div style="color: #64748b; text-align: center;">没有符合条件的日期</div>';
-                return;
-            }
-            
-            dailyPreviewDates.innerHTML = dates.slice(0, 10).map(date => 
-                `<div class="preview-date-item">${date.toLocaleDateString()}</div>`
-            ).join('');
-            
-            if (dates.length > 10) {
-                dailyPreviewDates.innerHTML += `<div style="color: #64748b; text-align: center;">... 还有 ${dates.length - 10} 天</div>`;
-            }
-            
-            appData.dailySchedule.startDate = startDate;
-            appData.dailySchedule.endDate = endDate;
-        }
-
-        // 生成每日打卡日期
-        function generateDailySchedule(startDate, endDate, weekdays) {
-            const dates = [];
-            const current = new Date(startDate);
-            
-            while (current <= endDate) {
-                if (weekdays.includes(current.getDay())) {
-                    dates.push(new Date(current));
-                }
-                current.setDate(current.getDate() + 1);
-            }
-            
-            return dates;
         }
 
         // 添加自定义日期
@@ -2127,6 +1913,7 @@
                 return;
             }
             
+            // 检查是否已存在相同日期
             const dateExists = appData.customDates.some(date => 
                 new Date(date).getTime() === selectedDate.getTime()
             );
@@ -2150,6 +1937,7 @@
                 return;
             }
             
+            // 按日期排序
             const sortedDates = [...appData.customDates].sort((a, b) => new Date(a) - new Date(b));
             
             sortedDates.forEach((date, index) => {
@@ -2163,6 +1951,7 @@
                 customDatesList.appendChild(dateItem);
             });
             
+            // 添加删除事件监听
             document.querySelectorAll('.remove-date-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const index = parseInt(e.target.getAttribute('data-index'));
@@ -2175,48 +1964,6 @@
         function removeCustomDate(index) {
             appData.customDates.splice(index, 1);
             renderCustomDatesList();
-        }
-
-        // 每日清理检查
-        function checkDailyCleanup() {
-            const lastCleanupDate = localStorage.getItem('lastCleanupDate');
-            const today = new Date().toDateString();
-            
-            if (lastCleanupDate !== today) {
-                strictDailyCleanup();
-                localStorage.setItem('lastCleanupDate', today);
-            }
-        }
-
-        // 严格的每日清零 - 只保留今天的录音
-        function strictDailyCleanup() {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const originalCount = appData.recordings.length;
-            
-            // 只保留今天的录音
-            appData.recordings = appData.recordings.filter(recording => {
-                const recordingDate = new Date(recording.date);
-                recordingDate.setHours(0, 0, 0, 0);
-                return recordingDate.getTime() === today.getTime();
-            });
-            
-            const deletedCount = originalCount - appData.recordings.length;
-            if (deletedCount > 0) {
-                saveRecordingsMetadata();
-                console.log(`严格清理：删除了 ${deletedCount} 个非今日录音`);
-                
-                // 同时清理对应的打卡记录
-                appData.tasks.forEach(task => {
-                    task.checkins = task.checkins.filter(checkin => {
-                        const checkinDate = new Date(checkin.date);
-                        checkinDate.setHours(0, 0, 0, 0);
-                        return checkinDate.getTime() === today.getTime();
-                    });
-                });
-                saveTasks();
-            }
         }
 
         // 处理页面可见性变化
@@ -2292,7 +2039,51 @@
                 };
                 
                 appData.mediaRecorder.onstop = () => {
-                    processRecording(stream);
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
+                    
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        const recording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,
+                            mimeType: 'audio/wav'
+                        };
+                        
+                        createAudioUrlFromData(recording);
+                        
+                        // 删除同一任务的所有旧录音
+                        appData.recordings = appData.recordings.filter(r => 
+                            r.taskId !== recording.taskId
+                        );
+                        
+                        appData.recordings.push(recording);
+                        saveRecordings();
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
+                        
+                        recordBtn.classList.remove('recording', 'hidden');
+                        pauseBtn.classList.add('hidden');
+                        stopBtn.classList.add('hidden');
+                        playBtn.classList.remove('hidden');
+                        submitRecordingBtn.disabled = false;
+                        
+                        audioPlayer.src = recording.audioUrl;
+                        audioPlayer.classList.remove('hidden');
+                        
+                        alert('录音已保存！');
+                        renderRecordings();
+                        renderTodayTasks();
+                        renderAllTasks();
+                        renderDataStats();
+                    };
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.mediaRecorder.start();
@@ -2307,81 +2098,6 @@
                 console.error('恢复录音失败:', error);
                 alert('无法恢复录音，请重新开始');
                 resetRecorder();
-            }
-        }
-
-        // 处理录音数据
-        async function processRecording(stream) {
-            try {
-                if (appData.audioChunks.length === 0) {
-                    console.warn('没有录音数据');
-                    return;
-                }
-
-                const audioBlob = new Blob(appData.audioChunks, { 
-                    type: 'audio/webm;codecs=opus' 
-                });
-
-                console.log('录音文件大小:', (audioBlob.size / 1024 / 1024).toFixed(2), 'MB');
-
-                // 创建录音对象
-                const recording = {
-                    id: Date.now(),
-                    taskId: appData.currentTask.id,
-                    checkpointIndex: appData.currentCheckpointIndex,
-                    date: new Date().toISOString(),
-                    duration: appData.recordingTime,
-                    audioBlob: audioBlob,
-                    mimeType: 'audio/webm;codecs=opus',
-                    size: audioBlob.size
-                };
-
-                // 保存到 IndexedDB
-                await recordingStorage.saveRecording(recording);
-                
-                // 创建播放URL
-                recording.audioUrl = URL.createObjectURL(audioBlob);
-                
-                // 更新应用状态
-                appData.currentRecording = recording;
-                
-                // 从内存中移除旧录音记录
-                appData.recordings = appData.recordings.filter(r => 
-                    r.taskId !== recording.taskId
-                );
-                
-                // 保存元数据到内存
-                appData.recordings.push({
-                    id: recording.id,
-                    taskId: recording.taskId,
-                    checkpointIndex: recording.checkpointIndex,
-                    date: recording.date,
-                    duration: recording.duration,
-                    mimeType: recording.mimeType,
-                    size: recording.size
-                });
-
-                // 保存元数据到LocalStorage
-                saveRecordingsMetadata();
-                
-                // 更新UI
-                recordBtn.classList.remove('recording', 'hidden');
-                pauseBtn.classList.add('hidden');
-                stopBtn.classList.add('hidden');
-                playBtn.classList.remove('hidden');
-                submitRecordingBtn.disabled = false;
-                
-                audioPlayer.src = recording.audioUrl;
-                audioPlayer.classList.remove('hidden');
-                
-                console.log('录音处理完成，可以播放');
-
-                stream.getTracks().forEach(track => track.stop());
-                clearRecordingState();
-                
-            } catch (error) {
-                console.error('处理录音数据时出错:', error);
-                alert('保存录音失败: ' + error.message);
             }
         }
 
@@ -2426,29 +2142,35 @@
             }
         }
 
-        // 保存录音元数据
-        function saveRecordingsMetadata() {
+        // 保存录音数据
+        function saveRecordings() {
             try {
-                const metadata = appData.recordings.map(recording => ({
-                    id: recording.id,
-                    taskId: recording.taskId,
-                    checkpointIndex: recording.checkpointIndex,
-                    date: recording.date,
-                    duration: recording.duration,
-                    mimeType: recording.mimeType,
-                    size: recording.size
-                }));
+                const recordingsToSave = appData.recordings.map(recording => {
+                    return {
+                        id: recording.id,
+                        taskId: recording.taskId,
+                        checkpointIndex: recording.checkpointIndex,
+                        date: recording.date,
+                        duration: recording.duration,
+                        audioData: recording.audioData,
+                        mimeType: recording.mimeType,
+                        source: recording.source
+                    };
+                });
                 
-                localStorage.setItem('checkinRecordings', JSON.stringify(metadata));
+                localStorage.setItem('checkinRecordings', JSON.stringify(recordingsToSave));
             } catch (e) {
-                console.error('保存录音元数据失败:', e);
+                console.error('保存录音数据失败:', e);
+                if (e.name === 'QuotaExceededError') {
+                    alert('存储空间不足，建议导出数据并清理');
+                }
             }
         }
 
         // 从本地加载数据
-        async function loadLocalData() {
+        function loadLocalData() {
             const savedTasks = localStorage.getItem('checkinTasks');
-            const savedRecordingsMetadata = localStorage.getItem('checkinRecordings');
+            const savedRecordings = localStorage.getItem('checkinRecordings');
             const savedFeedbacks = localStorage.getItem('checkinFeedbacks');
             
             if (savedTasks) {
@@ -2462,13 +2184,13 @@
                 appData.tasks = getDefaultTasks();
             }
             
-            // 只加载元数据
-            if (savedRecordingsMetadata) {
+            if (savedRecordings) {
                 try {
-                    appData.recordings = JSON.parse(savedRecordingsMetadata);
+                    appData.recordings = JSON.parse(savedRecordings);
+                // 清理旧录音，每个任务只保留最新一次打卡
                     cleanupOldRecordings();
-                    } catch (e) {
-                    console.error('解析录音元数据失败:', e);
+                } catch (e) {
+                    console.error('解析录音数据失败:', e);
                     appData.recordings = [];
                 }
             } else {
@@ -2478,7 +2200,7 @@
             if (savedFeedbacks) {
                 try {
                     appData.feedbacks = JSON.parse(savedFeedbacks);
-                    } catch (e) {
+                } catch (e) {
                     console.error('解析点评数据失败:', e);
                     appData.feedbacks = [];
                 }
@@ -2493,6 +2215,7 @@
         function cleanupOldRecordings() {
             const taskRecordings = {};
             
+            // 按任务分组录音
             appData.recordings.forEach(recording => {
                 if (!taskRecordings[recording.taskId]) {
                     taskRecordings[recording.taskId] = [];
@@ -2500,10 +2223,12 @@
                 taskRecordings[recording.taskId].push(recording);
             });
             
+            // 每个任务只保留最新的一次录音
             const cleanedRecordings = [];
             Object.keys(taskRecordings).forEach(taskId => {
                 const recordings = taskRecordings[taskId];
                 if (recordings.length > 0) {
+                    // 按日期排序，取最新的
                     const latestRecording = recordings.sort((a, b) => 
                         new Date(b.date) - new Date(a.date)
                     )[0];
@@ -2512,13 +2237,13 @@
             });
             
             appData.recordings = cleanedRecordings;
-            saveRecordingsMetadata();
+            saveRecordings();
         }
 
         // 保存数据到本地
         function saveLocalData() {
-            saveTasks();
-            saveRecordingsMetadata();
+            localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
+            localStorage.setItem('checkinRecordings', JSON.stringify(appData.recordings));
             localStorage.setItem('checkinFeedbacks', JSON.stringify(appData.feedbacks));
         }
 
@@ -2643,11 +2368,8 @@
             const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
             const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
             
+            // 对于自定义日期任务，显示具体日期
             if (appData.currentTask.scheduleType === 'custom') {
-                const startDate = new Date(appData.currentTask.createDate);
-                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
-                recorderCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
-            } else if (appData.currentTask.scheduleType === 'daily') {
                 const startDate = new Date(appData.currentTask.createDate);
                 const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                 recorderCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
@@ -2655,6 +2377,7 @@
                 recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
             }
             
+            // 显示任务描述
             if (appData.currentTask.description) {
                 recorderTaskDescContentEl.textContent = appData.currentTask.description;
                 recorderTaskDescriptionEl.classList.remove('hidden');
@@ -2669,11 +2392,8 @@
             const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
             const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
             
+            // 对于自定义日期任务，显示具体日期
             if (appData.currentTask.scheduleType === 'custom') {
-                const startDate = new Date(appData.currentTask.createDate);
-                const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
-                uploadCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
-            } else if (appData.currentTask.scheduleType === 'daily') {
                 const startDate = new Date(appData.currentTask.createDate);
                 const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                 uploadCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
@@ -2681,6 +2401,7 @@
                 uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
             }
             
+            // 显示任务描述
             if (appData.currentTask.description) {
                 uploadTaskDescContentEl.textContent = appData.currentTask.description;
                 uploadTaskDescriptionEl.classList.remove('hidden');
@@ -2698,13 +2419,9 @@
             document.getElementById('task-desc').value = '';
             document.getElementById('task-date').valueAsDate = new Date();
             
+            // 重置打卡计划类型
             switchScheduleType('default');
             appData.customDates = [];
-            appData.dailySchedule = {
-                startDate: null,
-                endDate: null,
-                weekdays: [0, 1, 2, 3, 4, 5, 6]
-            };
             renderCustomDatesList();
             
             taskFormEl.scrollIntoView({ behavior: 'smooth' });
@@ -2752,6 +2469,7 @@
                 date = new Date().toISOString().split('T')[0];
             }
             
+            // 构建任务对象
             const newTask = {
                 id: Date.now(),
                 subject: subject,
@@ -2763,15 +2481,8 @@
                 scheduleType: appData.currentScheduleType
             };
             
-            if (appData.currentScheduleType === 'daily') {
-                if (!appData.dailySchedule.startDate || !appData.dailySchedule.endDate) {
-                    alert('请设置每日打卡的开始和结束日期');
-                    return;
-                }
-                newTask.dailySchedule = { ...appData.dailySchedule };
-                newTask.dailySchedule.startDate = appData.dailySchedule.startDate.toISOString();
-                newTask.dailySchedule.endDate = appData.dailySchedule.endDate.toISOString();
-            } else if (appData.currentScheduleType === 'custom') {
+            // 如果是自定义日期任务，保存自定义日期
+            if (appData.currentScheduleType === 'custom') {
                 if (appData.customDates.length === 0) {
                     alert('请至少添加一个自定义打卡日期');
                     return;
@@ -2783,12 +2494,8 @@
             saveTasks();
             hideTaskForm();
             
+            // 重置自定义日期
             appData.customDates = [];
-            appData.dailySchedule = {
-                startDate: null,
-                endDate: null,
-                weekdays: [0, 1, 2, 3, 4, 5, 6]
-            };
             renderCustomDatesList();
             
             renderAllTasks();
@@ -2836,20 +2543,8 @@
 
         // 获取任务的打卡计划
         function getTaskCheckinSchedule(task) {
-            if (task.scheduleType === 'daily' && task.dailySchedule) {
-                const startDate = new Date(task.createDate);
-                startDate.setHours(0, 0, 0, 0);
-                
-                const dailyStart = new Date(task.dailySchedule.startDate);
-                const dailyEnd = new Date(task.dailySchedule.endDate);
-                const weekdays = task.dailySchedule.weekdays || [0, 1, 2, 3, 4, 5, 6];
-                
-                const dates = generateDailySchedule(dailyStart, dailyEnd, weekdays);
-                return dates.map(date => {
-                    date.setHours(0, 0, 0, 0);
-                    return Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
-                }).sort((a, b) => a - b);
-            } else if (task.scheduleType === 'custom' && task.customDates) {
+            if (task.scheduleType === 'custom' && task.customDates) {
+                // 对于自定义日期任务，计算相对于开始日期的天数
                 const startDate = new Date(task.createDate);
                 startDate.setHours(0, 0, 0, 0);
                 
@@ -2860,6 +2555,7 @@
                 }).sort((a, b) => a - b);
             }
             
+            // 默认使用标准计划
             return checkinSchedule;
         }
 
@@ -2881,7 +2577,7 @@
                 const taskDate = new Date(task.createDate);
                 taskDate.setHours(0, 0, 0, 0);
                 
-                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 60 * 24));
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
                 
                 const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 
@@ -2903,6 +2599,7 @@
                     });
                 }
                 
+                // 检查逾期打卡
                 for (let i = 0; i < taskSchedule.length; i++) {
                     const checkpointDay = taskSchedule[i];
                     if (checkpointDay < daysSinceStart && 
@@ -2923,6 +2620,7 @@
                 }
             });
             
+            // 更新任务数量显示：未完成/总任务
             todayTasksCountEl.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
             
             tasksForToday.sort((a, b) => {
@@ -2953,7 +2651,7 @@
             });
         }
 
-        // 渲染今日任务项
+        // 渲染今日任务项（新增完整功能按钮）
         function renderTodayTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
             const taskEl = document.createElement('div');
             
@@ -2969,8 +2667,8 @@
             const taskSchedule = getTaskCheckinSchedule(task);
             const checkpointDay = taskSchedule[checkpointIndex];
             
+            // 对于自定义日期任务，显示具体日期而不是天数
             let statusText = '';
-            let scheduleTypeText = '';
             
             if (isOverdue) {
                 statusText = `逾期${daysSinceStart - checkpointDay}天`;
@@ -2979,12 +2677,6 @@
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                     statusText = checkinDate.toLocaleDateString();
-                    scheduleTypeText = '📅 自定义日期计划';
-                } else if (task.scheduleType === 'daily') {
-                    const startDate = new Date(task.createDate);
-                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
-                    statusText = checkinDate.toLocaleDateString();
-                    scheduleTypeText = '📅 每日打卡计划';
                 } else {
                     statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
                 }
@@ -3019,7 +2711,7 @@
                     <div class="progress-text">
                         已完成 ${completedCheckins} 次打卡
                         ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
-                        ${scheduleTypeText ? `<div>${scheduleTypeText}</div>` : ''}
+                        ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
                     </div>
                     ${compactCheckinInfo}
                 </div>
@@ -3031,7 +2723,7 @@
                     <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                     <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                     <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                    ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id}, event)" id="play-latest-${task.id}">回放录音</button>` : ''}
+                    ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
                 </div>
             `;
             
@@ -3105,7 +2797,6 @@
                 
                 let statusClass = 'status-future';
                 let statusText = '';
-                let scheduleTypeText = '';
                 
                 if (hasOverdue) {
                     statusClass = 'status-overdue';
@@ -3113,12 +2804,6 @@
                 } else if (shouldCheckinToday) {
                     statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
                     statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
-                }
-                
-                if (task.scheduleType === 'daily') {
-                    scheduleTypeText = '📅 每日打卡计划';
-                } else if (task.scheduleType === 'custom') {
-                    scheduleTypeText = '📅 自定义日期计划';
                 }
                 
                 const compactCheckinInfo = generateCompactCheckinInfo(task);
@@ -3143,7 +2828,7 @@
                         <div class="progress-text">
                             已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次
                             ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
-                            ${scheduleTypeText ? `<div>${scheduleTypeText}</div>` : ''}
+                            ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
                         </div>
                         ${compactCheckinInfo}
                     </div>
@@ -3154,7 +2839,7 @@
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                        ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id}, event)" id="play-latest-${task.id}">回放录音</button>` : ''}
+                        ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
                     </div>
                 `;
                 
@@ -3188,7 +2873,7 @@
             const checkinItems = recentCheckins.map(checkin => {
                 const checkpointDay = taskSchedule[checkin.checkpointIndex];
                 
-                if (task.scheduleType === 'custom' || task.scheduleType === 'daily') {
+                if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                     const formattedDate = `${checkinDate.getMonth()+1}/${checkinDate.getDate()}`;
@@ -3212,14 +2897,82 @@
             startCheckin(taskId);
         }
 
-        // 播放最新录音 - 平板兼容版本
-        async function playLatestRecording(taskId, event) {
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
+        // 渲染任务项
+        function renderTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
+            const taskEl = document.createElement('div');
+            
+            let taskClass = 'task-item';
+            if (isOverdue) {
+                taskClass += ' overdue';
+            } else if (hasCheckedIn) {
+                taskClass += ' completed';
             }
             
-            console.log('📱 平板播放最新录音...');
+            taskEl.className = taskClass;
+            
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const checkpointDay = taskSchedule[checkpointIndex];
+            
+            // 对于自定义日期任务，显示具体日期而不是天数
+            let statusText = '';
+            
+            if (isOverdue) {
+                statusText = `逾期${daysSinceStart - checkpointDay}天`;
+            } else {
+                if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                    statusText = checkinDate.toLocaleDateString();
+                } else {
+                    statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
+                }
+            }
+            
+            const completedCheckins = task.checkins.length;
+            const totalCheckins = taskSchedule.length;
+            const progressPercent = (completedCheckins / totalCheckins) * 100;
+            
+            const lastRecordingDuration = getLastRecordingDuration(task);
+            const lastRecordingText = lastRecordingDuration ? 
+                `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
+            
+            const compactCheckinInfo = generateCompactCheckinInfo(task);
+            
+            const subjectClass = `subject-${getSubjectClass(task.subject)}`;
+            
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}</div>
+                    <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
+                        ${statusText} ${hasCheckedIn ? '✓ 今日已打卡' : '未完成'}
+                    </div>
+                </div>
+                ${task.description ? `<p>${task.description}</p>` : ''}
+                <div class="task-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="progress-text">
+                        已完成 ${completedCheckins} 次打卡
+                        ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                        ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
+                    </div>
+                    ${compactCheckinInfo}
+                </div>
+                <div class="task-actions">
+                    ${!hasCheckedIn ? 
+                        `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
+                            立即打卡
+                        </button>` : ''}
+                    <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                </div>
+            `;
+            
+            container.appendChild(taskEl);
+        }
+
+        // 播放最新录音
+        function playLatestRecording(taskId) {
             const task = appData.tasks.find(t => t.id === taskId);
             if (!task) {
                 alert('未找到任务');
@@ -3242,93 +2995,97 @@
                 return;
             }
             
-            // 直接传递事件对象
-            await playSavedRecording(latestCheckin.recordingId, event);
-        }
-
-        // 播放保存的录音 - 平板兼容版本
-        async function playSavedRecording(recordingId, event) {
-            // 在平板上，确保我们有用户事件对象
-            if (event) {
-                event.preventDefault();
-                event.stopPropagation();
+            const recording = appData.recordings.find(r => r.id === latestCheckin.recordingId);
+            if (!recording) {
+                alert('未找到录音记录');
+                return;
             }
             
-            try {
-                console.log('📱 平板兼容播放开始...');
-                
-                // 立即显示加载状态
-                const playBtn = event ? event.target : document.getElementById(`play-saved-${recordingId}`);
-                const originalText = playBtn?.textContent || '播放';
-                
+            if (!recording.audioUrl && recording.audioData) {
+                createAudioUrlFromData(recording);
+            }
+            
+            if (recording.audioUrl) {
+                const playBtn = document.getElementById(`play-latest-${taskId}`);
                 if (playBtn) {
-                    playBtn.textContent = '加载中...';
+                    playBtn.textContent = '录音回放中';
                     playBtn.disabled = true;
                 }
                 
-                // 快速同步执行所有操作
-                console.log('1. 获取录音数据...');
-                const recording = await recordingStorage.getRecording(recordingId);
-                
-                if (!recording?.audioBlob) {
-                    throw new Error('录音数据不存在');
-                }
-                
-                console.log('2. 创建音频URL...');
-                const audioUrl = URL.createObjectURL(recording.audioBlob);
-                
-                // 切换到录音标签页
                 switchTab('recorder');
                 
-                // 确保音频元素可见且已设置
+                audioPlayer.src = recording.audioUrl;
                 audioPlayer.classList.remove('hidden');
-                audioPlayer.src = audioUrl;
                 
-                // 添加详细的错误处理
-                audioPlayer.onerror = () => {
-                    console.error('音频元素错误:', audioPlayer.error);
+                audioPlayer.play().then(() => {
+                    console.log('录音开始播放');
+                }).catch(error => {
+                    console.error('播放失败:', error);
+                    alert('播放录音失败: ' + error.message);
                     if (playBtn) {
-                        playBtn.textContent = originalText;
+                        playBtn.textContent = '回放录音';
                         playBtn.disabled = false;
                     }
-                    URL.revokeObjectURL(audioUrl);
-                };
+                });
                 
-                audioPlayer.oncanplay = () => {
-                    console.log('音频可以播放');
-                };
-                
-                // 关键：立即同步播放！
-                console.log('3. 立即播放...');
-                await audioPlayer.play();
-                
-                console.log('🎉 播放成功');
-                
-                // 播放结束后的清理
                 audioPlayer.onended = () => {
                     if (playBtn) {
-                        playBtn.textContent = originalText;
+                        playBtn.textContent = '回放录音';
                         playBtn.disabled = false;
                     }
-                    setTimeout(() => URL.revokeObjectURL(audioUrl), 1000);
                 };
                 
-            } catch (error) {
-                console.error('❌ 平板播放失败:', error);
+                audioPlayer.onerror = () => {
+                    console.error('音频播放错误');
+                    alert('播放录音时发生错误');
+                    if (playBtn) {
+                        playBtn.textContent = '回放录音';
+                        playBtn.disabled = false;
+                    }
+                };
                 
-                // 恢复按钮状态
-                const playBtn = event ? event.target : document.getElementById(`play-saved-${recordingId}`);
+            } else {
+                alert('录音数据不可用，可能已损坏');
+            }
+        }
+
+        // 播放保存的录音
+        function playSavedRecording(recordingId) {
+            const recording = appData.recordings.find(r => r.id === recordingId);
+            if (!recording) {
+                return;
+            }
+            
+            if (!recording.audioUrl && recording.audioData) {
+                createAudioUrlFromData(recording);
+            }
+            
+            if (recording.audioUrl) {
+                const playBtn = document.getElementById(`play-saved-${recordingId}`);
                 if (playBtn) {
-                    playBtn.textContent = '播放';
-                    playBtn.disabled = false;
+                    playBtn.textContent = '录音回放中';
+                    playBtn.disabled = true;
                 }
                 
-                // 平板特定的错误处理
-                if (error.name === 'NotAllowedError') {
-                    alert('请在平板上点击"允许"音频播放权限\n或者尝试长按播放按钮');
-                } else {
-                    alert('播放失败: ' + error.message);
-                }
+                audioPlayer.src = recording.audioUrl;
+                audioPlayer.classList.remove('hidden');
+                audioPlayer.play().catch(error => {
+                    console.error('播放失败:', error);
+                    alert('播放录音失败');
+                    if (playBtn) {
+                        playBtn.textContent = '播放';
+                        playBtn.disabled = false;
+                    }
+                });
+                
+                audioPlayer.onended = () => {
+                    if (playBtn) {
+                        playBtn.textContent = '播放';
+                        playBtn.disabled = false;
+                    }
+                };
+            } else {
+                alert('录音数据已损坏或丢失');
             }
         }
 
@@ -3380,9 +3137,7 @@
                     dayEl.classList.add('selected');
                 }
                 
-                // 获取该日期的任务数量
                 const tasksOnDate = getTasksOnDate(date);
-                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed;
                 
                 let indicators = '';
                 if (tasksOnDate.overdue > 0) {
@@ -3398,16 +3153,9 @@
                     indicators += '<div class="task-indicator indicator-completed"></div>';
                 }
                 
-                // 添加任务数量指示器
-                let taskCountIndicator = '';
-                if (totalTasks > 0) {
-                    taskCountIndicator = `<div class="task-count-indicator">${totalTasks}</div>`;
-                }
-                
                 dayEl.innerHTML = `
                     <div class="day-number">${day}</div>
                     ${indicators}
-                    ${taskCountIndicator}
                 `;
                 
                 dayEl.addEventListener('click', () => showDateTasks(date));
@@ -3528,8 +3276,9 @@
                     
                     taskEl.className = taskClass;
                     
+                    // 对于自定义日期任务，显示具体日期
                     let dayDisplay;
-                    if (task.scheduleType === 'custom' || task.scheduleType === 'daily') {
+                    if (task.scheduleType === 'custom') {
                         const startDate = new Date(task.createDate);
                         const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                         dayDisplay = checkinDate.toLocaleDateString();
@@ -3590,8 +3339,9 @@
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const checkpointDay = taskSchedule[recording.checkpointIndex];
                 
+                // 对于自定义日期任务，显示具体日期
                 let dayDisplay;
-                if (task.scheduleType === 'custom' || task.scheduleType === 'daily') {
+                if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                     dayDisplay = checkinDate.toLocaleDateString();
@@ -3607,7 +3357,7 @@
                         <div class="recording-duration">${date} | 时长: ${formatTime(recording.duration)}</div>
                     </div>
                     <div class="task-actions">
-                        <button class="btn btn-secondary" onclick="playSavedRecording(${recording.id}, event)" id="play-saved-${recording.id}">播放</button>
+                        <button class="btn btn-secondary" onclick="playSavedRecording(${recording.id})" id="play-saved-${recording.id}">播放</button>
                     </div>
                 `;
                 
@@ -3657,6 +3407,7 @@
             
             switchTab('recorder');
             
+            // 更新任务信息显示
             updateRecorderTaskInfo();
             updateUploadTaskInfo();
             
@@ -3684,7 +3435,39 @@
                 };
                 
                 appData.mediaRecorder.onstop = () => {
-                    processRecording(stream);
+                    const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
+                    
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64Audio = reader.result;
+                        
+                        const recording = {
+                            id: Date.now(),
+                            taskId: appData.currentTask.id,
+                            checkpointIndex: appData.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: appData.recordingTime,
+                            audioData: base64Audio,
+                            mimeType: 'audio/wav'
+                        };
+                        
+                        createAudioUrlFromData(recording);
+                        
+                        // 删除同一任务的所有旧录音
+                        appData.recordings = appData.recordings.filter(r => 
+                            r.taskId !== recording.taskId
+                        );
+                        
+                        appData.currentRecording = recording;
+                        appData.recordings.push(recording);
+                        saveRecordings();
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        clearRecordingState();
+                        
+                        console.log('录音保存完成，ID:', recording.id);
+                    };
+                    reader.readAsDataURL(audioBlob);
                 };
                 
                 appData.isRecording = true;
@@ -3747,7 +3530,14 @@
             
             clearInterval(appData.timerInterval);
             
+            recordBtn.classList.remove('recording', 'hidden');
+            pauseBtn.classList.add('hidden');
+            stopBtn.classList.add('hidden');
+            playBtn.classList.remove('hidden');
+            submitRecordingBtn.disabled = false;
+            
             recordingStatusEl.classList.add('hidden');
+            clearRecordingState();
         }
 
         // 播放录音
@@ -3755,6 +3545,10 @@
             if (!appData.currentRecording) {
                 console.log('没有当前录音可播放');
                 return;
+            }
+            
+            if (!appData.currentRecording.audioUrl && appData.currentRecording.audioData) {
+                createAudioUrlFromData(appData.currentRecording);
             }
             
             if (appData.currentRecording.audioUrl) {
@@ -3776,6 +3570,7 @@
                 return;
             }
             
+            // 直接完成打卡，无需验收
             const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
             if (!task) return;
             
@@ -3812,6 +3607,49 @@
             renderDataStats();
         }
 
+        // 从Base64数据创建可播放的URL
+        function createAudioUrlFromData(recording) {
+            if (recording.audioData && !recording.audioUrl) {
+                try {
+                    const parts = recording.audioData.split(',');
+                    if (parts.length < 2) {
+                        console.error('Base64数据格式不正确');
+                        return;
+                    }
+                    
+                    const mimeType = parts[0].match(/:(.*?);/)[1];
+                    const base64Data = parts[1];
+                    
+                    const byteCharacters = atob(base64Data);
+                    const byteArrays = [];
+                    
+                    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+                        const slice = byteCharacters.slice(offset, offset + 512);
+                        
+                        const byteNumbers = new Array(slice.length);
+                        for (let i = 0; i < slice.length; i++) {
+                            byteNumbers[i] = slice.charCodeAt(i);
+                        }
+                        
+                        const byteArray = new Uint8Array(byteNumbers);
+                        byteArrays.push(byteArray);
+                    }
+                    
+                    const blob = new Blob(byteArrays, { type: mimeType });
+                    recording.audioUrl = URL.createObjectURL(blob);
+                } catch (error) {
+                    console.error('创建音频URL失败:', error);
+                }
+            }
+        }
+
+        // 加载录音数据时恢复所有录音的URL
+        function restoreRecordingUrls() {
+            appData.recordings.forEach(recording => {
+                createAudioUrlFromData(recording);
+            });
+        }
+
         // 处理文件上传
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -3823,8 +3661,8 @@
                 return;
             }
             
-            if (file.size > 50 * 1024 * 1024) {
-                alert('文件大小不能超过50MB');
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小不能超过10MB');
                 resetUpload();
                 return;
             }
@@ -3877,93 +3715,65 @@
         }
 
         // 提交上传的音频
-        async function submitUploadedAudio() {
+        function submitUploadedAudio() {
             if (!appData.uploadedAudio || !appData.currentTask) return;
             
-            try {
-                // 将Base64数据转换为Blob
-                const response = await fetch(appData.uploadedAudio.audioData);
-                const audioBlob = await response.blob();
-                
-                const recording = {
-                    id: Date.now(),
-                    taskId: appData.currentTask.id,
-                    checkpointIndex: appData.currentCheckpointIndex,
-                    date: new Date().toISOString(),
-                    duration: appData.uploadedAudio.duration,
-                    audioBlob: audioBlob,
-                    mimeType: appData.uploadedAudio.mimeType,
-                    source: 'upload',
-                    size: audioBlob.size
-                };
-                
-                // 保存到 IndexedDB
-                await recordingStorage.saveRecording(recording);
-                
-                // 创建播放URL
-                recording.audioUrl = URL.createObjectURL(audioBlob);
-                
-                // 更新应用状态
-                appData.currentRecording = recording;
-                
-                // 从内存中移除旧录音记录
-                appData.recordings = appData.recordings.filter(r => 
-                    r.taskId !== recording.taskId
-                );
-                
-                // 保存元数据到内存
-                appData.recordings.push({
-                    id: recording.id,
-                    taskId: recording.taskId,
-                    checkpointIndex: recording.checkpointIndex,
-                    date: recording.date,
-                    duration: recording.duration,
-                    mimeType: recording.mimeType,
-                    size: recording.size
-                });
-
-                // 保存元数据到LocalStorage
-                saveRecordingsMetadata();
-                
-                const task = appData.tasks.find(t => t.id === recording.taskId);
-                if (!task) return;
-                
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const alreadyCheckedIn = task.checkins.some(
-                    checkin => checkin.checkpointIndex === recording.checkpointIndex
-                );
-                
-                if (alreadyCheckedIn) {
-                    alert('这个打卡点已经完成过了！');
-                    return;
-                }
-                
-                task.checkins.push({
-                    checkpointIndex: recording.checkpointIndex,
-                    date: recording.date,
-                    recordingId: recording.id
-                });
-                
-                if (task.checkins.length === taskSchedule.length) {
-                    task.status = 'completed';
-                    alert(`恭喜！任务"${task.name}"已完成！`);
-                } else {
-                    alert('打卡成功！');
-                }
-                
-                saveTasks();
-                
-                resetUpload();
-                renderRecordings();
-                renderTodayTasks();
-                renderAllTasks();
-                renderCalendar();
-                renderDataStats();
-                
-            } catch (error) {
-                console.error('提交上传音频失败:', error);
-                alert('提交失败: ' + error.message);
+            const recording = {
+                id: Date.now(),
+                taskId: appData.currentTask.id,
+                checkpointIndex: appData.currentCheckpointIndex,
+                date: new Date().toISOString(),
+                duration: appData.uploadedAudio.duration,
+                audioData: appData.uploadedAudio.audioData,
+                mimeType: appData.uploadedAudio.mimeType,
+                source: 'upload'
+            };
+            
+            createAudioUrlFromData(recording);
+            
+            // 删除同一任务的所有旧录音
+            appData.recordings = appData.recordings.filter(r => 
+                r.taskId !== recording.taskId
+            );
+            
+            appData.recordings.push(recording);
+            saveRecordings();
+            
+            // 直接完成打卡，无需验收
+            const task = appData.tasks.find(t => t.id === recording.taskId);
+            if (!task) return;
+            
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const alreadyCheckedIn = task.checkins.some(
+                checkin => checkin.checkpointIndex === recording.checkpointIndex
+            );
+            
+            if (alreadyCheckedIn) {
+                alert('这个打卡点已经完成过了！');
+                return;
             }
+            
+            task.checkins.push({
+                checkpointIndex: recording.checkpointIndex,
+                date: recording.date,
+                recordingId: recording.id
+            });
+            
+            if (task.checkins.length === taskSchedule.length) {
+                task.status = 'completed';
+                alert(`恭喜！任务"${task.name}"已完成！`);
+            } else {
+                alert('打卡成功！');
+            }
+            
+            saveTasks();
+            
+            resetUpload();
+            renderRecordings();
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
         }
 
         // 重置上传界面
@@ -4053,22 +3863,19 @@
                 let statusIcon = checkin ? '✅' : '❌';
                 let statusClass = checkin ? 'status-completed-icon' : 'status-missed-icon';
                 
+                // 对于自定义日期任务，显示具体日期
                 let dayDisplay;
                 let dateDisplay = '';
-                if (task.scheduleType === 'custom' || task.scheduleType === 'daily') {
+                if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
                     dayDisplay = checkinDate.toLocaleDateString();
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[checkinDate.getDay()];
-                    dateDisplay = ` (周${weekday})`;
+                    dateDisplay = ` (${checkinDate.toLocaleDateString()})`;
                 } else {
                     dayDisplay = `第${day.toString().padStart(3, ' ')}天`;
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[checkinDate.getDay()];
-                    dateDisplay = ` (${checkinDate.toLocaleDateString()} 周${weekday})`;
+                    dateDisplay = ` (${checkinDate.toLocaleDateString()})`;
                 }
                 
                 return `
@@ -4094,13 +3901,16 @@
                 </div>
                 <div class="form-group">
                     <label>打卡计划类型</label>
-                    <p>${task.scheduleType === 'daily' ? '每日打卡' : (task.scheduleType === 'custom' ? '自定义日期' : '默认计划')}</p>
+                    <p>${task.scheduleType === 'custom' ? '自定义日期' : '默认计划'}</p>
                 </div>
                 <div class="checkin-progress">
                     <h4>打卡进度</h4>
                     ${checkinDetails}
                 </div>
             `;
+            
+            // 渲染点评列表
+            renderFeedbackList(taskId);
             
             taskDetailsModal.classList.remove('hidden');
         }
@@ -4112,20 +3922,20 @@
         }
 
         // 删除任务
-        async function deleteTask(taskId) {
+        function deleteTask(taskId) {
             if (confirm('确定要删除这个任务吗？此操作将永久删除任务及其相关数据，不可恢复！')) {
-                // 删除IndexedDB中的录音数据
-                const taskRecordings = await recordingStorage.getRecordingsByTask(taskId);
-                for (const recording of taskRecordings) {
-                    await recordingStorage.deleteRecording(recording.id);
-                }
-                
+                // 删除任务
                 appData.tasks = appData.tasks.filter(t => t.id !== taskId);
+                
+                // 删除相关录音
                 appData.recordings = appData.recordings.filter(r => r.taskId !== taskId);
+                
+                // 删除相关点评
                 appData.feedbacks = appData.feedbacks.filter(f => f.taskId !== taskId);
                 
                 saveTasks();
-                saveRecordingsMetadata();
+                saveRecordings();
+                saveFeedbacks();
                 
                 renderAllTasks();
                 renderTodayTasks();
@@ -4151,41 +3961,30 @@
                 const taskSchedule = getTaskCheckinSchedule(task);
                 return task.checkins.length === taskSchedule.length;
             }).length;
-            
-            // 只统计今天的录音数量
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayRecordings = appData.recordings.filter(recording => {
-                const recordingDate = new Date(recording.date);
-                recordingDate.setHours(0, 0, 0, 0);
-                return recordingDate.getTime() === today.getTime();
-            }).length;
+            const totalRecordings = appData.recordings.length;
             
             const dataSize = calculateDataSize();
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
-            document.getElementById('stat-total-recordings').textContent = todayRecordings;
+            document.getElementById('stat-total-recordings').textContent = totalRecordings;
             document.getElementById('stat-data-size').textContent = dataSize.totalSize;
         }
 
         function renderDataStats() {
+            // 只计算有效任务（未删除的）
             const totalTasks = appData.tasks.length;
             
+            // 只计算所有打卡都完成的任务
             const completedTasks = appData.tasks.filter(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
                 return task.checkins.length === taskSchedule.length;
             }).length;
             
-            // 只统计今天的录音数量
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayRecordings = appData.recordings.filter(recording => {
-                const recordingDate = new Date(recording.date);
-                recordingDate.setHours(0, 0, 0, 0);
-                return recordingDate.getTime() === today.getTime();
-            }).length;
+            // 只计算当前保留的录音数量
+            const totalRecordings = appData.recordings.length;
             
+            // 只计算可回放录音的总时长
             const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
@@ -4193,10 +3992,11 @@
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
             document.getElementById('stats-completed-tasks').textContent = completedTasks;
-            document.getElementById('stats-total-recordings').textContent = todayRecordings;
+            document.getElementById('stats-total-recordings').textContent = totalRecordings;
             document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
             document.getElementById('stats-data-size').textContent = dataSize.totalSize;
             
+            // 显示存储警告
             showStorageWarning();
         }
 
@@ -4226,16 +4026,19 @@
             storageWarningEl.classList.remove('hidden', 'low', 'medium', 'high');
             
             if (totalSizeMB > 5) {
+                // 高风险：超过5MB
                 storageWarningEl.classList.add('high');
                 storageSizeDisplayEl.classList.add('high');
                 storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议及时清理或导出备份数据';
                 storageWarningEl.classList.remove('hidden');
             } else if (totalSizeMB > 2) {
+                // 中风险：2-5MB
                 storageWarningEl.classList.add('medium');
                 storageSizeDisplayEl.classList.add('medium');
                 storageMessageEl.textContent = '数据存储量适中，建议定期导出备份';
                 storageWarningEl.classList.remove('hidden');
             } else {
+                // 低风险：小于2MB
                 storageWarningEl.classList.add('low');
                 storageSizeDisplayEl.classList.add('low');
                 storageMessageEl.textContent = '数据存储量正常';
@@ -4243,37 +4046,28 @@
             }
         }
 
-        async function exportData() {
-            try {
-                // 从IndexedDB获取所有录音数据
-                const allRecordings = await recordingStorage.getAllRecordings();
-                
-                const exportData = {
-                    version: '2.0',
-                    exportDate: new Date().toISOString(),
-                    tasks: appData.tasks,
-                    recordings: allRecordings, // 包含完整的录音数据
-                    feedbacks: appData.feedbacks
-                };
-                
-                const dataStr = JSON.stringify(exportData, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `复习打卡计划备份_${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-                
-                alert('数据导出成功！');
-                
-            } catch (error) {
-                console.error('导出数据失败:', error);
-                alert('导出数据失败: ' + error.message);
-            }
+        function exportData() {
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                tasks: appData.tasks,
+                recordings: appData.recordings,
+                feedbacks: appData.feedbacks
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `复习打卡计划备份_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            alert('数据导出成功！');
         }
 
         function handleImportFileSelect(event) {
@@ -4292,53 +4086,31 @@
             importDataBtn.disabled = false;
         }
 
-        async function importData() {
+        function importData() {
             const file = importDataFile.files[0];
             if (!file) return;
             
             const reader = new FileReader();
-            reader.onload = async function(e) {
+            reader.onload = function(e) {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     
-                    if (!importedData.tasks) {
-                        throw new Error('文件格式不正确，缺少任务数据');
+                    if (!importedData.tasks || !importedData.recordings) {
+                        throw new Error('文件格式不正确，缺少必要的数据字段');
                     }
                     
                     if (!confirm('导入数据将覆盖当前所有数据，确定要继续吗？')) {
                         return;
                     }
                     
-                    // 清空现有数据
-                    const allRecordings = await recordingStorage.getAllRecordings();
-                    for (const recording of allRecordings) {
-                        await recordingStorage.deleteRecording(recording.id);
-                    }
-                    
                     appData.tasks = importedData.tasks;
+                    appData.recordings = importedData.recordings;
                     appData.feedbacks = importedData.feedbacks || [];
                     
-                    // 导入录音数据到IndexedDB
-                    if (importedData.recordings) {
-                        for (const recording of importedData.recordings) {
-                            await recordingStorage.saveRecording(recording);
-                        }
-                        
-                        // 更新内存中的录音元数据
-                        appData.recordings = importedData.recordings.map(recording => ({
-                            id: recording.id,
-                            taskId: recording.taskId,
-                            checkpointIndex: recording.checkpointIndex,
-                            date: recording.date,
-                            duration: recording.duration,
-                            mimeType: recording.mimeType,
-                            size: recording.size
-                        }));
-                    } else {
-                        appData.recordings = [];
-                    }
-                    
+                    // 清理旧录音，每个任务只保留最新一次打卡
                     cleanupOldRecordings();
+                    
+                    restoreRecordingUrls();
                     
                     saveLocalData();
                     
@@ -4376,19 +4148,13 @@
             importDataBtn.disabled = true;
         }
 
-        async function clearAllData() {
+        function clearAllData() {
             if (!confirm('确定要清除所有数据吗？此操作不可撤销！')) {
                 return;
             }
             
             if (!confirm('再次确认：这将删除所有任务、录音记录和点评，确定要继续吗？')) {
                 return;
-            }
-            
-            // 清空IndexedDB
-            const allRecordings = await recordingStorage.getAllRecordings();
-            for (const recording of allRecordings) {
-                await recordingStorage.deleteRecording(recording.id);
             }
             
             appData.tasks = [];
