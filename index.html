@@ -935,7 +935,7 @@
 
         .checkin-day {
             font-weight: 600;
-            width: 80px;
+            width: 120px;
         }
 
         .checkin-status {
@@ -1189,38 +1189,25 @@
             white-space: pre-line; /* 保留换行符 */
         }
 
-        /* 新增样式 - 点评功能 */
-        .feedback-section {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
+        /* 日历任务数量指示器 */
+        .task-count-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
         }
 
-        .feedback-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #475569;
-        }
-
-        .feedback-item {
-            padding: 10px;
-            margin-bottom: 10px;
-            background: white;
-            border-radius: 6px;
-            border-left: 3px solid #4facfe;
-        }
-
-        .feedback-date {
-            font-size: 12px;
-            color: #64748b;
-            margin-bottom: 5px;
-        }
-
-        .feedback-content {
-            color: #475569;
-            line-height: 1.4;
+        .calendar-day {
+            position: relative;
         }
     </style>
 </head>
@@ -1490,7 +1477,7 @@
                         <div class="stat-card">
                             <div class="stat-icon">🎤</div>
                             <div class="stat-number" id="stats-total-recordings">0</div>
-                            <div class="stat-label">录音总数</div>
+                            <div class="stat-label">今日录音</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">⏱️</div>
@@ -1564,7 +1551,7 @@
                             <span class="stat-value" id="stat-completed-tasks">0</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">打卡记录:</span>
+                            <span class="stat-label">今日录音:</span>
                             <span class="stat-value" id="stat-total-recordings">0</span>
                         </div>
                         <div class="stat-item">
@@ -1588,17 +1575,6 @@
                 <div id="task-details-content">
                     <!-- 任务详情内容将通过JavaScript动态生成 -->
                 </div>
-                <!-- 新增：点评区域 -->
-                <div class="feedback-section" id="feedback-section">
-                    <div class="feedback-title">任务点评</div>
-                    <textarea id="feedback-input" placeholder="请输入对本次打卡的点评..." rows="3"></textarea>
-                    <div class="task-actions" style="margin-top: 10px;">
-                        <button class="btn btn-primary" id="save-feedback">保存点评</button>
-                    </div>
-                    <div id="feedback-list">
-                        <!-- 点评列表将在这里动态生成 -->
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -1608,7 +1584,7 @@
         const appData = {
             tasks: [],
             recordings: [],
-            feedbacks: [], // 新增：存储点评数据
+            feedbacks: [],
             currentTask: null,
             currentRecording: null,
             isRecording: false,
@@ -1627,9 +1603,8 @@
             currentCheckpointIndex: null,
             uploadedAudio: null,
             currentMode: 'record',
-            // 新增：自定义日期相关
             customDates: [],
-            currentScheduleType: 'default' // 'default' 或 'custom'
+            currentScheduleType: 'default'
         };
 
         // 默认打卡时间表
@@ -1699,11 +1674,6 @@
         const taskDetailsContent = document.getElementById('task-details-content');
         const closeTaskDetailsBtn = document.getElementById('close-task-details');
 
-        // 新增：点评相关元素
-        const feedbackInput = document.getElementById('feedback-input');
-        const saveFeedbackBtn = document.getElementById('save-feedback');
-        const feedbackList = document.getElementById('feedback-list');
-
         // 新增：自定义日期相关元素
         const scheduleTypeSelectors = document.querySelectorAll('.schedule-type');
         const defaultScheduleInfo = document.getElementById('default-schedule-info');
@@ -1736,7 +1706,6 @@
             setupDataManagementEventListeners();
             setupTaskDetailsEventListeners();
             setupCustomDateEventListeners();
-            setupFeedbackEventListeners();
             
             restoreRecordingUrls();
             
@@ -1757,7 +1726,6 @@
             const lastCleanupDate = localStorage.getItem('lastCleanupDate');
             const today = new Date().toDateString();
             
-            // 如果今天还没有进行清理，或者从未清理过
             if (lastCleanupDate !== today) {
                 strictDailyCleanup();
                 localStorage.setItem('lastCleanupDate', today);
@@ -1795,75 +1763,8 @@
             }
         }
 
-        // 设置点评事件监听
-        function setupFeedbackEventListeners() {
-            saveFeedbackBtn.addEventListener('click', saveFeedback);
-        }
-
-        // 保存点评
-        function saveFeedback() {
-            const feedbackText = feedbackInput.value.trim();
-            if (!feedbackText) {
-                alert('请输入点评内容');
-                return;
-            }
-
-            if (!appData.currentTask) {
-                alert('请先选择任务');
-                return;
-            }
-
-            const feedback = {
-                id: Date.now(),
-                taskId: appData.currentTask.id,
-                date: new Date().toISOString(),
-                content: feedbackText
-            };
-
-            appData.feedbacks.push(feedback);
-            saveFeedbacks();
-
-            feedbackInput.value = '';
-            renderFeedbackList(appData.currentTask.id);
-
-            alert('点评保存成功！');
-        }
-
-        // 保存点评数据
-        function saveFeedbacks() {
-            try {
-                localStorage.setItem('checkinFeedbacks', JSON.stringify(appData.feedbacks));
-            } catch (e) {
-                console.error('保存点评数据失败:', e);
-            }
-        }
-
-        // 渲染点评列表
-        function renderFeedbackList(taskId) {
-            feedbackList.innerHTML = '';
-
-            const taskFeedbacks = appData.feedbacks.filter(feedback => feedback.taskId === taskId)
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
-
-            if (taskFeedbacks.length === 0) {
-                feedbackList.innerHTML = '<p style="color: #64748b; text-align: center; padding: 10px;">暂无点评</p>';
-                return;
-            }
-
-            taskFeedbacks.forEach(feedback => {
-                const feedbackItem = document.createElement('div');
-                feedbackItem.className = 'feedback-item';
-                feedbackItem.innerHTML = `
-                    <div class="feedback-date">${new Date(feedback.date).toLocaleString()}</div>
-                    <div class="feedback-content">${feedback.content}</div>
-                `;
-                feedbackList.appendChild(feedbackItem);
-            });
-        }
-
         // 设置自定义日期事件监听
         function setupCustomDateEventListeners() {
-            // 打卡计划类型切换
             scheduleTypeSelectors.forEach(type => {
                 type.addEventListener('click', () => {
                     const scheduleType = type.getAttribute('data-type');
@@ -1871,7 +1772,6 @@
                 });
             });
             
-            // 添加自定义日期
             addCustomDateBtn.addEventListener('click', addCustomDate);
         }
 
@@ -1913,7 +1813,6 @@
                 return;
             }
             
-            // 检查是否已存在相同日期
             const dateExists = appData.customDates.some(date => 
                 new Date(date).getTime() === selectedDate.getTime()
             );
@@ -1937,7 +1836,6 @@
                 return;
             }
             
-            // 按日期排序
             const sortedDates = [...appData.customDates].sort((a, b) => new Date(a) - new Date(b));
             
             sortedDates.forEach((date, index) => {
@@ -1951,7 +1849,6 @@
                 customDatesList.appendChild(dateItem);
             });
             
-            // 添加删除事件监听
             document.querySelectorAll('.remove-date-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const index = parseInt(e.target.getAttribute('data-index'));
@@ -2057,7 +1954,6 @@
                         
                         createAudioUrlFromData(recording);
                         
-                        // 删除同一任务的所有旧录音
                         appData.recordings = appData.recordings.filter(r => 
                             r.taskId !== recording.taskId
                         );
@@ -2187,8 +2083,7 @@
             if (savedRecordings) {
                 try {
                     appData.recordings = JSON.parse(savedRecordings);
-                // 清理旧录音，每个任务只保留最新一次打卡
-                    cleanupOldRecordings();
+                cleanupOldRecordings();
                 } catch (e) {
                     console.error('解析录音数据失败:', e);
                     appData.recordings = [];
@@ -2215,7 +2110,6 @@
         function cleanupOldRecordings() {
             const taskRecordings = {};
             
-            // 按任务分组录音
             appData.recordings.forEach(recording => {
                 if (!taskRecordings[recording.taskId]) {
                     taskRecordings[recording.taskId] = [];
@@ -2223,12 +2117,10 @@
                 taskRecordings[recording.taskId].push(recording);
             });
             
-            // 每个任务只保留最新的一次录音
             const cleanedRecordings = [];
             Object.keys(taskRecordings).forEach(taskId => {
                 const recordings = taskRecordings[taskId];
                 if (recordings.length > 0) {
-                    // 按日期排序，取最新的
                     const latestRecording = recordings.sort((a, b) => 
                         new Date(b.date) - new Date(a.date)
                     )[0];
@@ -2368,7 +2260,6 @@
             const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
             const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
             
-            // 对于自定义日期任务，显示具体日期
             if (appData.currentTask.scheduleType === 'custom') {
                 const startDate = new Date(appData.currentTask.createDate);
                 const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
@@ -2377,7 +2268,6 @@
                 recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
             }
             
-            // 显示任务描述
             if (appData.currentTask.description) {
                 recorderTaskDescContentEl.textContent = appData.currentTask.description;
                 recorderTaskDescriptionEl.classList.remove('hidden');
@@ -2392,7 +2282,6 @@
             const taskSchedule = getTaskCheckinSchedule(appData.currentTask);
             const checkpointDay = taskSchedule[appData.currentCheckpointIndex];
             
-            // 对于自定义日期任务，显示具体日期
             if (appData.currentTask.scheduleType === 'custom') {
                 const startDate = new Date(appData.currentTask.createDate);
                 const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
@@ -2401,7 +2290,6 @@
                 uploadCheckpointEl.textContent = `第${checkpointDay}天打卡`;
             }
             
-            // 显示任务描述
             if (appData.currentTask.description) {
                 uploadTaskDescContentEl.textContent = appData.currentTask.description;
                 uploadTaskDescriptionEl.classList.remove('hidden');
@@ -2419,7 +2307,6 @@
             document.getElementById('task-desc').value = '';
             document.getElementById('task-date').valueAsDate = new Date();
             
-            // 重置打卡计划类型
             switchScheduleType('default');
             appData.customDates = [];
             renderCustomDatesList();
@@ -2469,7 +2356,6 @@
                 date = new Date().toISOString().split('T')[0];
             }
             
-            // 构建任务对象
             const newTask = {
                 id: Date.now(),
                 subject: subject,
@@ -2481,7 +2367,6 @@
                 scheduleType: appData.currentScheduleType
             };
             
-            // 如果是自定义日期任务，保存自定义日期
             if (appData.currentScheduleType === 'custom') {
                 if (appData.customDates.length === 0) {
                     alert('请至少添加一个自定义打卡日期');
@@ -2494,7 +2379,6 @@
             saveTasks();
             hideTaskForm();
             
-            // 重置自定义日期
             appData.customDates = [];
             renderCustomDatesList();
             
@@ -2544,7 +2428,6 @@
         // 获取任务的打卡计划
         function getTaskCheckinSchedule(task) {
             if (task.scheduleType === 'custom' && task.customDates) {
-                // 对于自定义日期任务，计算相对于开始日期的天数
                 const startDate = new Date(task.createDate);
                 startDate.setHours(0, 0, 0, 0);
                 
@@ -2555,7 +2438,6 @@
                 }).sort((a, b) => a - b);
             }
             
-            // 默认使用标准计划
             return checkinSchedule;
         }
 
@@ -2599,7 +2481,6 @@
                     });
                 }
                 
-                // 检查逾期打卡
                 for (let i = 0; i < taskSchedule.length; i++) {
                     const checkpointDay = taskSchedule[i];
                     if (checkpointDay < daysSinceStart && 
@@ -2620,7 +2501,6 @@
                 }
             });
             
-            // 更新任务数量显示：未完成/总任务
             todayTasksCountEl.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
             
             tasksForToday.sort((a, b) => {
@@ -2651,7 +2531,7 @@
             });
         }
 
-        // 渲染今日任务项（新增完整功能按钮）
+        // 渲染今日任务项
         function renderTodayTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
             const taskEl = document.createElement('div');
             
@@ -2667,7 +2547,6 @@
             const taskSchedule = getTaskCheckinSchedule(task);
             const checkpointDay = taskSchedule[checkpointIndex];
             
-            // 对于自定义日期任务，显示具体日期而不是天数
             let statusText = '';
             
             if (isOverdue) {
@@ -2897,80 +2776,6 @@
             startCheckin(taskId);
         }
 
-        // 渲染任务项
-        function renderTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
-            const taskEl = document.createElement('div');
-            
-            let taskClass = 'task-item';
-            if (isOverdue) {
-                taskClass += ' overdue';
-            } else if (hasCheckedIn) {
-                taskClass += ' completed';
-            }
-            
-            taskEl.className = taskClass;
-            
-            const taskSchedule = getTaskCheckinSchedule(task);
-            const checkpointDay = taskSchedule[checkpointIndex];
-            
-            // 对于自定义日期任务，显示具体日期而不是天数
-            let statusText = '';
-            
-            if (isOverdue) {
-                statusText = `逾期${daysSinceStart - checkpointDay}天`;
-            } else {
-                if (task.scheduleType === 'custom') {
-                    const startDate = new Date(task.createDate);
-                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
-                    statusText = checkinDate.toLocaleDateString();
-                } else {
-                    statusText = checkpointDay === 0 ? '新任务' : `第${checkpointDay}天`;
-                }
-            }
-            
-            const completedCheckins = task.checkins.length;
-            const totalCheckins = taskSchedule.length;
-            const progressPercent = (completedCheckins / totalCheckins) * 100;
-            
-            const lastRecordingDuration = getLastRecordingDuration(task);
-            const lastRecordingText = lastRecordingDuration ? 
-                `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
-            
-            const compactCheckinInfo = generateCompactCheckinInfo(task);
-            
-            const subjectClass = `subject-${getSubjectClass(task.subject)}`;
-            
-            taskEl.innerHTML = `
-                <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}</div>
-                    <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
-                        ${statusText} ${hasCheckedIn ? '✓ 今日已打卡' : '未完成'}
-                    </div>
-                </div>
-                ${task.description ? `<p>${task.description}</p>` : ''}
-                <div class="task-progress">
-                    <div class="progress-bar">
-                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                    </div>
-                    <div class="progress-text">
-                        已完成 ${completedCheckins} 次打卡
-                        ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
-                        ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
-                    </div>
-                    ${compactCheckinInfo}
-                </div>
-                <div class="task-actions">
-                    ${!hasCheckedIn ? 
-                        `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
-                            立即打卡
-                        </button>` : ''}
-                    <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
-                </div>
-            `;
-            
-            container.appendChild(taskEl);
-        }
-
         // 播放最新录音
         function playLatestRecording(taskId) {
             const task = appData.tasks.find(t => t.id === taskId);
@@ -3137,7 +2942,9 @@
                     dayEl.classList.add('selected');
                 }
                 
+                // 获取该日期的任务数量
                 const tasksOnDate = getTasksOnDate(date);
+                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed;
                 
                 let indicators = '';
                 if (tasksOnDate.overdue > 0) {
@@ -3153,9 +2960,16 @@
                     indicators += '<div class="task-indicator indicator-completed"></div>';
                 }
                 
+                // 添加任务数量指示器
+                let taskCountIndicator = '';
+                if (totalTasks > 0) {
+                    taskCountIndicator = `<div class="task-count-indicator">${totalTasks}</div>`;
+                }
+                
                 dayEl.innerHTML = `
                     <div class="day-number">${day}</div>
                     ${indicators}
+                    ${taskCountIndicator}
                 `;
                 
                 dayEl.addEventListener('click', () => showDateTasks(date));
@@ -3276,7 +3090,6 @@
                     
                     taskEl.className = taskClass;
                     
-                    // 对于自定义日期任务，显示具体日期
                     let dayDisplay;
                     if (task.scheduleType === 'custom') {
                         const startDate = new Date(task.createDate);
@@ -3339,7 +3152,6 @@
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const checkpointDay = taskSchedule[recording.checkpointIndex];
                 
-                // 对于自定义日期任务，显示具体日期
                 let dayDisplay;
                 if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
@@ -3407,7 +3219,6 @@
             
             switchTab('recorder');
             
-            // 更新任务信息显示
             updateRecorderTaskInfo();
             updateUploadTaskInfo();
             
@@ -3453,7 +3264,6 @@
                         
                         createAudioUrlFromData(recording);
                         
-                        // 删除同一任务的所有旧录音
                         appData.recordings = appData.recordings.filter(r => 
                             r.taskId !== recording.taskId
                         );
@@ -3570,7 +3380,6 @@
                 return;
             }
             
-            // 直接完成打卡，无需验收
             const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
             if (!task) return;
             
@@ -3731,7 +3540,6 @@
             
             createAudioUrlFromData(recording);
             
-            // 删除同一任务的所有旧录音
             appData.recordings = appData.recordings.filter(r => 
                 r.taskId !== recording.taskId
             );
@@ -3739,7 +3547,6 @@
             appData.recordings.push(recording);
             saveRecordings();
             
-            // 直接完成打卡，无需验收
             const task = appData.tasks.find(t => t.id === recording.taskId);
             if (!task) return;
             
@@ -3863,19 +3670,22 @@
                 let statusIcon = checkin ? '✅' : '❌';
                 let statusClass = checkin ? 'status-completed-icon' : 'status-missed-icon';
                 
-                // 对于自定义日期任务，显示具体日期
                 let dayDisplay;
                 let dateDisplay = '';
                 if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
                     dayDisplay = checkinDate.toLocaleDateString();
-                    dateDisplay = ` (${checkinDate.toLocaleDateString()})`;
+                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                    const weekday = weekdays[checkinDate.getDay()];
+                    dateDisplay = ` (${checkinDate.toLocaleDateString()} 周${weekday})`;
                 } else {
                     dayDisplay = `第${day.toString().padStart(3, ' ')}天`;
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
-                    dateDisplay = ` (${checkinDate.toLocaleDateString()})`;
+                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                    const weekday = weekdays[checkinDate.getDay()];
+                    dateDisplay = ` (${checkinDate.toLocaleDateString()} 周${weekday})`;
                 }
                 
                 return `
@@ -3909,9 +3719,6 @@
                 </div>
             `;
             
-            // 渲染点评列表
-            renderFeedbackList(taskId);
-            
             taskDetailsModal.classList.remove('hidden');
         }
 
@@ -3924,18 +3731,12 @@
         // 删除任务
         function deleteTask(taskId) {
             if (confirm('确定要删除这个任务吗？此操作将永久删除任务及其相关数据，不可恢复！')) {
-                // 删除任务
                 appData.tasks = appData.tasks.filter(t => t.id !== taskId);
-                
-                // 删除相关录音
                 appData.recordings = appData.recordings.filter(r => r.taskId !== taskId);
-                
-                // 删除相关点评
                 appData.feedbacks = appData.feedbacks.filter(f => f.taskId !== taskId);
                 
                 saveTasks();
                 saveRecordings();
-                saveFeedbacks();
                 
                 renderAllTasks();
                 renderTodayTasks();
@@ -3961,30 +3762,41 @@
                 const taskSchedule = getTaskCheckinSchedule(task);
                 return task.checkins.length === taskSchedule.length;
             }).length;
-            const totalRecordings = appData.recordings.length;
+            
+            // 只统计今天的录音数量
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayRecordings = appData.recordings.filter(recording => {
+                const recordingDate = new Date(recording.date);
+                recordingDate.setHours(0, 0, 0, 0);
+                return recordingDate.getTime() === today.getTime();
+            }).length;
             
             const dataSize = calculateDataSize();
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
-            document.getElementById('stat-total-recordings').textContent = totalRecordings;
+            document.getElementById('stat-total-recordings').textContent = todayRecordings;
             document.getElementById('stat-data-size').textContent = dataSize.totalSize;
         }
 
         function renderDataStats() {
-            // 只计算有效任务（未删除的）
             const totalTasks = appData.tasks.length;
             
-            // 只计算所有打卡都完成的任务
             const completedTasks = appData.tasks.filter(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
                 return task.checkins.length === taskSchedule.length;
             }).length;
             
-            // 只计算当前保留的录音数量
-            const totalRecordings = appData.recordings.length;
+            // 只统计今天的录音数量
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayRecordings = appData.recordings.filter(recording => {
+                const recordingDate = new Date(recording.date);
+                recordingDate.setHours(0, 0, 0, 0);
+                return recordingDate.getTime() === today.getTime();
+            }).length;
             
-            // 只计算可回放录音的总时长
             const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
@@ -3992,11 +3804,10 @@
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
             document.getElementById('stats-completed-tasks').textContent = completedTasks;
-            document.getElementById('stats-total-recordings').textContent = totalRecordings;
+            document.getElementById('stats-total-recordings').textContent = todayRecordings;
             document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
             document.getElementById('stats-data-size').textContent = dataSize.totalSize;
             
-            // 显示存储警告
             showStorageWarning();
         }
 
@@ -4026,19 +3837,16 @@
             storageWarningEl.classList.remove('hidden', 'low', 'medium', 'high');
             
             if (totalSizeMB > 5) {
-                // 高风险：超过5MB
                 storageWarningEl.classList.add('high');
                 storageSizeDisplayEl.classList.add('high');
                 storageMessageEl.textContent = '⚠️ 数据存储量较大（超过5MB），建议及时清理或导出备份数据';
                 storageWarningEl.classList.remove('hidden');
             } else if (totalSizeMB > 2) {
-                // 中风险：2-5MB
                 storageWarningEl.classList.add('medium');
                 storageSizeDisplayEl.classList.add('medium');
                 storageMessageEl.textContent = '数据存储量适中，建议定期导出备份';
                 storageWarningEl.classList.remove('hidden');
             } else {
-                // 低风险：小于2MB
                 storageWarningEl.classList.add('low');
                 storageSizeDisplayEl.classList.add('low');
                 storageMessageEl.textContent = '数据存储量正常';
@@ -4107,7 +3915,6 @@
                     appData.recordings = importedData.recordings;
                     appData.feedbacks = importedData.feedbacks || [];
                     
-                    // 清理旧录音，每个任务只保留最新一次打卡
                     cleanupOldRecordings();
                     
                     restoreRecordingUrls();
