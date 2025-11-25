@@ -1242,6 +1242,93 @@
             font-size: 12px;
             color: #64748b;
         }
+
+        /* 频率选择器样式 */
+        .frequency-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .frequency-option {
+            padding: 10px;
+            text-align: center;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .frequency-option.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .frequency-option:hover {
+            border-color: #4facfe;
+        }
+
+        /* 每周日期选择器 */
+        .weekly-days-selector {
+            margin-top: 10px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .weekdays {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+        }
+
+        .weekday {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .weekday.active {
+            background: #4facfe;
+            color: white;
+            border-color: #4facfe;
+        }
+
+        .weekday:hover {
+            border-color: #4facfe;
+        }
+
+        /* 频率显示标签 */
+        .frequency-badge {
+            display: inline-block;
+            background: #4facfe;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .daily-frequency-info {
+            background: #f0f9ff;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 5px 0;
+            font-size: 12px;
+            color: #64748b;
+        }
     </style>
 </head>
 <body>
@@ -1278,8 +1365,8 @@
                     <label for="task-subject">科目</label>
                     <select id="task-subject">
                         <option value="语文">语文</option>
-                        <option value="数学">数学</option>
                         <option value="英语">英语</option>
+                        <option value="数学">数学</option>
                         <option value="科学">科学</option>
                         <option value="其他">其他</option>
                     </select>
@@ -1314,7 +1401,7 @@
                 
                 <!-- 每日打卡设置 -->
                 <div id="daily-schedule-container" class="daily-schedule-container hidden">
-                    <p><strong>每日打卡设置:</strong> 任务将每天都需要打卡</p>
+                    <p><strong>每日打卡设置:</strong> 设置任务的打卡频率和时间范围</p>
                     
                     <div class="form-group">
                         <label for="daily-start-date">开始日期</label>
@@ -1328,9 +1415,34 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="daily-duration">任务持续天数</label>
-                        <input type="number" id="daily-duration" min="1" max="365" value="30" placeholder="例如：30天">
-                        <small>任务将持续的天数</small>
+                        <label for="daily-duration">任务持续天数（可选）</label>
+                        <input type="number" id="daily-duration" min="1" max="365" placeholder="例如：30天">
+                        <small>如果不设置结束日期，可以用持续天数</small>
+                    </div>
+                    
+                    <!-- 新增频率设置 -->
+                    <div class="form-group">
+                        <label>打卡频率</label>
+                        <div class="frequency-selector">
+                            <div class="frequency-option active" data-frequency="daily">每天</div>
+                            <div class="frequency-option" data-frequency="2days">每2天</div>
+                            <div class="frequency-option" data-frequency="3days">每3天</div>
+                            <div class="frequency-option" data-frequency="weekly">每周</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 每周具体日期选择 -->
+                    <div id="weekly-days-selector" class="weekly-days-selector hidden">
+                        <label>选择每周打卡日</label>
+                        <div class="weekdays">
+                            <div class="weekday" data-day="0">日</div>
+                            <div class="weekday" data-day="1">一</div>
+                            <div class="weekday" data-day="2">二</div>
+                            <div class="weekday" data-day="3">三</div>
+                            <div class="weekday" data-day="4">四</div>
+                            <div class="weekday" data-day="5">五</div>
+                            <div class="weekday" data-day="6">六</div>
+                        </div>
                     </div>
                 </div>
                 
@@ -1362,8 +1474,8 @@
                     <label for="edit-task-subject">科目</label>
                     <select id="edit-task-subject">
                         <option value="语文">语文</option>
-                        <option value="数学">数学</option>
                         <option value="英语">英语</option>
+                        <option value="数学">数学</option>
                         <option value="科学">科学</option>
                         <option value="其他">其他</option>
                     </select>
@@ -1660,7 +1772,9 @@
             uploadedAudio: null,
             currentMode: 'record',
             customDates: [],
-            currentScheduleType: 'default'
+            currentScheduleType: 'default',
+            currentFrequency: 'daily',
+            selectedWeekdays: [1, 2, 3, 4, 5] // 默认选择周一到周五
         };
 
         // 默认打卡时间表
@@ -2009,6 +2123,22 @@
             // 设置每日打卡的默认日期
             const today = new Date().toISOString().split('T')[0];
             dailyStartDateInput.value = today;
+            
+            // 频率选择事件
+            document.querySelectorAll('.frequency-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    const frequency = option.getAttribute('data-frequency');
+                    switchFrequency(frequency);
+                });
+            });
+            
+            // 周日期选择事件
+            document.querySelectorAll('.weekday').forEach(day => {
+                day.addEventListener('click', () => {
+                    const dayIndex = parseInt(day.getAttribute('data-day'));
+                    toggleWeekday(dayIndex);
+                });
+            });
         }
 
         // 切换打卡计划类型
@@ -2036,6 +2166,52 @@
             } else if (type === 'custom') {
                 customScheduleContainer.classList.remove('hidden');
             }
+        }
+
+        // 切换频率
+        function switchFrequency(frequency) {
+            appData.currentFrequency = frequency;
+            
+            document.querySelectorAll('.frequency-option').forEach(option => {
+                if (option.getAttribute('data-frequency') === frequency) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+            
+            // 显示/隐藏周日期选择器
+            const weeklySelector = document.getElementById('weekly-days-selector');
+            if (frequency === 'weekly') {
+                weeklySelector.classList.remove('hidden');
+                renderWeekdaySelector();
+            } else {
+                weeklySelector.classList.add('hidden');
+            }
+        }
+
+        // 切换周日期选择
+        function toggleWeekday(dayIndex) {
+            const index = appData.selectedWeekdays.indexOf(dayIndex);
+            if (index === -1) {
+                appData.selectedWeekdays.push(dayIndex);
+            } else {
+                appData.selectedWeekdays.splice(index, 1);
+            }
+            appData.selectedWeekdays.sort((a, b) => a - b);
+            renderWeekdaySelector();
+        }
+
+        // 渲染周日期选择器
+        function renderWeekdaySelector() {
+            document.querySelectorAll('.weekday').forEach(day => {
+                const dayIndex = parseInt(day.getAttribute('data-day'));
+                if (appData.selectedWeekdays.includes(dayIndex)) {
+                    day.classList.add('active');
+                } else {
+                    day.classList.remove('active');
+                }
+            });
         }
 
         // 添加自定义日期
@@ -2505,6 +2681,10 @@
             appData.customDates = [];
             renderCustomDatesList();
             
+            // 初始化频率设置
+            switchFrequency('daily');
+            renderWeekdaySelector();
+            
             taskFormEl.scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -2570,6 +2750,12 @@
                 newTask.dailyStartDate = startDate || new Date().toISOString().split('T')[0];
                 if (endDate) newTask.dailyEndDate = endDate;
                 if (duration) newTask.dailyDuration = parseInt(duration);
+                
+                // 保存频率设置
+                newTask.dailyFrequency = appData.currentFrequency;
+                if (appData.currentFrequency === 'weekly') {
+                    newTask.selectedWeekdays = [...appData.selectedWeekdays];
+                }
                 
             } else if (appData.currentScheduleType === 'custom') {
                 if (appData.customDates.length === 0) {
@@ -2652,11 +2838,40 @@
             
             while (currentDate <= endDate) {
                 const daysSinceStart = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
-                schedule.push(daysSinceStart);
+                
+                // 根据频率判断是否加入打卡计划
+                if (shouldIncludeDate(task, currentDate, daysSinceStart)) {
+                    schedule.push(daysSinceStart);
+                }
+                
                 currentDate.setDate(currentDate.getDate() + 1);
             }
             
             return schedule;
+        }
+
+        // 判断日期是否应该包含在打卡计划中
+        function shouldIncludeDate(task, date, daysSinceStart) {
+            const frequency = task.dailyFrequency || 'daily';
+            
+            switch (frequency) {
+                case 'daily':
+                    return true;
+                    
+                case '2days':
+                    return daysSinceStart % 2 === 0;
+                    
+                case '3days':
+                    return daysSinceStart % 3 === 0;
+                    
+                case 'weekly':
+                    const weekday = date.getDay();
+                    const weekdays = task.selectedWeekdays || [1, 2, 3, 4, 5];
+                    return weekdays.includes(weekday);
+                    
+                default:
+                    return true;
+            }
         }
 
         // 获取任务的打卡计划
@@ -2693,6 +2908,41 @@
             }
             
             return info;
+        }
+
+        // 获取频率显示信息
+        function getFrequencyDisplayInfo(task) {
+            if (task.scheduleType !== 'daily') return '';
+            
+            const frequency = task.dailyFrequency || 'daily';
+            const frequencyMap = {
+                'daily': '每天',
+                '2days': '每2天一次',
+                '3days': '每3天一次',
+                'weekly': '每周特定日期'
+            };
+            
+            let info = frequencyMap[frequency];
+            
+            if (frequency === 'weekly' && task.selectedWeekdays) {
+                const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                const selectedDays = task.selectedWeekdays.map(day => `周${dayNames[day]}`).join('、');
+                info += ` (${selectedDays})`;
+            }
+            
+            return info;
+        }
+
+        // 获取频率标识文本
+        function getFrequencyBadgeText(task) {
+            const frequency = task.dailyFrequency || 'daily';
+            const badgeMap = {
+                'daily': '每日',
+                '2days': '2天',
+                '3days': '3天',
+                'weekly': '每周'
+            };
+            return badgeMap[frequency];
         }
 
         // 渲染今日任务
@@ -2757,8 +3007,9 @@
             
             todayTasksCountEl.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
             
+            // 按科目排序：语文、英语、数学、其他
             tasksForToday.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
+                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.task.subject] || 6;
                 const subjectB = subjectOrder[b.task.subject] || 6;
                 
@@ -2831,12 +3082,13 @@
             
             const hasPlayableRecording = completedCheckins > 0;
             
-            // 添加每日打卡标识
-            const dailyBadge = task.scheduleType === 'daily' ? '<span class="daily-task-badge">每日</span>' : '';
+            // 添加频率标识
+            const frequencyBadge = task.scheduleType === 'daily' ? 
+                `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
             
             taskEl.innerHTML = `
                 <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${dailyBadge}</div>
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}</div>
                     <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
                         ${statusText} ${hasCheckedIn ? '✓ 今日已打卡' : '未完成'}
                     </div>
@@ -2846,6 +3098,9 @@
                     <div class="daily-schedule-info">
                         <div class="daily-schedule-dates">
                             ${getDailyScheduleInfo(task)}
+                        </div>
+                        <div class="daily-frequency-info">
+                            📅 打卡频率: ${getFrequencyDisplayInfo(task)}
                         </div>
                     </div>
                 ` : ''}
@@ -2889,8 +3144,22 @@
                 return;
             }
             
-            const sortedTasks = [...appData.tasks].sort((a, b) => {
-                const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
+            // 分离已完成和未完成的任务
+            const activeTasks = [];
+            const completedTasks = [];
+            
+            appData.tasks.forEach(task => {
+                const taskSchedule = getTaskCheckinSchedule(task);
+                if (task.checkins.length === taskSchedule.length) {
+                    completedTasks.push(task);
+                } else {
+                    activeTasks.push(task);
+                }
+            });
+            
+            // 对未完成任务按科目排序：语文、英语、数学、其他
+            activeTasks.sort((a, b) => {
+                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.subject] || 6;
                 const subjectB = subjectOrder[b.subject] || 6;
                 
@@ -2900,6 +3169,18 @@
                 
                 return new Date(b.createDate) - new Date(a.createDate);
             });
+            
+            // 对已完成任务按完成时间倒序排列
+            completedTasks.sort((a, b) => {
+                const aLastCheckin = a.checkins.length > 0 ? 
+                    new Date(a.checkins[a.checkins.length - 1].date) : new Date(0);
+                const bLastCheckin = b.checkins.length > 0 ? 
+                    new Date(b.checkins[b.checkins.length - 1].date) : new Date(0);
+                return bLastCheckin - aLastCheckin;
+            });
+            
+            // 合并任务列表：未完成的任务在前，已完成的任务在后
+            const sortedTasks = [...activeTasks, ...completedTasks];
             
             sortedTasks.forEach(task => {
                 const taskEl = document.createElement('div');
@@ -2951,18 +3232,25 @@
                     statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
                 }
                 
+                // 如果是已完成任务，显示已完成状态
+                if (completedCheckins === totalCheckins) {
+                    statusClass = 'status-completed';
+                    statusText = '已完成';
+                }
+                
                 const compactCheckinInfo = generateCompactCheckinInfo(task);
                 
                 const subjectClass = `subject-${getSubjectClass(task.subject)}`;
                 
                 const hasPlayableRecording = completedCheckins > 0;
                 
-                // 添加每日打卡标识
-                const dailyBadge = task.scheduleType === 'daily' ? '<span class="daily-task-badge">每日</span>' : '';
+                // 添加频率标识
+                const frequencyBadge = task.scheduleType === 'daily' ? 
+                    `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
                 
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${dailyBadge}</div>
+                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}</div>
                         <div class="task-status ${statusClass}">
                             ${completedCheckins}/${totalCheckins}
                             ${statusText}
@@ -2973,6 +3261,9 @@
                         <div class="daily-schedule-info">
                             <div class="daily-schedule-dates">
                                 ${getDailyScheduleInfo(task)}
+                            </div>
+                            <div class="daily-frequency-info">
+                                📅 打卡频率: ${getFrequencyDisplayInfo(task)}
                             </div>
                         </div>
                     ` : ''}
@@ -3626,33 +3917,28 @@
                 let statusClass = checkin ? 'status-completed-icon' : 'status-missed-icon';
                 
                 let dayDisplay;
-                let dateDisplay = '';
                 if (task.scheduleType === 'daily') {
                     dayDisplay = `第${day + 1}天`;
                     const startDate = new Date(task.dailyStartDate || task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[checkinDate.getDay()];
-                    dateDisplay = ` (${checkinDate.toLocaleDateString()} 周${weekday})`;
+                    // 去掉星期显示，只显示日期
+                    dayDisplay += ` (${checkinDate.toLocaleDateString()})`;
                 } else if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
                     dayDisplay = checkinDate.toLocaleDateString();
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[checkinDate.getDay()];
-                    dateDisplay = ` (周${weekday})`;
+                    // 去掉星期显示
                 } else {
                     dayDisplay = `第${day.toString().padStart(3, ' ')}天`;
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + day * 24 * 60 * 60 * 1000);
-                    const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
-                    const weekday = weekdays[checkinDate.getDay()];
-                    dateDisplay = ` (${checkinDate.toLocaleDateString()} 周${weekday})`;
+                    // 去掉星期显示，只显示日期
+                    dayDisplay += ` (${checkinDate.toLocaleDateString()})`;
                 }
                 
                 return `
                     <div class="checkin-item">
-                        <div class="checkin-day">${dayDisplay}${dateDisplay}:</div>
+                        <div class="checkin-day">${dayDisplay}:</div>
                         <div class="checkin-status">
                             <span class="status-icon ${statusClass}">${statusIcon}</span>
                             <span>${status}</span>
@@ -3677,7 +3963,11 @@
                 </div>
                 ${task.scheduleType === 'daily' ? `
                     <div class="form-group">
-                        <label>每日打卡信息</label>
+                        <label>打卡频率</label>
+                        <p>${getFrequencyDisplayInfo(task)}</p>
+                    </div>
+                    <div class="form-group">
+                        <label>时间范围</label>
                         <p>${getDailyScheduleInfo(task)}</p>
                     </div>
                 ` : ''}
@@ -4202,6 +4492,9 @@
             
             let hasTasks = false;
             
+            // 获取该日期的所有任务，按今日任务相同的顺序排列
+            const tasksForDate = [];
+            
             appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
                 
@@ -4222,46 +4515,76 @@
                     const isOverdue = daysSinceStart > checkpointDay;
                     const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
                     
-                    const taskEl = document.createElement('div');
-                    
-                    let taskClass = 'task-item';
-                    if (isOverdue) {
-                        taskClass += ' overdue';
-                    } else if (hasCheckedIn) {
-                        taskClass += ' completed';
-                    }
-                    
-                    taskEl.className = taskClass;
-                    
-                    let dayDisplay;
-                    if (task.scheduleType === 'daily') {
-                        dayDisplay = `第${daysSinceStart + 1}天`;
-                    } else if (task.scheduleType === 'custom') {
-                        const startDate = new Date(task.createDate);
-                        const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
-                        dayDisplay = checkinDate.toLocaleDateString();
-                    } else {
-                        dayDisplay = `第${checkpointDay}天`;
-                    }
-                    
-                    taskEl.innerHTML = `
-                        <div class="task-header">
-                            <div class="task-name">${task.subject} - ${task.name}</div>
-                            <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
-                                ${isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : dayDisplay} ${hasCheckedIn ? '✓' : ''}
-                            </div>
-                        </div>
-                        <p>${task.description || ''}</p>
-                        <div class="task-actions">
-                            ${!hasCheckedIn ? 
-                                `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
-                                    打卡
-                                </button>` : ''}
-                        </div>
-                    `;
-                    
-                    selectedDateTasksEl.appendChild(taskEl);
+                    tasksForDate.push({
+                        task,
+                        checkpointIndex,
+                        daysSinceStart,
+                        isOverdue,
+                        hasCheckedIn
+                    });
                 }
+            });
+            
+            // 按科目排序：语文、英语、数学、其他（与今日任务相同）
+            tasksForDate.sort((a, b) => {
+                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
+                const subjectA = subjectOrder[a.task.subject] || 6;
+                const subjectB = subjectOrder[b.task.subject] || 6;
+                
+                if (subjectA !== subjectB) {
+                    return subjectA - subjectB;
+                }
+                
+                return new Date(b.task.createDate) - new Date(a.task.createDate);
+            });
+            
+            tasksForDate.forEach(item => {
+                const task = item.task;
+                const checkpointIndex = item.checkpointIndex;
+                const daysSinceStart = item.daysSinceStart;
+                const isOverdue = item.isOverdue;
+                const hasCheckedIn = item.hasCheckedIn;
+                
+                const taskEl = document.createElement('div');
+                
+                let taskClass = 'task-item';
+                if (isOverdue) {
+                    taskClass += ' overdue';
+                } else if (hasCheckedIn) {
+                    taskClass += ' completed';
+                }
+                
+                taskEl.className = taskClass;
+                
+                let dayDisplay;
+                if (task.scheduleType === 'daily') {
+                    dayDisplay = `第${daysSinceStart + 1}天`;
+                } else if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointIndex * 24 * 60 * 60 * 1000);
+                    dayDisplay = checkinDate.toLocaleDateString();
+                } else {
+                    const checkpointDay = getTaskCheckinSchedule(task)[checkpointIndex];
+                    dayDisplay = `第${checkpointDay}天`;
+                }
+                
+                taskEl.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-name">${task.subject} - ${task.name}</div>
+                        <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
+                            ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${hasCheckedIn ? '✓' : ''}
+                        </div>
+                    </div>
+                    <p>${task.description || ''}</p>
+                    <div class="task-actions">
+                        ${!hasCheckedIn ? 
+                            `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
+                                打卡
+                            </button>` : ''}
+                    </div>
+                `;
+                
+                selectedDateTasksEl.appendChild(taskEl);
             });
             
             if (!hasTasks) {
