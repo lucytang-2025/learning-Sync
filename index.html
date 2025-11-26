@@ -3307,6 +3307,9 @@
             const frequencyBadge = task.scheduleType === 'daily' ? 
                 `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
             
+            // 检查任务是否有照片打卡记录
+            const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
+            
             taskEl.innerHTML = `
                 <div class="task-header">
                     <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}</div>
@@ -3344,11 +3347,36 @@
                     <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                     <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                     <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                    ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+                    ${hasPlayableRecording && !hasPhotos ? 
+                        `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
+                        hasPhotos ? 
+                        `<button class="btn btn-secondary" onclick="viewLatestPhoto(${task.id})" id="view-photo-${task.id}">查看图片</button>` : ''}
                 </div>
             `;
             
             container.appendChild(taskEl);
+        }
+
+        // 查看最新照片
+        async function viewLatestPhoto(taskId) {
+            try {
+                const photos = await audioStorage.getPhotosByTask(taskId);
+                if (photos.length === 0) {
+                    alert('该任务没有照片记录');
+                    return;
+                }
+                
+                // 按日期排序，获取最新照片
+                const latestPhoto = photos.sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                )[0];
+                
+                viewPhoto(latestPhoto.id);
+                
+            } catch (error) {
+                console.error('查看最新照片失败:', error);
+                alert('加载照片失败');
+            }
         }
 
         // 渲染所有任务
@@ -3465,6 +3493,9 @@
                 
                 const hasPlayableRecording = completedCheckins > 0;
                 
+                // 检查任务是否有照片打卡记录
+                const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
+                
                 // 添加频率标识
                 const frequencyBadge = task.scheduleType === 'daily' ? 
                     `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
@@ -3506,7 +3537,10 @@
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                        ${hasPlayableRecording ? `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+                        ${hasPlayableRecording && !hasPhotos ? 
+                            `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
+                            hasPhotos ? 
+                            `<button class="btn btn-secondary" onclick="viewLatestPhoto(${task.id})" id="view-photo-${task.id}">查看图片</button>` : ''}
                     </div>
                 `;
                 
