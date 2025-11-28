@@ -162,6 +162,11 @@
             background: #ff9f43;
         }
 
+        .status-needs-redo {
+            background: #ff9f43;
+            color: white;
+        }
+
         .task-progress {
             margin: 10px 0;
         }
@@ -499,6 +504,10 @@
             background: #ff9f43;
         }
 
+        .indicator-needs-redo {
+            background: #ff9f43;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -576,6 +585,10 @@
 
         .status-pending-review {
             color: #ff9ff3;
+        }
+
+        .status-needs-redo {
+            color: #ff9f43;
         }
 
         footer {
@@ -871,6 +884,10 @@
             color: #ff6b6b;
         }
 
+        .status-needs-redo-icon {
+            color: #ff9f43;
+        }
+
         .today-tasks-header {
             display: flex;
             justify-content: space-between;
@@ -988,7 +1005,60 @@
             color: #475569;
         }
 
-        /* 新增样式 - 自定义日期打卡 */
+        /* 新增样式 - 重做功能 */
+        .redo-badge {
+            background: #ff9f43;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .redo-management {
+            background: #fff9e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #ff9f43;
+        }
+
+        .redo-management h4 {
+            color: #ff9f43;
+            margin-bottom: 10px;
+        }
+
+        .redo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #ff9f43;
+        }
+
+        .redo-info {
+            flex: 1;
+        }
+
+        .redo-reason {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        .redo-deadline {
+            font-size: 11px;
+            color: #ff6b6b;
+            margin-top: 2px;
+        }
+
+        /* 其余原有样式保持不变... */
+        
+        /* 自定义日期打卡 */
         .schedule-type-selector {
             display: flex;
             margin-bottom: 20px;
@@ -1086,14 +1156,14 @@
             font-size: 12px;
         }
 
-        /* 新增样式 - 任务描述显示 */
+        /* 任务描述显示 */
         .task-description-display {
             background: #f8fafc;
             border-radius: 8px;
             padding: 15px;
             margin: 15px 0;
             border-left: 4px solid #4facfe;
-            white-space: pre-line; /* 保留换行符 */
+            white-space: pre-line;
         }
 
         .task-description-title {
@@ -1105,7 +1175,7 @@
         .task-description-content {
             color: #64748b;
             line-height: 1.5;
-            white-space: pre-line; /* 保留换行符 */
+            white-space: pre-line;
         }
 
         /* 日历任务数量指示器 */
@@ -1822,6 +1892,36 @@
         </div>
     </div>
 
+    <!-- 重做管理模态框 -->
+    <div id="redo-management-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>重做管理</h3>
+                <button class="close-btn" id="close-redo-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="redo-management">
+                    <h4>需要重做的打卡</h4>
+                    <div id="redo-tasks-list">
+                        <!-- 重做任务列表将在这里动态生成 -->
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="redo-reason-input">重做原因</label>
+                    <textarea id="redo-reason-input" placeholder="请输入要求重做的原因..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="redo-deadline-input">重做截止日期</label>
+                    <input type="date" id="redo-deadline-input">
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-warning" id="mark-redo-btn">标记为需要重做</button>
+                    <button class="btn btn-secondary" id="cancel-redo-btn">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 应用数据
         const appData = {
@@ -1850,9 +1950,12 @@
             customDates: [],
             currentScheduleType: 'default',
             currentFrequency: 'daily',
-            selectedWeekdays: [1, 2, 3, 4, 5], // 默认选择周一到周五
+            selectedWeekdays: [1, 2, 3, 4, 5],
             cameraStream: null,
-            isCameraActive: false
+            isCameraActive: false,
+            isRedo: false,
+            redoTask: null,
+            redoCheckpointIndex: null
         };
 
         // 默认打卡时间表
@@ -1862,7 +1965,7 @@
         class AudioStorage {
             constructor() {
                 this.dbName = 'AudioRecorderDB';
-                this.version = 3; // 版本更新以支持照片
+                this.version = 3;
                 this.db = null;
             }
 
@@ -2239,6 +2342,15 @@
         const taskDetailsContent = document.getElementById('task-details-content');
         const closeTaskDetailsBtn = document.getElementById('close-task-details');
 
+        // 重做管理模态框元素
+        const redoManagementModal = document.getElementById('redo-management-modal');
+        const closeRedoModalBtn = document.getElementById('close-redo-modal');
+        const redoTasksList = document.getElementById('redo-tasks-list');
+        const redoReasonInput = document.getElementById('redo-reason-input');
+        const redoDeadlineInput = document.getElementById('redo-deadline-input');
+        const markRedoBtn = document.getElementById('mark-redo-btn');
+        const cancelRedoBtn = document.getElementById('cancel-redo-btn');
+
         // 新增：自定义日期相关元素
         const scheduleTypeSelectors = document.querySelectorAll('.schedule-type');
         const defaultScheduleInfo = document.getElementById('default-schedule-info');
@@ -2271,6 +2383,7 @@
             setupDataManagementEventListeners();
             setupTaskDetailsEventListeners();
             setupCustomDateEventListeners();
+            setupRedoEventListeners();
             
             restoreRecordingUrls();
             
@@ -2284,6 +2397,274 @@
             document.addEventListener('visibilitychange', handleVisibilityChange);
             
             console.log('应用初始化完成');
+        }
+
+        // 设置重做事件监听
+        function setupRedoEventListeners() {
+            closeRedoModalBtn.addEventListener('click', hideRedoManagementModal);
+            markRedoBtn.addEventListener('click', markForRedo);
+            cancelRedoBtn.addEventListener('click', hideRedoManagementModal);
+            
+            // 设置默认重做截止日期为7天后
+            const defaultDeadline = new Date();
+            defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+            redoDeadlineInput.valueAsDate = defaultDeadline;
+        }
+
+        // 显示重做管理模态框
+        function showRedoManagementModal(taskId, checkpointIndex) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            appData.redoTask = task;
+            appData.redoCheckpointIndex = checkpointIndex;
+            
+            // 渲染需要重做的任务列表
+            renderRedoTasksList();
+            
+            redoManagementModal.classList.remove('hidden');
+        }
+
+        // 隐藏重做管理模态框
+        function hideRedoManagementModal() {
+            redoManagementModal.classList.add('hidden');
+            appData.redoTask = null;
+            appData.redoCheckpointIndex = null;
+            redoReasonInput.value = '';
+            
+            // 重置默认重做截止日期为7天后
+            const defaultDeadline = new Date();
+            defaultDeadline.setDate(defaultDeadline.getDate() + 7);
+            redoDeadlineInput.valueAsDate = defaultDeadline;
+        }
+
+        // 渲染需要重做的任务列表
+        function renderRedoTasksList() {
+            redoTasksList.innerHTML = '';
+            
+            const redoTasks = getRedoTasks();
+            
+            if (redoTasks.length === 0) {
+                redoTasksList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 10px;">暂无需要重做的任务</p>';
+                return;
+            }
+            
+            redoTasks.forEach(redoTask => {
+                const task = redoTask.task;
+                const checkin = redoTask.checkin;
+                
+                const redoItem = document.createElement('div');
+                redoItem.className = 'redo-item';
+                
+                const deadline = new Date(checkin.redoDeadline);
+                const now = new Date();
+                const daysLeft = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+                
+                redoItem.innerHTML = `
+                    <div class="redo-info">
+                        <strong>${task.subject} - ${task.name}</strong>
+                        <div class="redo-reason">原因: ${checkin.redoReason || '未指定原因'}</div>
+                        <div class="redo-deadline">剩余时间: ${daysLeft}天</div>
+                    </div>
+                    <button class="btn btn-warning" onclick="startRedoCheckin(${task.id}, ${redoTask.checkpointIndex})">
+                        重做
+                    </button>
+                `;
+                
+                redoTasksList.appendChild(redoItem);
+            });
+        }
+
+        // 标记需要重做
+        async function markForRedo() {
+            if (!appData.redoTask || appData.redoCheckpointIndex === null) return;
+            
+            const reason = redoReasonInput.value.trim();
+            const deadline = redoDeadlineInput.value;
+            
+            if (!reason) {
+                alert('请输入重做原因');
+                return;
+            }
+            
+            if (!deadline) {
+                alert('请设置重做截止日期');
+                return;
+            }
+            
+            const success = await markCheckinForRedo(
+                appData.redoTask.id, 
+                appData.redoCheckpointIndex, 
+                reason,
+                deadline
+            );
+            
+            if (success) {
+                alert('已标记为需要重做');
+                hideRedoManagementModal();
+                renderTodayTasks();
+                renderAllTasks();
+            } else {
+                alert('标记重做失败');
+            }
+        }
+
+        // 标记打卡需要重做
+        async function markCheckinForRedo(taskId, checkpointIndex, reason, deadline) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return false;
+
+            let checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            
+            // 如果还没有打卡记录，创建一个空的打卡记录
+            if (!checkin) {
+                checkin = {
+                    checkpointIndex: checkpointIndex,
+                    date: new Date().toISOString(),
+                    status: 'needs_redo',
+                    type: 'pending'
+                };
+                task.checkins.push(checkin);
+            } else {
+                // 更新现有打卡记录
+                checkin.status = 'needs_redo';
+            }
+            
+            checkin.redoReason = reason;
+            checkin.redoDeadline = deadline;
+            checkin.redoCount = (checkin.redoCount || 0) + 1;
+            
+            // 保存数据
+            await saveTasks();
+            
+            // 更新界面
+            renderTodayTasks();
+            renderAllTasks();
+            
+            return true;
+        }
+
+        // 获取需要重做的任务
+        function getRedoTasks() {
+            const redoTasks = [];
+            
+            appData.tasks.forEach(task => {
+                if (task.status !== 'active') return;
+                
+                task.checkins.forEach(checkin => {
+                    if (checkin.status === 'needs_redo') {
+                        redoTasks.push({
+                            task,
+                            checkin,
+                            checkpointIndex: checkin.checkpointIndex
+                        });
+                    }
+                });
+            });
+            
+            return redoTasks;
+        }
+
+        // 开始重做打卡
+        function startRedoCheckin(taskId, checkpointIndex) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            if (!checkin || checkin.status !== 'needs_redo') return;
+
+            // 检查截止日期
+            if (new Date() > new Date(checkin.redoDeadline)) {
+                alert('已超过重做截止日期');
+                return;
+            }
+
+            // 设置当前任务和打卡点
+            appData.currentTask = task;
+            appData.currentCheckpointIndex = checkpointIndex;
+            appData.isRedo = true;
+
+            // 切换到打卡页面
+            switchTab('checkin');
+            updateRecorderTaskInfo();
+            updatePhotoTaskInfo();
+            
+            // 显示重做提示
+            alert(`这是重做打卡，原因为：${checkin.redoReason || '未指定原因'}`);
+            
+            hideRedoManagementModal();
+        }
+
+        // 执行重做打卡
+        async function redoCheckin(taskId, checkpointIndex, newRecording) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return false;
+
+            const originalCheckin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            if (!originalCheckin || originalCheckin.status !== 'needs_redo') return false;
+
+            // 检查重做次数限制
+            const maxRedoCount = 3;
+            if (originalCheckin.redoCount >= maxRedoCount) {
+                alert(`已达到最大重做次数（${maxRedoCount}次）`);
+                return false;
+            }
+
+            // 检查重做截止日期
+            if (new Date() > new Date(originalCheckin.redoDeadline)) {
+                alert('已超过重做截止日期');
+                return false;
+            }
+
+            // 创建新的打卡记录
+            const newCheckin = {
+                checkpointIndex: checkpointIndex,
+                date: new Date().toISOString(),
+                recordingId: newRecording.id,
+                type: newRecording.type,
+                status: 'completed',
+                isRedo: true,
+                originalCheckinId: originalCheckin.recordingId || originalCheckin.photoId,
+                redoCount: originalCheckin.redoCount
+            };
+
+            // 替换原始打卡记录
+            const checkinIndex = task.checkins.findIndex(c => c.checkpointIndex === checkpointIndex);
+            task.checkins[checkinIndex] = newCheckin;
+
+            // 保存数据
+            await saveTasks();
+            
+            // 更新界面
+            renderTodayTasks();
+            renderAllTasks();
+            renderRecordings();
+            
+            alert('重做打卡成功！');
+            return true;
+        }
+
+        // 在任务项中显示重做信息
+        function renderRedoInfo(task, checkpointIndex) {
+            const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            if (!checkin || checkin.status !== 'needs_redo') return '';
+
+            const deadline = new Date(checkin.redoDeadline);
+            const now = new Date();
+            const daysLeft = Math.ceil((deadline - now) / (1000 * 60 * 60 * 24));
+            const isOverdue = daysLeft < 0;
+            
+            return `
+                <div class="redo-notice">
+                    <h4>⚠️ 需要重做</h4>
+                    <p><strong>原因:</strong> ${checkin.redoReason || '未指定原因'}</p>
+                    <p class="${isOverdue ? 'redo-deadline' : ''}"><strong>剩余时间:</strong> ${isOverdue ? '已超期' : daysLeft + '天'}</p>
+                    <p><strong>重做次数:</strong> ${checkin.redoCount || 0}/3</p>
+                    <button class="btn btn-warning" onclick="startRedoCheckin(${task.id}, ${checkpointIndex})">
+                        立即重做
+                    </button>
+                </div>
+            `;
         }
 
         // 每日清理检查
@@ -2384,6 +2765,11 @@
                 recorderCheckpointEl.textContent = `第${checkpointDay}天打卡`;
             }
             
+            // 如果是重做，显示重做标识
+            if (appData.isRedo) {
+                recorderCheckpointEl.textContent += ' (重做)';
+            }
+            
             if (appData.currentTask.description) {
                 recorderTaskDescContentEl.textContent = appData.currentTask.description;
                 recorderTaskDescriptionEl.classList.remove('hidden');
@@ -2406,6 +2792,11 @@
                 photoCheckpointEl.textContent = `${checkinDate.toLocaleDateString()} 打卡`;
             } else {
                 photoCheckpointEl.textContent = `第${checkpointDay}天打卡`;
+            }
+            
+            // 如果是重做，显示重做标识
+            if (appData.isRedo) {
+                photoCheckpointEl.textContent += ' (重做)';
             }
             
             if (appData.currentTask.description) {
@@ -3189,12 +3580,12 @@
                 const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 
                 if (checkpointIndex !== -1) {
-                    const hasCheckedIn = task.checkins.some(checkin => 
-                        checkin.checkpointIndex === checkpointIndex
-                    );
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    const hasCheckedIn = !!checkin;
+                    const needsRedo = checkin && checkin.status === 'needs_redo';
                     
                     totalTasks++;
-                    if (!hasCheckedIn) uncompletedTasks++;
+                    if (!hasCheckedIn || needsRedo) uncompletedTasks++;
                     
                     tasksForToday.push({
                         task,
@@ -3202,6 +3593,7 @@
                         daysSinceStart,
                         isOverdue: false,
                         hasCheckedIn,
+                        needsRedo,
                         hasPendingRecording: false
                     });
                 }
@@ -3220,6 +3612,7 @@
                             daysSinceStart,
                             isOverdue: true,
                             hasCheckedIn: false,
+                            needsRedo: false,
                             hasPendingRecording: false
                         });
                     }
@@ -3253,19 +3646,21 @@
             
             tasksForToday.forEach(item => {
                 renderTodayTaskItem(item.task, todayTasksEl, item.checkpointIndex, item.daysSinceStart, 
-                              item.isOverdue, item.hasCheckedIn, item.hasPendingRecording);
+                              item.isOverdue, item.hasCheckedIn, item.needsRedo, item.hasPendingRecording);
             });
         }
 
         // 渲染今日任务项
-        function renderTodayTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, hasPendingRecording = false) {
+        function renderTodayTaskItem(task, container, checkpointIndex, daysSinceStart, isOverdue = false, hasCheckedIn = false, needsRedo = false, hasPendingRecording = false) {
             const taskEl = document.createElement('div');
             
             let taskClass = 'task-item';
             if (isOverdue) {
                 taskClass += ' overdue';
-            } else if (hasCheckedIn) {
+            } else if (hasCheckedIn && !needsRedo) {
                 taskClass += ' completed';
+            } else if (needsRedo) {
+                taskClass += ' needs-redo';
             }
             
             taskEl.className = taskClass;
@@ -3289,7 +3684,7 @@
                 }
             }
             
-            const completedCheckins = task.checkins.length;
+            const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
             const totalCheckins = taskSchedule.length;
             const progressPercent = (completedCheckins / totalCheckins) * 100;
             
@@ -3310,11 +3705,16 @@
             // 检查任务是否有照片打卡记录
             const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
             
+            // 重做信息
+            const redoInfo = needsRedo ? renderRedoInfo(task, checkpointIndex) : '';
+            
             taskEl.innerHTML = `
                 <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}</div>
-                    <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
-                        ${statusText} ${hasCheckedIn ? '✓ 今日已打卡' : '未完成'}
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}
+                        ${needsRedo ? '<span class="redo-badge">需重做</span>' : ''}
+                    </div>
+                    <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
+                        ${statusText} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓ 今日已打卡' : '未完成')}
                     </div>
                 </div>
                 ${task.description ? `<p>${task.description}</p>` : ''}
@@ -3339,13 +3739,15 @@
                     </div>
                     ${compactCheckinInfo}
                 </div>
+                ${redoInfo}
                 <div class="task-actions">
-                    ${!hasCheckedIn ? 
+                    ${(!hasCheckedIn || needsRedo) ? 
                         `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
-                            立即打卡
+                            ${needsRedo ? '重做打卡' : '立即打卡'}
                         </button>` : ''}
                     <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                     <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                    <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
                     <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
                     ${hasPlayableRecording && !hasPhotos ? 
                         `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
@@ -3399,7 +3801,8 @@
             
             appData.tasks.forEach(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
-                if (task.checkins.length === taskSchedule.length) {
+                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+                if (completedCheckins === taskSchedule.length) {
                     completedTasks.push(task);
                 } else {
                     activeTasks.push(task);
@@ -3436,7 +3839,7 @@
                 taskEl.className = 'task-item';
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
-                const completedCheckins = task.checkins.length;
+                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
                 const totalCheckins = taskSchedule.length;
                 const progressPercent = (completedCheckins / totalCheckins) * 100;
                 
@@ -3454,20 +3857,27 @@
                 const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
                 const shouldCheckinToday = checkpointIndex !== -1;
                 const hasCheckedInToday = shouldCheckinToday ? 
-                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex) : false;
+                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'completed') : false;
+                const needsRedoToday = shouldCheckinToday ? 
+                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'needs_redo') : false;
                 
                 let hasOverdue = false;
+                let hasRedo = false;
                 for (let i = 0; i < taskSchedule.length; i++) {
                     const checkpointDay = taskSchedule[i];
-                    if (checkpointDay < daysSinceStart && 
-                        !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
-                        hasOverdue = true;
-                        break;
+                    const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                    
+                    if (checkpointDay < daysSinceStart) {
+                        if (!checkin) {
+                            hasOverdue = true;
+                        } else if (checkin.status === 'needs_redo') {
+                            hasRedo = true;
+                        }
                     }
                 }
                 
-                const canCheckinToday = shouldCheckinToday && !hasCheckedInToday;
-                const hasOverdueCheckin = hasOverdue;
+                const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
+                const hasOverdueCheckin = hasOverdue || hasRedo;
                 const checkinBtnEnabled = canCheckinToday || hasOverdueCheckin;
                 
                 let statusClass = 'status-future';
@@ -3476,6 +3886,9 @@
                 if (hasOverdue) {
                     statusClass = 'status-overdue';
                     statusText = '有逾期';
+                } else if (hasRedo) {
+                    statusClass = 'status-needs-redo';
+                    statusText = '需重做';
                 } else if (shouldCheckinToday) {
                     statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
                     statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
@@ -3500,9 +3913,14 @@
                 const frequencyBadge = task.scheduleType === 'daily' ? 
                     `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
                 
+                // 重做信息
+                const redoInfo = needsRedoToday ? renderRedoInfo(task, checkpointIndex) : '';
+                
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}</div>
+                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}
+                            ${hasRedo ? '<span class="redo-badge">需重做</span>' : ''}
+                        </div>
                         <div class="task-status ${statusClass}">
                             ${completedCheckins}/${totalCheckins}
                             ${statusText}
@@ -3530,12 +3948,14 @@
                         </div>
                         ${compactCheckinInfo}
                     </div>
+                    ${redoInfo}
                     <div class="task-actions">
                         <button class="btn ${checkinBtnEnabled ? 'btn-primary' : 'btn-disabled'}" onclick="handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
-                            打卡
+                            ${needsRedoToday ? '重做打卡' : '打卡'}
                         </button>
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                        <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
                         ${hasPlayableRecording && !hasPhotos ? 
                             `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
@@ -3577,16 +3997,19 @@
                 if (task.scheduleType === 'daily') {
                     const date = new Date(checkin.date);
                     const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
-                    return `<span class="compact-checkin-item">第${checkpointDay + 1}天 ${formattedDate}</span>`;
+                    const statusIcon = checkin.status === 'needs_redo' ? '🔄' : '✅';
+                    return `<span class="compact-checkin-item">第${checkpointDay + 1}天 ${formattedDate} ${statusIcon}</span>`;
                 } else if (task.scheduleType === 'custom') {
                     const startDate = new Date(task.createDate);
                     const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
                     const formattedDate = `${checkinDate.getMonth()+1}/${checkinDate.getDate()}`;
-                    return `<span class="compact-checkin-item">${formattedDate}</span>`;
+                    const statusIcon = checkin.status === 'needs_redo' ? '🔄' : '✅';
+                    return `<span class="compact-checkin-item">${formattedDate} ${statusIcon}</span>`;
                 } else {
                     const date = new Date(checkin.date);
                     const formattedDate = `${date.getMonth()+1}/${date.getDate()}`;
-                    return `<span class="compact-checkin-item">第${checkpointDay}天 ${formattedDate}</span>`;
+                    const statusIcon = checkin.status === 'needs_redo' ? '🔄' : '✅';
+                    return `<span class="compact-checkin-item">第${checkpointDay}天 ${formattedDate} ${statusIcon}</span>`;
                 }
             }).join('');
             
@@ -3726,6 +4149,7 @@
             if (!task) return;
             
             appData.currentTask = task;
+            appData.isRedo = false;
             
             if (checkpointIndex === null) {
                 const today = new Date();
@@ -3741,12 +4165,15 @@
                 if (checkpointIndex === -1) {
                     const overdueCheckpoints = [];
                     for (let i = 0; i < taskSchedule.length; i++) {
-                        if (taskSchedule[i] < daysSinceStart && 
-                            !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
-                            overdueCheckpoints.push({
-                                index: i,
-                                day: taskSchedule[i]
-                            });
+                        const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                        if (taskSchedule[i] < daysSinceStart) {
+                            if (!checkin || checkin.status === 'needs_redo') {
+                                overdueCheckpoints.push({
+                                    index: i,
+                                    day: taskSchedule[i],
+                                    needsRedo: checkin && checkin.status === 'needs_redo'
+                                });
+                            }
                         }
                     }
                     
@@ -3754,8 +4181,17 @@
                     
                     if (overdueCheckpoints.length > 0) {
                         checkpointIndex = overdueCheckpoints[0].index;
+                        appData.isRedo = overdueCheckpoints[0].needsRedo;
                     }
+                } else {
+                    // 检查今日打卡点是否需要重做
+                    const todayCheckin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    appData.isRedo = todayCheckin && todayCheckin.status === 'needs_redo';
                 }
+            } else {
+                // 检查指定打卡点是否需要重做
+                const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                appData.isRedo = checkin && checkin.status === 'needs_redo';
             }
             
             appData.currentCheckpointIndex = checkpointIndex;
@@ -3933,9 +4369,24 @@
             const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
             if (!task) return;
             
+            // 如果是重做打卡
+            if (appData.isRedo) {
+                const success = await redoCheckin(task.id, appData.currentCheckpointIndex, appData.currentRecording);
+                if (success) {
+                    resetRecorder();
+                    appData.isRedo = false;
+                    renderRecordings();
+                    renderTodayTasks();
+                    renderAllTasks();
+                    renderCalendar();
+                    renderDataStats();
+                }
+                return;
+            }
+
             const taskSchedule = getTaskCheckinSchedule(task);
             const alreadyCheckedIn = task.checkins.some(
-                checkin => checkin.checkpointIndex === appData.currentRecording.checkpointIndex
+                checkin => checkin.checkpointIndex === appData.currentRecording.checkpointIndex && checkin.status === 'completed'
             );
             
             if (alreadyCheckedIn) {
@@ -3947,10 +4398,11 @@
                 checkpointIndex: appData.currentRecording.checkpointIndex,
                 date: appData.currentRecording.date,
                 recordingId: appData.currentRecording.id,
-                type: 'audio'
+                type: 'audio',
+                status: 'completed'
             });
             
-            if (task.checkins.length === taskSchedule.length) {
+            if (task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length) {
                 task.status = 'completed';
                 alert(`恭喜！任务"${task.name}"已完成！`);
             } else {
@@ -4140,9 +4592,24 @@
             const task = appData.tasks.find(t => t.id === appData.currentPhoto.taskId);
             if (!task) return;
             
+            // 如果是重做打卡
+            if (appData.isRedo) {
+                const success = await redoCheckin(task.id, appData.currentCheckpointIndex, appData.currentPhoto);
+                if (success) {
+                    resetPhoto();
+                    appData.isRedo = false;
+                    renderRecordings();
+                    renderTodayTasks();
+                    renderAllTasks();
+                    renderCalendar();
+                    renderDataStats();
+                }
+                return;
+            }
+
             const taskSchedule = getTaskCheckinSchedule(task);
             const alreadyCheckedIn = task.checkins.some(
-                checkin => checkin.checkpointIndex === appData.currentPhoto.checkpointIndex
+                checkin => checkin.checkpointIndex === appData.currentPhoto.checkpointIndex && checkin.status === 'completed'
             );
             
             if (alreadyCheckedIn) {
@@ -4157,10 +4624,11 @@
                 checkpointIndex: appData.currentPhoto.checkpointIndex,
                 date: appData.currentPhoto.date,
                 photoId: appData.currentPhoto.id,
-                type: 'photo'
+                type: 'photo',
+                status: 'completed'
             });
             
-            if (task.checkins.length === taskSchedule.length) {
+            if (task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length) {
                 task.status = 'completed';
                 alert(`恭喜！任务"${task.name}"已完成！`);
             } else {
@@ -4262,9 +4730,9 @@
             const checkinDetails = taskSchedule.map((day, index) => {
                 const checkin = task.checkins.find(c => c.checkpointIndex === index);
                 
-                let status = checkin ? '完成' : '未完成';
-                let statusIcon = checkin ? '✅' : '❌';
-                let statusClass = checkin ? 'status-completed-icon' : 'status-missed-icon';
+                let status = checkin ? (checkin.status === 'needs_redo' ? '需重做' : '完成') : '未完成';
+                let statusIcon = checkin ? (checkin.status === 'needs_redo' ? '🔄' : '✅') : '❌';
+                let statusClass = checkin ? (checkin.status === 'needs_redo' ? 'status-needs-redo-icon' : 'status-completed-icon') : 'status-missed-icon';
                 
                 let dayDisplay;
                 if (task.scheduleType === 'daily') {
@@ -4382,7 +4850,7 @@
             const totalTasks = appData.tasks.length;
             const completedTasks = appData.tasks.filter(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
-                return task.checkins.length === taskSchedule.length;
+                return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
             
             // 只统计今天的打卡记录数量
@@ -4403,7 +4871,7 @@
             
             const completedTasks = appData.tasks.filter(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
-                return task.checkins.length === taskSchedule.length;
+                return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
             
             // 只统计今天的打卡记录数量
@@ -4552,6 +5020,7 @@
                     appData.selectedCalendarDate = null;
                     appData.editingTask = null;
                     appData.currentCheckpointIndex = null;
+                    appData.isRedo = false;
                     
                     renderTodayTasks();
                     renderAllTasks();
@@ -4616,6 +5085,7 @@
             appData.selectedCalendarDate = null;
             appData.editingTask = null;
             appData.currentCheckpointIndex = null;
+            appData.isRedo = false;
             
             renderTodayTasks();
             renderAllTasks();
@@ -4800,7 +5270,7 @@
                 
                 // 获取该日期的任务数量
                 const tasksOnDate = getTasksOnDate(date);
-                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed;
+                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed + tasksOnDate.needsRedo;
                 
                 let indicators = '';
                 if (tasksOnDate.overdue > 0) {
@@ -4814,6 +5284,9 @@
                 }
                 if (tasksOnDate.completed > 0) {
                     indicators += '<div class="task-indicator indicator-completed"></div>';
+                }
+                if (tasksOnDate.needsRedo > 0) {
+                    indicators += '<div class="task-indicator indicator-needs-redo"></div>';
                 }
                 
                 // 添加任务数量指示器
@@ -4866,7 +5339,8 @@
                 overdue: 0,
                 today: 0,
                 future: 0,
-                completed: 0
+                completed: 0,
+                needsRedo: 0
             };
             
             appData.tasks.forEach(task => {
@@ -4884,10 +5358,14 @@
                 const isCheckpointDay = taskSchedule.includes(daysSinceStart);
                 if (isCheckpointDay) {
                     const checkpointIndex = taskSchedule.indexOf(daysSinceStart);
-                    const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
                     
-                    if (hasCheckedIn) {
-                        result.completed++;
+                    if (checkin) {
+                        if (checkin.status === 'completed') {
+                            result.completed++;
+                        } else if (checkin.status === 'needs_redo') {
+                            result.needsRedo++;
+                        }
                     } else {
                         if (daysSinceStart < 0) {
                             result.future++;
@@ -4936,14 +5414,17 @@
                     hasTasks = true;
                     const checkpointDay = taskSchedule[checkpointIndex];
                     const isOverdue = daysSinceStart > checkpointDay;
-                    const hasCheckedIn = task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex);
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    const hasCheckedIn = checkin && checkin.status === 'completed';
+                    const needsRedo = checkin && checkin.status === 'needs_redo';
                     
                     tasksForDate.push({
                         task,
                         checkpointIndex,
                         daysSinceStart,
                         isOverdue,
-                        hasCheckedIn
+                        hasCheckedIn,
+                        needsRedo
                     });
                 }
             });
@@ -4967,6 +5448,7 @@
                 const daysSinceStart = item.daysSinceStart;
                 const isOverdue = item.isOverdue;
                 const hasCheckedIn = item.hasCheckedIn;
+                const needsRedo = item.needsRedo;
                 
                 const taskEl = document.createElement('div');
                 
@@ -4975,6 +5457,8 @@
                     taskClass += ' overdue';
                 } else if (hasCheckedIn) {
                     taskClass += ' completed';
+                } else if (needsRedo) {
+                    taskClass += ' needs-redo';
                 }
                 
                 taskEl.className = taskClass;
@@ -4994,15 +5478,15 @@
                 taskEl.innerHTML = `
                     <div class="task-header">
                         <div class="task-name">${task.subject} - ${task.name}</div>
-                        <div class="task-status ${hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')}">
-                            ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${hasCheckedIn ? '✓' : ''}
+                        <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
+                            ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                         </div>
                     </div>
                     <p>${task.description || ''}</p>
                     <div class="task-actions">
-                        ${!hasCheckedIn ? 
+                        ${(!hasCheckedIn || needsRedo) ? 
                             `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
-                                打卡
+                                ${needsRedo ? '重做打卡' : '打卡'}
                             </button>` : ''}
                     </div>
                 `;
