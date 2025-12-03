@@ -114,6 +114,13 @@
             background: #fff9e6;
         }
 
+        .task-item.pinned {
+            border-left-color: #ff9f43;
+            background: #fff9e6;
+            border: 2px solid #ff9f43;
+            box-shadow: 0 4px 12px rgba(255, 159, 67, 0.2);
+        }
+
         .task-header {
             display: flex;
             justify-content: space-between;
@@ -163,6 +170,11 @@
         }
 
         .status-needs-redo {
+            background: #ff9f43;
+            color: white;
+        }
+
+        .status-pinned {
             background: #ff9f43;
             color: white;
         }
@@ -241,6 +253,15 @@
 
         .btn-warning:hover {
             background: #ff8c2a;
+        }
+
+        .btn-success {
+            background: #1dd1a1;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1abc9c;
         }
 
         .btn-disabled {
@@ -508,6 +529,10 @@
             background: #ff9f43;
         }
 
+        .indicator-pinned {
+            background: #ff9f43;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -588,6 +613,10 @@
         }
 
         .status-needs-redo {
+            color: #ff9f43;
+        }
+
+        .status-pinned {
             color: #ff9f43;
         }
 
@@ -885,6 +914,10 @@
         }
 
         .status-needs-redo-icon {
+            color: #ff9f43;
+        }
+
+        .status-pinned-icon {
             color: #ff9f43;
         }
 
@@ -1467,6 +1500,64 @@
             background: #fff5f5;
             color: #ff6b6b;
         }
+
+        /* 置顶徽章样式 */
+        .pinned-badge {
+            background: #ff9f43;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .pinned-icon {
+            color: #ff9f43;
+            margin-right: 5px;
+        }
+
+        .pin-btn {
+            background: #ff9f43;
+            color: white;
+        }
+
+        .pin-btn:hover {
+            background: #ff8c2a;
+        }
+
+        .unpin-btn {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .unpin-btn:hover {
+            background: #cbd5e1;
+        }
+
+        .pinned-tasks-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ff9f43;
+        }
+
+        .pinned-tasks-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #fff9e6;
+            border-radius: 10px;
+            border: 2px solid #ff9f43;
+        }
+
+        .pinned-tasks-section h3 {
+            color: #ff9f43;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -1489,8 +1580,24 @@
                 <h2>今日任务</h2>
                 <div class="tasks-count" id="today-tasks-count">0/0 个任务</div>
             </div>
-            <div class="task-list" id="today-tasks">
-                <!-- 今日任务将通过JavaScript动态生成 -->
+            
+            <!-- 今日置顶任务区域 -->
+            <div id="today-pinned-tasks-section" class="pinned-tasks-section hidden">
+                <div class="pinned-tasks-header">
+                    <h3><span class="pinned-icon">📌</span> 置顶任务</h3>
+                    <div class="tasks-count" id="today-pinned-tasks-count">0/0 个任务</div>
+                </div>
+                <div class="task-list" id="today-pinned-tasks">
+                    <!-- 今日置顶任务将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 今日普通任务区域 -->
+            <div id="today-normal-tasks-section">
+                <h3>今日任务</h3>
+                <div class="task-list" id="today-tasks">
+                    <!-- 今日普通任务将通过JavaScript动态生成 -->
+                </div>
             </div>
         </div>
 
@@ -1634,8 +1741,23 @@
             
             <button class="btn btn-primary" id="add-task-btn">新建任务</button>
             
-            <div class="task-list" id="all-tasks">
-                <!-- 所有任务将通过JavaScript动态生成 -->
+            <!-- 任务管理页面的置顶任务区域 -->
+            <div id="all-pinned-tasks-section" class="pinned-tasks-section hidden">
+                <div class="pinned-tasks-header">
+                    <h3><span class="pinned-icon">📌</span> 置顶任务</h3>
+                    <div class="tasks-count" id="all-pinned-tasks-count">0 个任务</div>
+                </div>
+                <div class="task-list" id="all-pinned-tasks">
+                    <!-- 所有置顶任务将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 任务管理页面的普通任务区域 -->
+            <div id="all-normal-tasks-section">
+                <h3>所有任务</h3>
+                <div class="task-list" id="all-tasks">
+                    <!-- 所有普通任务将通过JavaScript动态生成 -->
+                </div>
             </div>
         </div>
 
@@ -1784,6 +1906,11 @@
                             <div class="stat-label">已完成</div>
                         </div>
                         <div class="stat-card">
+                            <div class="stat-icon">📌</div>
+                            <div class="stat-number" id="stats-pinned-tasks">0</div>
+                            <div class="stat-label">置顶任务</div>
+                        </div>
+                        <div class="stat-card">
                             <div class="stat-icon">🎤</div>
                             <div class="stat-number" id="stats-total-recordings">0</div>
                             <div class="stat-label">今日录音</div>
@@ -1810,6 +1937,7 @@
                         <li>每个任务只保留最新一次打卡录音或照片</li>
                         <li>删除的任务会永久删除，不占用存储空间</li>
                         <li>打卡记录会在第二天自动清零，只保留今日记录</li>
+                        <li>使用📌按钮可以将重要任务置顶，方便快速访问</li>
                     </ol>
                 </div>
             </div>
@@ -1858,6 +1986,10 @@
                         <div class="stat-item">
                             <span class="stat-label">已完成任务:</span>
                             <span class="stat-value" id="stat-completed-tasks">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">置顶任务:</span>
+                            <span class="stat-value" id="stat-pinned-tasks">0</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">今日录音:</span>
@@ -1955,7 +2087,9 @@
             isCameraActive: false,
             isRedo: false,
             redoTask: null,
-            redoCheckpointIndex: null
+            redoCheckpointIndex: null,
+            autoSaveTimer: null,
+            lastSaveTime: 0
         };
 
         // 默认打卡时间表
@@ -2269,9 +2403,20 @@
         // DOM 元素
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        
+        // 今日任务相关元素
         const todayTasksEl = document.getElementById('today-tasks');
+        const todayPinnedTasksEl = document.getElementById('today-pinned-tasks');
+        const todayPinnedTasksSection = document.getElementById('today-pinned-tasks-section');
         const todayTasksCountEl = document.getElementById('today-tasks-count');
+        const todayPinnedTasksCountEl = document.getElementById('today-pinned-tasks-count');
+        
+        // 所有任务相关元素
         const allTasksEl = document.getElementById('all-tasks');
+        const allPinnedTasksEl = document.getElementById('all-pinned-tasks');
+        const allPinnedTasksSection = document.getElementById('all-pinned-tasks-section');
+        const allPinnedTasksCountEl = document.getElementById('all-pinned-tasks-count');
+        
         const taskFormEl = document.getElementById('task-form');
         const editTaskFormEl = document.getElementById('edit-task-form');
         const addTaskBtn = document.getElementById('add-task-btn');
@@ -2370,6 +2515,329 @@
         const storageSizeDisplayEl = document.getElementById('storage-size-display');
         const storageMessageEl = document.getElementById('storage-message');
 
+        // ================================================
+        // 核心修改：添加双重备份功能
+        // ================================================
+
+        // 1. 修改保存函数，实现双重备份
+        async function saveTasks() {
+            try {
+                console.log('开始保存任务数据...');
+                
+                // 同时保存到 IndexedDB 和 localStorage
+                await Promise.all([
+                    // 保存到 IndexedDB（主存储）
+                    audioStorage.saveTasks(appData.tasks).then(() => {
+                        console.log('IndexedDB 保存成功');
+                    }).catch(error => {
+                        console.error('IndexedDB 保存失败:', error);
+                    }),
+                    
+                    // 保存到 localStorage（备份）
+                    new Promise((resolve) => {
+                        try {
+                            localStorage.setItem('tasks_backup', JSON.stringify(appData.tasks));
+                            console.log('localStorage 备份成功，任务数:', appData.tasks.length);
+                            resolve();
+                        } catch (error) {
+                            console.warn('localStorage 保存失败:', error);
+                            resolve(); // 不阻止主流程
+                        }
+                    })
+                ]);
+                
+                console.log('任务数据双重保存完成');
+                appData.lastSaveTime = Date.now();
+                
+            } catch (e) {
+                console.error('保存任务数据失败:', e);
+                // 降级到只保存到 localStorage
+                try {
+                    localStorage.setItem('tasks_backup', JSON.stringify(appData.tasks));
+                    console.log('降级到 localStorage 保存成功');
+                } catch (error) {
+                    console.error('所有保存方式都失败:', error);
+                }
+            }
+        }
+
+        // 2. 修改加载函数，实现备份恢复
+        async function loadLocalData() {
+            console.log('开始加载数据...');
+            
+            try {
+                // 优先从 IndexedDB 加载
+                console.log('尝试从 IndexedDB 加载...');
+                appData.tasks = await audioStorage.getTasks();
+                appData.recordings = await audioStorage.getTodayRecordings();
+                appData.photos = await audioStorage.getTodayPhotos();
+                
+                // 如果 IndexedDB 为空，尝试从 localStorage 恢复
+                if (appData.tasks.length === 0) {
+                    console.log('IndexedDB 任务为空，尝试从 localStorage 恢复...');
+                    const tasksBackup = localStorage.getItem('tasks_backup');
+                    if (tasksBackup) {
+                        try {
+                            appData.tasks = JSON.parse(tasksBackup);
+                            console.log('从 localStorage 恢复任务成功:', appData.tasks.length, '个任务');
+                            
+                            // 将恢复的数据保存回 IndexedDB
+                            await audioStorage.saveTasks(appData.tasks);
+                            console.log('恢复的任务已保存回 IndexedDB');
+                            
+                        } catch (parseError) {
+                            console.error('解析 localStorage 备份失败:', parseError);
+                        }
+                    }
+                }
+                
+                // 如果没有任务，使用默认任务
+                if (appData.tasks.length === 0) {
+                    console.log('没有找到任务数据，使用默认任务');
+                    appData.tasks = getDefaultTasks();
+                    await saveTasks(); // 保存默认任务
+                }
+                
+                // 加载其他数据
+                const savedFeedbacks = localStorage.getItem('checkinFeedbacks');
+                if (savedFeedbacks) {
+                    appData.feedbacks = JSON.parse(savedFeedbacks);
+                } else {
+                    appData.feedbacks = [];
+                }
+                
+                console.log('数据加载完成:', {
+                    tasks: appData.tasks.length,
+                    recordings: appData.recordings.length,
+                    photos: appData.photos.length,
+                    feedbacks: appData.feedbacks.length
+                });
+                
+            } catch (error) {
+                console.error('加载数据失败，尝试从备份恢复:', error);
+                
+                // 完全从 localStorage 恢复
+                try {
+                    const tasksBackup = localStorage.getItem('tasks_backup');
+                    if (tasksBackup) {
+                        appData.tasks = JSON.parse(tasksBackup);
+                        console.log('从 localStorage 完全恢复任务:', appData.tasks.length);
+                    }
+                    
+                    const recordingsBackup = localStorage.getItem('recordings_backup');
+                    if (recordingsBackup) {
+                        const backupRecords = JSON.parse(recordingsBackup);
+                        console.log('从 localStorage 恢复录音元数据:', backupRecords.length);
+                    }
+                    
+                    // 如果没有数据，使用默认
+                    if (appData.tasks.length === 0) {
+                        appData.tasks = getDefaultTasks();
+                    }
+                    
+                    appData.recordings = [];
+                    appData.photos = [];
+                    appData.feedbacks = [];
+                    
+                } catch (backupError) {
+                    console.error('从备份恢复也失败，使用默认数据:', backupError);
+                    appData.tasks = getDefaultTasks();
+                    appData.recordings = [];
+                    appData.photos = [];
+                    appData.feedbacks = [];
+                }
+            }
+        }
+
+        // 3. 添加自动保存功能
+        function setupAutoSave() {
+            // 清除之前的定时器
+            if (appData.autoSaveTimer) {
+                clearInterval(appData.autoSaveTimer);
+            }
+            
+            // 设置新的自动保存定时器（每30秒保存一次）
+            appData.autoSaveTimer = setInterval(async () => {
+                try {
+                    await saveTasks();
+                    console.log('自动保存完成');
+                } catch (error) {
+                    console.error('自动保存失败:', error);
+                }
+            }, 30000); // 30秒
+            
+            // 在页面关闭前保存
+            window.addEventListener('beforeunload', async (event) => {
+                try {
+                    await saveTasks();
+                    console.log('页面关闭前保存完成');
+                } catch (error) {
+                    console.error('页面关闭前保存失败:', error);
+                }
+            });
+            
+            // 页面可见性变化时保存
+            document.addEventListener('visibilitychange', async () => {
+                if (document.hidden) {
+                    try {
+                        await saveTasks();
+                        console.log('页面隐藏前保存完成');
+                    } catch (error) {
+                        console.error('页面隐藏前保存失败:', error);
+                    }
+                }
+            });
+        }
+
+        // 4. 修改录音和照片保存函数，添加备份
+        async function saveRecording(recording) {
+            try {
+                // IndexedDB 保存
+                await audioStorage.saveRecording(recording);
+                
+                // localStorage 备份（只保存元数据，不保存大文件）
+                const backupData = {
+                    id: recording.id,
+                    taskId: recording.taskId,
+                    checkpointIndex: recording.checkpointIndex,
+                    date: recording.date,
+                    duration: recording.duration,
+                    type: 'audio'
+                };
+                
+                const recordingsBackup = JSON.parse(localStorage.getItem('recordings_backup') || '[]');
+                recordingsBackup.push(backupData);
+                localStorage.setItem('recordings_backup', JSON.stringify(recordingsBackup));
+                
+            } catch (error) {
+                console.error('保存录音失败:', error);
+            }
+        }
+
+        async function savePhoto(photo) {
+            try {
+                // IndexedDB 保存
+                await audioStorage.savePhoto(photo);
+                
+                // localStorage 备份（只保存元数据）
+                const backupData = {
+                    id: photo.id,
+                    taskId: photo.taskId,
+                    checkpointIndex: photo.checkpointIndex,
+                    date: photo.date,
+                    type: 'photo'
+                };
+                
+                const photosBackup = JSON.parse(localStorage.getItem('photos_backup') || '[]');
+                photosBackup.push(backupData);
+                localStorage.setItem('photos_backup', JSON.stringify(photosBackup));
+                
+            } catch (error) {
+                console.error('保存照片失败:', error);
+            }
+        }
+
+        // ================================================
+        // 修改：任务排序函数（按科目拼音A-Z排序）
+        // ================================================
+
+        // 科目排序顺序（拼音顺序）
+        const subjectOrder = {
+            '语文': 1,
+            '英语': 2, 
+            '数学': 3,
+            '科学': 4,
+            '其他': 5
+        };
+
+        // 按科目和任务名称排序
+        function sortTasksBySubjectAndName(tasks) {
+            return tasks.sort((a, b) => {
+                // 先按科目排序
+                const subjectA = subjectOrder[a.subject] || 6;
+                const subjectB = subjectOrder[b.subject] || 6;
+                
+                if (subjectA !== subjectB) {
+                    return subjectA - subjectB;
+                }
+                
+                // 科目相同，按任务名称拼音排序
+                const nameA = a.name.toLowerCase();
+                const nameB = b.name.toLowerCase();
+                return nameA.localeCompare(nameB, 'zh-CN');
+            });
+        }
+
+        // ================================================
+        // 修改：计算数据大小的函数
+        // ================================================
+
+        // 计算数据大小（包括所有数据）
+        function calculateDataSize() {
+            try {
+                // 计算 tasks 大小
+                const tasksStr = JSON.stringify(appData.tasks);
+                const tasksSize = tasksStr.length;
+                
+                // 计算 recordings 大小（包括音频数据）
+                let recordingsSize = 0;
+                appData.recordings.forEach(recording => {
+                    if (recording.audioData) {
+                        recordingsSize += recording.audioData.length;
+                    }
+                    recordingsSize += JSON.stringify(recording).length;
+                });
+                
+                // 计算 photos 大小（包括图片数据）
+                let photosSize = 0;
+                appData.photos.forEach(photo => {
+                    if (photo.imageData) {
+                        photosSize += photo.imageData.length;
+                    }
+                    photosSize += JSON.stringify(photo).length;
+                });
+                
+                // 计算 feedbacks 大小
+                const feedbacksStr = JSON.stringify(appData.feedbacks);
+                const feedbacksSize = feedbacksStr.length;
+                
+                // 计算 localStorage 备份大小
+                const tasksBackup = localStorage.getItem('tasks_backup') || '';
+                const recordingsBackup = localStorage.getItem('recordings_backup') || '';
+                const photosBackup = localStorage.getItem('photos_backup') || '';
+                const localStorageSize = tasksBackup.length + recordingsBackup.length + photosBackup.length;
+                
+                // 总大小
+                const totalSizeBytes = tasksSize + recordingsSize + photosSize + feedbacksSize + localStorageSize;
+                const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
+                
+                return {
+                    tasksSize: (tasksSize / 1024).toFixed(2) + ' KB',
+                    recordingsSize: (recordingsSize / 1024).toFixed(2) + ' KB',
+                    photosSize: (photosSize / 1024).toFixed(2) + ' KB',
+                    feedbacksSize: (feedbacksSize / 1024).toFixed(2) + ' KB',
+                    localStorageSize: (localStorageSize / 1024).toFixed(2) + ' KB',
+                    totalSize: totalSizeMB + ' MB',
+                    totalSizeBytes: totalSizeBytes
+                };
+            } catch (error) {
+                console.error('计算数据大小失败:', error);
+                return {
+                    tasksSize: '0 KB',
+                    recordingsSize: '0 KB',
+                    photosSize: '0 KB',
+                    feedbacksSize: '0 KB',
+                    localStorageSize: '0 KB',
+                    totalSize: '0 MB',
+                    totalSizeBytes: 0
+                };
+            }
+        }
+
+        // ================================================
+        // 以下为原有代码，但已修改相关函数
+        // ================================================
+
         // 初始化应用
         async function initApp() {
             console.log('初始化应用...');
@@ -2386,6 +2854,9 @@
             setupRedoEventListeners();
             
             restoreRecordingUrls();
+            
+            // 设置自动保存
+            setupAutoSave();
             
             renderTodayTasks();
             renderAllTasks();
@@ -3073,7 +3544,7 @@
                         createAudioUrlFromData(recording);
                         
                         // 保存到IndexedDB
-                        await audioStorage.saveRecording(recording);
+                        await saveRecording(recording);
                         
                         appData.currentRecording = recording;
                         
@@ -3130,7 +3601,8 @@
                     createDate: new Date().toISOString(),
                     status: 'active',
                     checkins: [],
-                    scheduleType: 'default'
+                    scheduleType: 'default',
+                    isPinned: true  // 默认任务置顶
                 },
                 {
                     id: 2,
@@ -3140,71 +3612,10 @@
                     createDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
                     status: 'active',
                     checkins: [],
-                    scheduleType: 'default'
+                    scheduleType: 'default',
+                    isPinned: false
                 }
             ];
-        }
-
-        // 保存任务数据
-        async function saveTasks() {
-            try {
-                await audioStorage.saveTasks(appData.tasks);
-            } catch (e) {
-                console.error('保存任务数据失败:', e);
-                // 降级到localStorage
-                try {
-                    localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
-                } catch (error) {
-                    console.error('localStorage保存也失败:', error);
-                }
-            }
-        }
-
-        // 从本地加载数据
-        async function loadLocalData() {
-            try {
-                // 从IndexedDB加载任务
-                appData.tasks = await audioStorage.getTasks();
-                
-                // 从IndexedDB加载今日打卡记录
-                appData.recordings = await audioStorage.getTodayRecordings();
-                appData.photos = await audioStorage.getTodayPhotos();
-                
-                // 如果没有任务，使用默认任务
-                if (appData.tasks.length === 0) {
-                    appData.tasks = getDefaultTasks();
-                    await audioStorage.saveTasks(appData.tasks);
-                }
-                
-                // 从localStorage加载其他数据
-                const savedFeedbacks = localStorage.getItem('checkinFeedbacks');
-                if (savedFeedbacks) {
-                    appData.feedbacks = JSON.parse(savedFeedbacks);
-                } else {
-                    appData.feedbacks = [];
-                }
-                
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                // 降级到默认数据
-                appData.tasks = getDefaultTasks();
-                appData.recordings = [];
-                appData.photos = [];
-                appData.feedbacks = [];
-                
-                // 尝试保存到localStorage
-                try {
-                    localStorage.setItem('checkinTasks', JSON.stringify(appData.tasks));
-                } catch (e) {
-                    console.error('localStorage保存失败:', e);
-                }
-            }
-        }
-
-        // 保存数据到本地
-        async function saveLocalData() {
-            await saveTasks();
-            localStorage.setItem('checkinFeedbacks', JSON.stringify(appData.feedbacks));
         }
 
         // 设置事件监听器
@@ -3350,7 +3761,8 @@
                 createDate: date ? new Date(date).toISOString() : new Date().toISOString(),
                 status: 'active',
                 checkins: [],
-                scheduleType: appData.currentScheduleType
+                scheduleType: appData.currentScheduleType,
+                isPinned: false  // 新建任务默认不置顶
             };
             
             // 处理不同类型的打卡计划
@@ -3557,16 +3969,22 @@
             return badgeMap[frequency];
         }
 
-        // 渲染今日任务
+        // ================================================
+        // 修改：渲染今日任务（按科目排序）
+        // ================================================
         function renderTodayTasks() {
             todayTasksEl.innerHTML = '';
+            todayPinnedTasksEl.innerHTML = '';
             
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
             let tasksForToday = [];
+            let pinnedTasksForToday = [];
             let totalTasks = 0;
+            let totalPinnedTasks = 0;
             let uncompletedTasks = 0;
+            let uncompletedPinnedTasks = 0;
             
             appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
@@ -3581,13 +3999,10 @@
                 
                 if (checkpointIndex !== -1) {
                     const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
-                    const hasCheckedIn = !!checkin;
+                    const hasCheckedIn = checkin && checkin.status === 'completed';
                     const needsRedo = checkin && checkin.status === 'needs_redo';
                     
-                    totalTasks++;
-                    if (!hasCheckedIn || needsRedo) uncompletedTasks++;
-                    
-                    tasksForToday.push({
+                    const taskInfo = {
                         task,
                         checkpointIndex,
                         daysSinceStart,
@@ -3595,7 +4010,17 @@
                         hasCheckedIn,
                         needsRedo,
                         hasPendingRecording: false
-                    });
+                    };
+                    
+                    if (task.isPinned) {
+                        pinnedTasksForToday.push(taskInfo);
+                        totalPinnedTasks++;
+                        if (!hasCheckedIn || needsRedo) uncompletedPinnedTasks++;
+                    } else {
+                        tasksForToday.push(taskInfo);
+                        totalTasks++;
+                        if (!hasCheckedIn || needsRedo) uncompletedTasks++;
+                    }
                 }
                 
                 for (let i = 0; i < taskSchedule.length; i++) {
@@ -3603,10 +4028,7 @@
                     if (checkpointDay < daysSinceStart && 
                         !task.checkins.some(checkin => checkin.checkpointIndex === i)) {
                         
-                        totalTasks++;
-                        uncompletedTasks++;
-                        
-                        tasksForToday.push({
+                        const taskInfo = {
                             task,
                             checkpointIndex: i,
                             daysSinceStart,
@@ -3614,27 +4036,57 @@
                             hasCheckedIn: false,
                             needsRedo: false,
                             hasPendingRecording: false
-                        });
+                        };
+                        
+                        if (task.isPinned) {
+                            pinnedTasksForToday.push(taskInfo);
+                            totalPinnedTasks++;
+                            uncompletedPinnedTasks++;
+                        } else {
+                            tasksForToday.push(taskInfo);
+                            totalTasks++;
+                            uncompletedTasks++;
+                        }
                     }
                 }
             });
             
-            todayTasksCountEl.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
+            // 更新今日任务计数
+            todayTasksCountEl.textContent = `${uncompletedTasks + uncompletedPinnedTasks}/${totalTasks + totalPinnedTasks} 个任务`;
+            todayPinnedTasksCountEl.textContent = `${uncompletedPinnedTasks}/${totalPinnedTasks} 个任务`;
             
-            // 按科目排序：语文、英语、数学、其他
-            tasksForToday.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-                const subjectA = subjectOrder[a.task.subject] || 6;
-                const subjectB = subjectOrder[b.task.subject] || 6;
-                
-                if (subjectA !== subjectB) {
-                    return subjectA - subjectB;
-                }
-                
-                return new Date(b.task.createDate) - new Date(a.task.createDate);
-            });
+            // 显示或隐藏置顶任务区域
+            if (pinnedTasksForToday.length > 0) {
+                todayPinnedTasksSection.classList.remove('hidden');
+            } else {
+                todayPinnedTasksSection.classList.add('hidden');
+            }
             
-            if (tasksForToday.length === 0) {
+            // 渲染今日置顶任务（按科目排序）
+            if (pinnedTasksForToday.length > 0) {
+                // 按科目排序：语文、英语、数学、其他
+                sortTasksBySubjectAndName(pinnedTasksForToday.map(item => item.task));
+                // 重新排序后，需要保持taskInfo的对应关系
+                const sortedPinnedTasks = [];
+                const sortedTaskIds = pinnedTasksForToday.map(item => item.task.id).sort((a, b) => {
+                    const taskA = appData.tasks.find(t => t.id === a);
+                    const taskB = appData.tasks.find(t => t.id === b);
+                    return taskA.name.localeCompare(taskB.name, 'zh-CN');
+                });
+                
+                sortedTaskIds.forEach(taskId => {
+                    const taskInfo = pinnedTasksForToday.find(item => item.task.id === taskId);
+                    if (taskInfo) sortedPinnedTasks.push(taskInfo);
+                });
+                
+                sortedPinnedTasks.forEach(item => {
+                    renderTodayTaskItem(item.task, todayPinnedTasksEl, item.checkpointIndex, item.daysSinceStart, 
+                                  item.isOverdue, item.hasCheckedIn, item.needsRedo, item.hasPendingRecording);
+                });
+            }
+            
+            // 渲染今日普通任务
+            if (tasksForToday.length === 0 && pinnedTasksForToday.length === 0) {
                 todayTasksEl.innerHTML = `
                     <div class="empty-state">
                         <i>📅</i>
@@ -3644,7 +4096,22 @@
                 return;
             }
             
-            tasksForToday.forEach(item => {
+            // 按科目排序：语文、英语、数学、其他
+            sortTasksBySubjectAndName(tasksForToday.map(item => item.task));
+            // 重新排序后，需要保持taskInfo的对应关系
+            const sortedTasks = [];
+            const sortedTaskIds = tasksForToday.map(item => item.task.id).sort((a, b) => {
+                const taskA = appData.tasks.find(t => t.id === a);
+                const taskB = appData.tasks.find(t => t.id === b);
+                return taskA.name.localeCompare(taskB.name, 'zh-CN');
+            });
+            
+            sortedTaskIds.forEach(taskId => {
+                const taskInfo = tasksForToday.find(item => item.task.id === taskId);
+                if (taskInfo) sortedTasks.push(taskInfo);
+            });
+            
+            sortedTasks.forEach(item => {
                 renderTodayTaskItem(item.task, todayTasksEl, item.checkpointIndex, item.daysSinceStart, 
                               item.isOverdue, item.hasCheckedIn, item.needsRedo, item.hasPendingRecording);
             });
@@ -3661,6 +4128,10 @@
                 taskClass += ' completed';
             } else if (needsRedo) {
                 taskClass += ' needs-redo';
+            }
+            
+            if (task.isPinned) {
+                taskClass += ' pinned';
             }
             
             taskEl.className = taskClass;
@@ -3702,6 +4173,9 @@
             const frequencyBadge = task.scheduleType === 'daily' ? 
                 `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
             
+            // 添加置顶标识
+            const pinnedBadge = task.isPinned ? '<span class="pinned-badge">📌 置顶</span>' : '';
+            
             // 检查任务是否有照片打卡记录
             const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
             
@@ -3710,10 +4184,10 @@
             
             taskEl.innerHTML = `
                 <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}
                         ${needsRedo ? '<span class="redo-badge">需重做</span>' : ''}
                     </div>
-                    <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
+                    <div class="task-status ${task.isPinned ? 'status-pinned' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
                         ${statusText} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓ 今日已打卡' : '未完成')}
                     </div>
                 </div>
@@ -3745,6 +4219,9 @@
                         `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
                             ${needsRedo ? '重做打卡' : '立即打卡'}
                         </button>` : ''}
+                    <button class="btn ${task.isPinned ? 'unpin-btn' : 'pin-btn'}" onclick="toggleTaskPin(${task.id})">
+                        ${task.isPinned ? '取消置顶' : '置顶'}
+                    </button>
                     <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                     <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                     <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
@@ -3781,9 +4258,12 @@
             }
         }
 
-        // 渲染所有任务
+        // ================================================
+        // 修改：渲染所有任务（按科目排序）
+        // ================================================
         function renderAllTasks() {
             allTasksEl.innerHTML = '';
+            allPinnedTasksEl.innerHTML = '';
             
             if (appData.tasks.length === 0) {
                 allTasksEl.innerHTML = `
@@ -3797,175 +4277,218 @@
             
             // 分离已完成和未完成的任务
             const activeTasks = [];
+            const activePinnedTasks = [];
             const completedTasks = [];
+            const completedPinnedTasks = [];
             
             appData.tasks.forEach(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                if (completedCheckins === taskSchedule.length) {
-                    completedTasks.push(task);
+                const isCompleted = completedCheckins === taskSchedule.length;
+                
+                if (isCompleted) {
+                    if (task.isPinned) {
+                        completedPinnedTasks.push(task);
+                    } else {
+                        completedTasks.push(task);
+                    }
                 } else {
-                    activeTasks.push(task);
+                    if (task.isPinned) {
+                        activePinnedTasks.push(task);
+                    } else {
+                        activeTasks.push(task);
+                    }
                 }
             });
             
-            // 对未完成任务按科目排序：语文、英语、数学、其他
-            activeTasks.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-                const subjectA = subjectOrder[a.subject] || 6;
-                const subjectB = subjectOrder[b.subject] || 6;
-                
-                if (subjectA !== subjectB) {
-                    return subjectA - subjectB;
-                }
-                
-                return new Date(b.createDate) - new Date(a.createDate);
+            // 对任务按科目和名称排序
+            sortTasksBySubjectAndName(activeTasks);
+            sortTasksBySubjectAndName(activePinnedTasks);
+            sortTasksBySubjectAndName(completedTasks);
+            sortTasksBySubjectAndName(completedPinnedTasks);
+            
+            // 更新置顶任务计数
+            const totalPinnedTasks = activePinnedTasks.length + completedPinnedTasks.length;
+            allPinnedTasksCountEl.textContent = `${totalPinnedTasks} 个任务`;
+            
+            // 显示或隐藏置顶任务区域
+            if (totalPinnedTasks > 0) {
+                allPinnedTasksSection.classList.remove('hidden');
+            } else {
+                allPinnedTasksSection.classList.add('hidden');
+            }
+            
+            // 渲染置顶任务（先未完成，后已完成）
+            activePinnedTasks.forEach(task => {
+                renderTaskItem(task, allPinnedTasksEl);
+            });
+            completedPinnedTasks.forEach(task => {
+                renderTaskItem(task, allPinnedTasksEl);
             });
             
-            // 对已完成任务按完成时间倒序排列
-            completedTasks.sort((a, b) => {
-                const aLastCheckin = a.checkins.length > 0 ? 
-                    new Date(a.checkins[a.checkins.length - 1].date) : new Date(0);
-                const bLastCheckin = b.checkins.length > 0 ? 
-                    new Date(b.checkins[b.checkins.length - 1].date) : new Date(0);
-                return bLastCheckin - aLastCheckin;
-            });
-            
-            // 合并任务列表：未完成的任务在前，已完成的任务在后
+            // 合并普通任务列表：未完成的任务在前，已完成的任务在后
             const sortedTasks = [...activeTasks, ...completedTasks];
             
             sortedTasks.forEach(task => {
-                const taskEl = document.createElement('div');
-                taskEl.className = 'task-item';
+                renderTaskItem(task, allTasksEl);
+            });
+        }
+
+        // 渲染单个任务项（用于任务管理页面）
+        function renderTaskItem(task, container) {
+            const taskEl = document.createElement('div');
+            taskEl.className = 'task-item' + (task.isPinned ? ' pinned' : '');
+            
+            const taskSchedule = getTaskCheckinSchedule(task);
+            const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+            const totalCheckins = taskSchedule.length;
+            const progressPercent = (completedCheckins / totalCheckins) * 100;
+            
+            const lastRecordingDuration = getLastRecordingDuration(task);
+            const lastRecordingText = lastRecordingDuration ? 
+                `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const taskDate = new Date(task.createDate);
+            taskDate.setHours(0, 0, 0, 0);
+            
+            const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+            const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+            const shouldCheckinToday = checkpointIndex !== -1;
+            const hasCheckedInToday = shouldCheckinToday ? 
+                task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'completed') : false;
+            const needsRedoToday = shouldCheckinToday ? 
+                task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'needs_redo') : false;
+            
+            let hasOverdue = false;
+            let hasRedo = false;
+            for (let i = 0; i < taskSchedule.length; i++) {
+                const checkpointDay = taskSchedule[i];
+                const checkin = task.checkins.find(c => c.checkpointIndex === i);
                 
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                const totalCheckins = taskSchedule.length;
-                const progressPercent = (completedCheckins / totalCheckins) * 100;
-                
-                const lastRecordingDuration = getLastRecordingDuration(task);
-                const lastRecordingText = lastRecordingDuration ? 
-                    `上次录音用时: ${formatTime(lastRecordingDuration)}` : '';
-                
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const taskDate = new Date(task.createDate);
-                taskDate.setHours(0, 0, 0, 0);
-                
-                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
-                const shouldCheckinToday = checkpointIndex !== -1;
-                const hasCheckedInToday = shouldCheckinToday ? 
-                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'completed') : false;
-                const needsRedoToday = shouldCheckinToday ? 
-                    task.checkins.some(checkin => checkin.checkpointIndex === checkpointIndex && checkin.status === 'needs_redo') : false;
-                
-                let hasOverdue = false;
-                let hasRedo = false;
-                for (let i = 0; i < taskSchedule.length; i++) {
-                    const checkpointDay = taskSchedule[i];
-                    const checkin = task.checkins.find(c => c.checkpointIndex === i);
-                    
-                    if (checkpointDay < daysSinceStart) {
-                        if (!checkin) {
-                            hasOverdue = true;
-                        } else if (checkin.status === 'needs_redo') {
-                            hasRedo = true;
-                        }
+                if (checkpointDay < daysSinceStart) {
+                    if (!checkin) {
+                        hasOverdue = true;
+                    } else if (checkin.status === 'needs_redo') {
+                        hasRedo = true;
                     }
                 }
-                
-                const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
-                const hasOverdueCheckin = hasOverdue || hasRedo;
-                const checkinBtnEnabled = canCheckinToday || hasOverdueCheckin;
-                
-                let statusClass = 'status-future';
-                let statusText = '';
-                
-                if (hasOverdue) {
-                    statusClass = 'status-overdue';
-                    statusText = '有逾期';
-                } else if (hasRedo) {
-                    statusClass = 'status-needs-redo';
-                    statusText = '需重做';
-                } else if (shouldCheckinToday) {
-                    statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
-                    statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
-                }
-                
-                // 如果是已完成任务，显示已完成状态
-                if (completedCheckins === totalCheckins) {
-                    statusClass = 'status-completed';
-                    statusText = '已完成';
-                }
-                
-                const compactCheckinInfo = generateCompactCheckinInfo(task);
-                
-                const subjectClass = `subject-${getSubjectClass(task.subject)}`;
-                
-                const hasPlayableRecording = completedCheckins > 0;
-                
-                // 检查任务是否有照片打卡记录
-                const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
-                
-                // 添加频率标识
-                const frequencyBadge = task.scheduleType === 'daily' ? 
-                    `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
-                
-                // 重做信息
-                const redoInfo = needsRedoToday ? renderRedoInfo(task, checkpointIndex) : '';
-                
-                taskEl.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}
-                            ${hasRedo ? '<span class="redo-badge">需重做</span>' : ''}
+            }
+            
+            const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
+            const hasOverdueCheckin = hasOverdue || hasRedo;
+            const checkinBtnEnabled = canCheckinToday || hasOverdueCheckin;
+            
+            let statusClass = 'status-future';
+            let statusText = '';
+            
+            if (hasOverdue) {
+                statusClass = 'status-overdue';
+                statusText = '有逾期';
+            } else if (hasRedo) {
+                statusClass = 'status-needs-redo';
+                statusText = '需重做';
+            } else if (shouldCheckinToday) {
+                statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
+                statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
+            }
+            
+            // 如果是已完成任务，显示已完成状态
+            if (completedCheckins === totalCheckins) {
+                statusClass = 'status-completed';
+                statusText = '已完成';
+            }
+            
+            const compactCheckinInfo = generateCompactCheckinInfo(task);
+            
+            const subjectClass = `subject-${getSubjectClass(task.subject)}`;
+            
+            const hasPlayableRecording = completedCheckins > 0;
+            
+            // 检查任务是否有照片打卡记录
+            const hasPhotos = task.checkins.some(checkin => checkin.type === 'photo');
+            
+            // 添加频率标识
+            const frequencyBadge = task.scheduleType === 'daily' ? 
+                `<span class="frequency-badge">${getFrequencyBadgeText(task)}</span>` : '';
+            
+            // 添加置顶标识
+            const pinnedBadge = task.isPinned ? '<span class="pinned-badge">📌 置顶</span>' : '';
+            
+            // 重做信息
+            const redoInfo = needsRedoToday ? renderRedoInfo(task, checkpointIndex) : '';
+            
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}
+                        ${hasRedo ? '<span class="redo-badge">需重做</span>' : ''}
+                    </div>
+                    <div class="task-status ${task.isPinned ? 'status-pinned' : statusClass}">
+                        ${completedCheckins}/${totalCheckins}
+                        ${statusText}
+                    </div>
+                </div>
+                ${task.description ? `<p>${task.description}</p>` : ''}
+                ${task.scheduleType === 'daily' ? `
+                    <div class="daily-schedule-info">
+                        <div class="daily-schedule-dates">
+                            ${getDailyScheduleInfo(task)}
                         </div>
-                        <div class="task-status ${statusClass}">
-                            ${completedCheckins}/${totalCheckins}
-                            ${statusText}
+                        <div class="daily-frequency-info">
+                            📅 打卡频率: ${getFrequencyDisplayInfo(task)}
                         </div>
                     </div>
-                    ${task.description ? `<p>${task.description}</p>` : ''}
-                    ${task.scheduleType === 'daily' ? `
-                        <div class="daily-schedule-info">
-                            <div class="daily-schedule-dates">
-                                ${getDailyScheduleInfo(task)}
-                            </div>
-                            <div class="daily-frequency-info">
-                                📅 打卡频率: ${getFrequencyDisplayInfo(task)}
-                            </div>
-                        </div>
-                    ` : ''}
-                    <div class="task-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${progressPercent}%"></div>
-                        </div>
-                        <div class="progress-text">
-                            已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次
-                            ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
-                            ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
-                        </div>
-                        ${compactCheckinInfo}
+                ` : ''}
+                <div class="task-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progressPercent}%"></div>
                     </div>
-                    ${redoInfo}
-                    <div class="task-actions">
-                        <button class="btn ${checkinBtnEnabled ? 'btn-primary' : 'btn-disabled'}" onclick="handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
-                            ${needsRedoToday ? '重做打卡' : '打卡'}
-                        </button>
-                        <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
-                        <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
-                        <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
-                        <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                        ${hasPlayableRecording && !hasPhotos ? 
-                            `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
-                            hasPhotos ? 
-                            `<button class="btn btn-secondary" onclick="viewLatestPhoto(${task.id})" id="view-photo-${task.id}">查看图片</button>` : ''}
+                    <div class="progress-text">
+                        已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次
+                        ${lastRecordingText ? `<div class="last-recording-time">${lastRecordingText}</div>` : ''}
+                        ${task.scheduleType === 'custom' ? '<div>📅 自定义日期计划</div>' : ''}
                     </div>
-                `;
-                
-                allTasksEl.appendChild(taskEl);
-            });
+                    ${compactCheckinInfo}
+                </div>
+                ${redoInfo}
+                <div class="task-actions">
+                    <button class="btn ${checkinBtnEnabled ? 'btn-primary' : 'btn-disabled'}" onclick="handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
+                        ${needsRedoToday ? '重做打卡' : '打卡'}
+                    </button>
+                    <button class="btn ${task.isPinned ? 'unpin-btn' : 'pin-btn'}" onclick="toggleTaskPin(${task.id})">
+                        ${task.isPinned ? '取消置顶' : '置顶'}
+                    </button>
+                    <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
+                    <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
+                    <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
+                    <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
+                    ${hasPlayableRecording && !hasPhotos ? 
+                        `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : 
+                        hasPhotos ? 
+                        `<button class="btn btn-secondary" onclick="viewLatestPhoto(${task.id})" id="view-photo-${task.id}">查看图片</button>` : ''}
+                </div>
+            `;
+            
+            container.appendChild(taskEl);
+        }
+
+        // 切换任务置顶状态
+        async function toggleTaskPin(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            task.isPinned = !task.isPinned;
+            await saveTasks();
+            
+            // 重新渲染任务列表
+            renderAllTasks();
+            renderTodayTasks();
+            renderDataStats();
+            
+            const action = task.isPinned ? '已置顶' : '已取消置顶';
+            alert(`任务"${task.name}"${action}`);
         }
 
         // 获取科目对应的CSS类名
@@ -4245,7 +4768,7 @@
                         createAudioUrlFromData(recording);
                         
                         // 保存到IndexedDB
-                        await audioStorage.saveRecording(recording);
+                        await saveRecording(recording);
                         
                         appData.currentRecording = recording;
                         
@@ -4618,7 +5141,7 @@
             }
             
             // 保存到IndexedDB
-            await audioStorage.savePhoto(appData.currentPhoto);
+            await savePhoto(appData.currentPhoto);
             
             task.checkins.push({
                 checkpointIndex: appData.currentPhoto.checkpointIndex,
@@ -4776,6 +5299,10 @@
                     <p>${new Date(task.createDate).toLocaleDateString()}</p>
                 </div>
                 <div class="form-group">
+                    <label>任务状态</label>
+                    <p>${task.isPinned ? '📌 已置顶' : '普通任务'}</p>
+                </div>
+                <div class="form-group">
                     <label>打卡计划类型</label>
                     <p>${task.scheduleType === 'daily' ? '每日打卡' : (task.scheduleType === 'custom' ? '自定义日期' : '默认计划')}</p>
                 </div>
@@ -4853,6 +5380,8 @@
                 return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
             
+            const pinnedTasks = appData.tasks.filter(task => task.isPinned).length;
+            
             // 只统计今天的打卡记录数量
             const todayRecordings = appData.recordings.length;
             const todayPhotos = appData.photos.length;
@@ -4861,11 +5390,15 @@
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
+            document.getElementById('stat-pinned-tasks').textContent = pinnedTasks;
             document.getElementById('stat-total-recordings').textContent = todayRecordings;
             document.getElementById('stat-total-photos').textContent = todayPhotos;
             document.getElementById('stat-data-size').textContent = dataSize.totalSize;
         }
 
+        // ================================================
+        // 修改：渲染数据统计（显示正确的大小）
+        // ================================================
         function renderDataStats() {
             const totalTasks = appData.tasks.length;
             
@@ -4873,6 +5406,8 @@
                 const taskSchedule = getTaskCheckinSchedule(task);
                 return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
+            
+            const pinnedTasks = appData.tasks.filter(task => task.isPinned).length;
             
             // 只统计今天的打卡记录数量
             const todayRecordings = appData.recordings.length;
@@ -4885,31 +5420,12 @@
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
             document.getElementById('stats-completed-tasks').textContent = completedTasks;
+            document.getElementById('stats-pinned-tasks').textContent = pinnedTasks;
             document.getElementById('stats-total-recordings').textContent = todayRecordings;
             document.getElementById('stats-total-photos').textContent = todayPhotos;
-            document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
             document.getElementById('stats-data-size').textContent = dataSize.totalSize;
             
             showStorageWarning();
-        }
-
-        // 计算数据大小
-        function calculateDataSize() {
-            const tasksSize = JSON.stringify(appData.tasks).length;
-            const recordingsSize = JSON.stringify(appData.recordings).length;
-            const photosSize = JSON.stringify(appData.photos).length;
-            const feedbacksSize = JSON.stringify(appData.feedbacks).length;
-            const totalSizeBytes = tasksSize + recordingsSize + photosSize + feedbacksSize;
-            const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
-            
-            return {
-                tasksSize: (tasksSize / 1024).toFixed(2) + ' KB',
-                recordingsSize: (recordingsSize / 1024).toFixed(2) + ' KB',
-                photosSize: (photosSize / 1024).toFixed(2) + ' KB',
-                feedbacksSize: (feedbacksSize / 1024).toFixed(2) + ' KB',
-                totalSize: totalSizeMB + ' MB',
-                totalSizeBytes: totalSizeBytes
-            };
         }
 
         // 显示存储警告
@@ -5078,6 +5594,9 @@
             localStorage.removeItem('checkinFeedbacks');
             localStorage.removeItem('recordingState');
             localStorage.removeItem('lastCleanupDate');
+            localStorage.removeItem('tasks_backup');
+            localStorage.removeItem('recordings_backup');
+            localStorage.removeItem('photos_backup');
             
             appData.currentTask = null;
             appData.currentRecording = null;
@@ -5270,7 +5789,7 @@
                 
                 // 获取该日期的任务数量
                 const tasksOnDate = getTasksOnDate(date);
-                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed + tasksOnDate.needsRedo;
+                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed + tasksOnDate.needsRedo + tasksOnDate.pinned;
                 
                 let indicators = '';
                 if (tasksOnDate.overdue > 0) {
@@ -5287,6 +5806,9 @@
                 }
                 if (tasksOnDate.needsRedo > 0) {
                     indicators += '<div class="task-indicator indicator-needs-redo"></div>';
+                }
+                if (tasksOnDate.pinned > 0) {
+                    indicators += '<div class="task-indicator indicator-pinned"></div>';
                 }
                 
                 // 添加任务数量指示器
@@ -5340,7 +5862,8 @@
                 today: 0,
                 future: 0,
                 completed: 0,
-                needsRedo: 0
+                needsRedo: 0,
+                pinned: 0
             };
             
             appData.tasks.forEach(task => {
@@ -5375,6 +5898,11 @@
                             result.overdue++;
                         }
                     }
+                    
+                    // 检查是否是置顶任务
+                    if (task.isPinned) {
+                        result.pinned++;
+                    }
                 }
             });
             
@@ -5395,6 +5923,7 @@
             
             // 获取该日期的所有任务，按今日任务相同的顺序排列
             const tasksForDate = [];
+            const pinnedTasksForDate = [];
             
             appData.tasks.forEach(task => {
                 if (task.status !== 'active') return;
@@ -5418,81 +5947,41 @@
                     const hasCheckedIn = checkin && checkin.status === 'completed';
                     const needsRedo = checkin && checkin.status === 'needs_redo';
                     
-                    tasksForDate.push({
+                    const taskInfo = {
                         task,
                         checkpointIndex,
                         daysSinceStart,
                         isOverdue,
                         hasCheckedIn,
                         needsRedo
-                    });
+                    };
+                    
+                    if (task.isPinned) {
+                        pinnedTasksForDate.push(taskInfo);
+                    } else {
+                        tasksForDate.push(taskInfo);
+                    }
                 }
             });
             
-            // 按科目排序：语文、英语、数学、其他（与今日任务相同）
-            tasksForDate.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-                const subjectA = subjectOrder[a.task.subject] || 6;
-                const subjectB = subjectOrder[b.task.subject] || 6;
-                
-                if (subjectA !== subjectB) {
-                    return subjectA - subjectB;
-                }
-                
-                return new Date(b.task.createDate) - new Date(a.task.createDate);
-            });
+            // 先显示置顶任务
+            if (pinnedTasksForDate.length > 0) {
+                selectedDateTasksEl.innerHTML += `<h4><span class="pinned-icon">📌</span> 置顶任务</h4>`;
+                pinnedTasksForDate.forEach(item => {
+                    renderDateTaskItem(item, selectedDateTasksEl);
+                });
+                selectedDateTasksEl.innerHTML += `<br>`;
+            }
             
-            tasksForDate.forEach(item => {
-                const task = item.task;
-                const checkpointIndex = item.checkpointIndex;
-                const daysSinceStart = item.daysSinceStart;
-                const isOverdue = item.isOverdue;
-                const hasCheckedIn = item.hasCheckedIn;
-                const needsRedo = item.needsRedo;
-                
-                const taskEl = document.createElement('div');
-                
-                let taskClass = 'task-item';
-                if (isOverdue) {
-                    taskClass += ' overdue';
-                } else if (hasCheckedIn) {
-                    taskClass += ' completed';
-                } else if (needsRedo) {
-                    taskClass += ' needs-redo';
+            // 再显示普通任务
+            if (tasksForDate.length > 0) {
+                if (pinnedTasksForDate.length > 0) {
+                    selectedDateTasksEl.innerHTML += `<h4>普通任务</h4>`;
                 }
-                
-                taskEl.className = taskClass;
-                
-                let dayDisplay;
-                if (task.scheduleType === 'daily') {
-                    dayDisplay = `第${daysSinceStart + 1}天`;
-                } else if (task.scheduleType === 'custom') {
-                    const startDate = new Date(task.createDate);
-                    const checkinDate = new Date(startDate.getTime() + checkpointIndex * 24 * 60 * 60 * 1000);
-                    dayDisplay = checkinDate.toLocaleDateString();
-                } else {
-                    const checkpointDay = getTaskCheckinSchedule(task)[checkpointIndex];
-                    dayDisplay = `第${checkpointDay}天`;
-                }
-                
-                taskEl.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-name">${task.subject} - ${task.name}</div>
-                        <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
-                            ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
-                        </div>
-                    </div>
-                    <p>${task.description || ''}</p>
-                    <div class="task-actions">
-                        ${(!hasCheckedIn || needsRedo) ? 
-                            `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
-                                ${needsRedo ? '重做打卡' : '打卡'}
-                            </button>` : ''}
-                    </div>
-                `;
-                
-                selectedDateTasksEl.appendChild(taskEl);
-            });
+                tasksForDate.forEach(item => {
+                    renderDateTaskItem(item, selectedDateTasksEl);
+                });
+            }
             
             if (!hasTasks) {
                 selectedDateTasksEl.innerHTML += `
@@ -5502,6 +5991,63 @@
                     </div>
                 `;
             }
+        }
+
+        // 渲染日期任务项
+        function renderDateTaskItem(item, container) {
+            const task = item.task;
+            const checkpointIndex = item.checkpointIndex;
+            const daysSinceStart = item.daysSinceStart;
+            const isOverdue = item.isOverdue;
+            const hasCheckedIn = item.hasCheckedIn;
+            const needsRedo = item.needsRedo;
+            
+            const taskEl = document.createElement('div');
+            
+            let taskClass = 'task-item';
+            if (isOverdue) {
+                taskClass += ' overdue';
+            } else if (hasCheckedIn) {
+                taskClass += ' completed';
+            } else if (needsRedo) {
+                taskClass += ' needs-redo';
+            }
+            
+            if (task.isPinned) {
+                taskClass += ' pinned';
+            }
+            
+            taskEl.className = taskClass;
+            
+            let dayDisplay;
+            if (task.scheduleType === 'daily') {
+                dayDisplay = `第${daysSinceStart + 1}天`;
+            } else if (task.scheduleType === 'custom') {
+                const startDate = new Date(task.createDate);
+                const checkinDate = new Date(startDate.getTime() + checkpointIndex * 24 * 60 * 60 * 1000);
+                dayDisplay = checkinDate.toLocaleDateString();
+            } else {
+                const checkpointDay = getTaskCheckinSchedule(task)[checkpointIndex];
+                dayDisplay = `第${checkpointDay}天`;
+            }
+            
+            taskEl.innerHTML = `
+                <div class="task-header">
+                    <div class="task-name">${task.subject} - ${task.name} ${task.isPinned ? '<span class="pinned-badge">📌 置顶</span>' : ''}</div>
+                    <div class="task-status ${task.isPinned ? 'status-pinned' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
+                        ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
+                    </div>
+                </div>
+                <p>${task.description || ''}</p>
+                <div class="task-actions">
+                    ${(!hasCheckedIn || needsRedo) ? 
+                        `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
+                            ${needsRedo ? '重做打卡' : '打卡'}
+                        </button>` : ''}
+                </div>
+            `;
+            
+            container.appendChild(taskEl);
         }
 
         // 格式化文件大小
