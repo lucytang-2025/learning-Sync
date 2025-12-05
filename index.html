@@ -1080,8 +1080,6 @@
             margin-top: 2px;
         }
 
-        /* 其余原有样式保持不变... */
-        
         /* 自定义日期打卡 */
         .schedule-type-selector {
             display: flex;
@@ -1529,6 +1527,16 @@
             margin-left: 8px;
             font-weight: normal;
         }
+        
+        /* Excel导出按钮样式 */
+        .btn-excel {
+            background: #1dd1a1;
+            color: white;
+        }
+        
+        .btn-excel:hover {
+            background: #10a17e;
+        }
     </style>
 </head>
 <body>
@@ -1835,6 +1843,7 @@
                     
                     <div class="data-actions">
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
+                        <button class="btn btn-excel" id="export-excel-btn">导出为Excel</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
@@ -1879,6 +1888,7 @@
                     <h3>使用说明</h3>
                     <ol class="instructions-list">
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
+                        <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
                         <li>在其他设备上使用"导入数据"功能恢复备份</li>
                         <li>注意：导入数据将覆盖当前设备上的所有数据</li>
                         <li>每个任务只保留最新一次打卡录音或照片</li>
@@ -1906,6 +1916,12 @@
                     <h4>导出数据</h4>
                     <p>将您的任务和打卡记录导出为JSON文件，用于备份。</p>
                     <button class="btn btn-primary" id="export-data-btn">导出数据</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>导出为Excel</h4>
+                    <p>将任务数据导出为Excel电子表格，方便查看和统计。</p>
+                    <button class="btn btn-excel" id="export-excel-modal-btn">导出为Excel</button>
                 </div>
                 
                 <div class="data-section">
@@ -2404,6 +2420,8 @@
         const closeDataModalBtn = document.getElementById('close-data-modal');
         const showDataModalBtn = document.getElementById('show-data-modal');
         const exportDataBtn = document.getElementById('export-data-btn');
+        const exportExcelBtn = document.getElementById('export-excel-btn');
+        const exportExcelModalBtn = document.getElementById('export-excel-modal-btn');
         const importDataFile = document.getElementById('import-data-file');
         const importDataBtn = document.getElementById('import-data-btn');
         const importFileInfo = document.getElementById('import-file-info');
@@ -2848,7 +2866,8 @@
             }
             
             if (appData.currentTask.description) {
-                recorderTaskDescContentEl.textContent = appData.currentTask.description;
+                // 使用pre-line保留换行符
+                recorderTaskDescContentEl.innerHTML = appData.currentTask.description.replace(/\n/g, '<br>');
                 recorderTaskDescriptionEl.classList.remove('hidden');
             } else {
                 recorderTaskDescriptionEl.classList.add('hidden');
@@ -2877,7 +2896,8 @@
             }
             
             if (appData.currentTask.description) {
-                photoTaskDescContentEl.textContent = appData.currentTask.description;
+                // 使用pre-line保留换行符
+                photoTaskDescContentEl.innerHTML = appData.currentTask.description.replace(/\n/g, '<br>');
                 photoTaskDescriptionEl.classList.remove('hidden');
             } else {
                 photoTaskDescriptionEl.classList.add('hidden');
@@ -3324,6 +3344,8 @@
             showDataModalBtn.addEventListener('click', showDataManagementModal);
             closeDataModalBtn.addEventListener('click', hideDataManagementModal);
             exportDataBtn.addEventListener('click', exportData);
+            exportExcelBtn.addEventListener('click', exportToExcel);
+            exportExcelModalBtn.addEventListener('click', exportToExcel);
             importDataFile.addEventListener('change', handleImportFileSelect);
             importDataBtn.addEventListener('click', importData);
             clearDataBtn.addEventListener('click', clearAllData);
@@ -3595,7 +3617,7 @@
                 return task.customDates.map(customDate => {
                     const date = new Date(customDate);
                     date.setHours(0, 0, 0, 0);
-                    return Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+                    return Math.floor((date - startDate) / (1000 * 60 * 60 * 1000 * 24));
                 }).sort((a, b) => a - b);
             }
             
@@ -3738,8 +3760,13 @@
             
             todayTasksCountEl.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
             
-            // 按科目和字母排序
+            // 先按置顶排序，然后按科目和字母排序
             tasksForToday.sort((a, b) => {
+                // 置顶任务排在最前面
+                if (a.task.pinned && !b.task.pinned) return -1;
+                if (!a.task.pinned && b.task.pinned) return 1;
+                
+                // 然后按科目排序
                 const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.task.subject] || 6;
                 const subjectB = subjectOrder[b.task.subject] || 6;
@@ -3848,7 +3875,7 @@
                         ${statusText} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓ 今日已打卡' : '未完成')}
                     </div>
                 </div>
-                ${task.description ? `<p>${task.description}</p>` : ''}
+                ${task.description ? `<p>${task.description.replace(/\n/g, '<br>')}</p>` : ''}
                 ${task.scheduleType === 'daily' ? `
                     <div class="daily-schedule-info">
                         <div class="daily-schedule-dates">
@@ -3962,19 +3989,8 @@
                 }
             });
             
-            // 对置顶任务按科目和字母排序
-            pinnedTasks.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-                const subjectA = subjectOrder[a.subject] || 6;
-                const subjectB = subjectOrder[b.subject] || 6;
-                
-                if (subjectA !== subjectB) {
-                    return subjectA - subjectB;
-                }
-                
-                // 相同科目按字母顺序排序
-                return a.name.localeCompare(b.name, 'zh-CN');
-            });
+            // 对置顶任务按创建时间倒序排列
+            pinnedTasks.sort((a, b) => new Date(b.createDate) - new Date(a.createDate));
             
             // 对未完成任务按科目和字母排序
             activeTasks.sort((a, b) => {
@@ -4110,7 +4126,7 @@
                             ${statusText}
                         </div>
                     </div>
-                    ${task.description ? `<p>${task.description}</p>` : ''}
+                    ${task.description ? `<p>${task.description.replace(/\n/g, '<br>')}</p>` : ''}
                     ${task.scheduleType === 'daily' ? `
                         <div class="daily-schedule-info">
                             <div class="daily-schedule-dates">
@@ -5003,7 +5019,7 @@
             taskDetailsContent.innerHTML = `
                 <div class="form-group">
                     <label>任务描述</label>
-                    <p>${task.description || '无描述'}</p>
+                    <p>${task.description ? task.description.replace(/\n/g, '<br>') : '无描述'}</p>
                 </div>
                 <div class="form-group">
                     <label>创建日期</label>
@@ -5131,20 +5147,42 @@
             showStorageWarning();
         }
 
-        // 计算数据大小
+        // 计算数据大小 - 修复版本
         function calculateDataSize() {
-            const tasksSize = JSON.stringify(appData.tasks).length;
-            const recordingsSize = JSON.stringify(appData.recordings).length;
-            const photosSize = JSON.stringify(appData.photos).length;
-            const feedbacksSize = JSON.stringify(appData.feedbacks).length;
-            const totalSizeBytes = tasksSize + recordingsSize + photosSize + feedbacksSize;
+            // 获取所有录音和照片的Base64数据大小
+            let totalSizeBytes = 0;
+            
+            // 计算任务数据大小
+            const tasksJSON = JSON.stringify(appData.tasks);
+            totalSizeBytes += tasksJSON.length;
+            
+            // 计算录音数据大小（估算Base64数据大小）
+            for (const recording of appData.recordings) {
+                if (recording.audioData) {
+                    // Base64数据长度 * 3/4 来估算原始二进制大小
+                    const base64Length = recording.audioData.length - (recording.audioData.indexOf(',') + 1);
+                    totalSizeBytes += Math.floor(base64Length * 3 / 4);
+                }
+            }
+            
+            // 计算照片数据大小（估算Base64数据大小）
+            for (const photo of appData.photos) {
+                if (photo.imageData) {
+                    // Base64数据长度 * 3/4 来估算原始二进制大小
+                    const base64Length = photo.imageData.length - (photo.imageData.indexOf(',') + 1);
+                    totalSizeBytes += Math.floor(base64Length * 3 / 4);
+                }
+            }
+            
+            // 计算反馈数据大小
+            const feedbacksJSON = JSON.stringify(appData.feedbacks);
+            totalSizeBytes += feedbacksJSON.length;
+            
             const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
+            const tasksSize = (tasksJSON.length / 1024).toFixed(2);
             
             return {
-                tasksSize: (tasksSize / 1024).toFixed(2) + ' KB',
-                recordingsSize: (recordingsSize / 1024).toFixed(2) + ' KB',
-                photosSize: (photosSize / 1024).toFixed(2) + ' KB',
-                feedbacksSize: (feedbacksSize / 1024).toFixed(2) + ' KB',
+                tasksSize: tasksSize + ' KB',
                 totalSize: totalSizeMB + ' MB',
                 totalSizeBytes: totalSizeBytes
             };
@@ -5199,6 +5237,87 @@
             URL.revokeObjectURL(url);
             
             alert('数据导出成功！');
+        }
+
+        // 导出为Excel功能
+        function exportToExcel() {
+            if (appData.tasks.length === 0) {
+                alert('没有任务数据可以导出');
+                return;
+            }
+            
+            try {
+                // 创建Excel内容
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                
+                // 表头
+                const headers = [
+                    "ID",
+                    "科目",
+                    "任务名称", 
+                    "任务描述",
+                    "创建日期",
+                    "状态",
+                    "计划类型",
+                    "第一天打卡次数",
+                    "置顶",
+                    "已完成打卡",
+                    "总打卡次数",
+                    "完成进度",
+                    "最近打卡时间"
+                ];
+                
+                csvContent += headers.join(",") + "\n";
+                
+                // 数据行
+                appData.tasks.forEach(task => {
+                    const taskSchedule = getTaskCheckinSchedule(task);
+                    const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+                    const totalCheckins = taskSchedule.length;
+                    const progressPercent = totalCheckins > 0 ? ((completedCheckins / totalCheckins) * 100).toFixed(2) + '%' : '0%';
+                    
+                    // 获取最近打卡时间
+                    let lastCheckinDate = '';
+                    if (task.checkins.length > 0) {
+                        const sortedCheckins = [...task.checkins].sort((a, b) => 
+                            new Date(b.date) - new Date(a.date)
+                        );
+                        lastCheckinDate = new Date(sortedCheckins[0].date).toLocaleString();
+                    }
+                    
+                    const row = [
+                        task.id,
+                        task.subject,
+                        task.name,
+                        task.description ? `"${task.description.replace(/"/g, '""')}"` : '', // 处理引号和换行
+                        new Date(task.createDate).toLocaleDateString(),
+                        task.status,
+                        task.scheduleType,
+                        task.firstDayCheckinCount || 1,
+                        task.pinned ? '是' : '否',
+                        completedCheckins,
+                        totalCheckins,
+                        progressPercent,
+                        lastCheckinDate
+                    ];
+                    
+                    csvContent += row.join(",") + "\n";
+                });
+                
+                // 创建下载链接
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `任务数据_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                alert('Excel数据导出成功！');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                alert('导出Excel失败: ' + error.message);
+            }
         }
 
         function handleImportFileSelect(event) {
@@ -5415,7 +5534,6 @@
                 
             } catch (error) {
                 console.error('渲染打卡记录失败:', error);
-                // 修复：提供更友好的错误提示
                 recordingsListEl.innerHTML = `
                     <div class="empty-state">
                         <i>🎤</i>
@@ -5678,8 +5796,13 @@
                 }
             });
             
-            // 按科目和字母排序
+            // 按置顶、科目和字母排序
             tasksForDate.sort((a, b) => {
+                // 置顶任务排在最前面
+                if (a.task.pinned && !b.task.pinned) return -1;
+                if (!a.task.pinned && b.task.pinned) return 1;
+                
+                // 然后按科目排序
                 const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
                 const subjectA = subjectOrder[a.task.subject] || 6;
                 const subjectB = subjectOrder[b.task.subject] || 6;
@@ -5732,7 +5855,7 @@
                             ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                         </div>
                     </div>
-                    <p>${task.description || ''}</p>
+                    <p>${task.description ? task.description.replace(/\n/g, '<br>') : ''}</p>
                     <div class="task-actions">
                         ${(!hasCheckedIn || needsRedo) ? 
                             `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
