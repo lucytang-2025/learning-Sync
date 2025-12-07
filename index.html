@@ -2045,17 +2045,26 @@
             isCameraActive: false,
             isRedo: false,
             redoTask: null,
-            redoCheckpointIndex: null
+            redoCheckpointIndex: null,
+            autoBackupEnabled: true // 自动备份开关
         };
 
         // 默认打卡时间表
         const checkinSchedule = [1, 2, 3, 5, 8, 15, 30, 90, 180];
 
+        // 音频压缩配置
+        const audioCompressionConfig = {
+            format: 'audio/mp3',
+            bitrate: 64000, // 64kbps 中等质量
+            sampleRate: 22050, // 22.05kHz 中等采样率
+            channels: 1 // 单声道
+        };
+
         // IndexedDB存储管理
         class AudioStorage {
             constructor() {
                 this.dbName = 'AudioRecorderDB';
-                this.version = 4; // 版本升级，新增字段支持
+                this.version = 5; // 版本升级，支持音频压缩
                 this.db = null;
             }
 
@@ -2087,6 +2096,10 @@
                         if (!db.objectStoreNames.contains('tasks')) {
                             db.createObjectStore('tasks', { keyPath: 'id' });
                         }
+                        
+                        if (!db.objectStoreNames.contains('backup_info')) {
+                            db.createObjectStore('backup_info', { keyPath: 'id' });
+                        }
                     };
                 });
             }
@@ -2106,6 +2119,10 @@
                         duration: recording.duration,
                         audioData: recording.audioData,
                         mimeType: recording.mimeType,
+                        format: recording.format || 'audio/mp3',
+                        compressed: recording.compressed || false,
+                        originalSize: recording.originalSize || 0,
+                        compressedSize: recording.compressedSize || 0,
                         type: 'audio'
                     };
                     
@@ -2130,6 +2147,8 @@
                         date: photo.date,
                         imageData: photo.imageData,
                         mimeType: photo.mimeType,
+                        originalSize: photo.originalSize || 0,
+                        compressed: photo.compressed || false,
                         type: 'photo'
                     };
                     
@@ -2351,6 +2370,59 @@
                     request.onerror = () => reject(request.error);
                 });
             }
+
+            async saveBackupInfo(info) {
+                if (!this.db) await this.open();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['backup_info'], 'readwrite');
+                    const store = transaction.objectStore('backup_info');
+                    
+                    const request = store.put(info);
+                    
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getBackupInfo() {
+                if (!this.db) await this.open();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['backup_info'], 'readonly');
+                    const store = transaction.objectStore('backup_info');
+                    const request = store.get('last_backup');
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getAllRecordings() {
+                if (!this.db) await this.open();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['recordings'], 'readonly');
+                    const store = transaction.objectStore('recordings');
+                    const request = store.getAll();
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async getAllPhotos() {
+                if (!this.db) await this.open();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction(['photos'], 'readonly');
+                    const store = transaction.objectStore('photos');
+                    const request = store.getAll();
+                    
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
         }
 
         // 初始化全局存储实例
@@ -2491,7 +2563,321 @@
             restoreRecordingState();
             document.addEventListener('visibilitychange', handleVisibilityChange);
             
+            // 检查是否需要自动备份
+            checkAutoBackup();
+            
             console.log('应用初始化完成');
+        }
+
+        // 音频压缩函数 - 使用Web Audio API进行压缩
+        async function compressAudio(audioBlob) {
+            return new Promise((resolve, reject) => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const reader = new FileReader();
+                
+                reader.onload = async function() {
+                    try {
+                        const arrayBuffer = reader.result;
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                        
+                        // 创建离线音频上下文进行压缩
+                        const offlineContext = new OfflineAudioContext(
+                            1, // 单声道
+                            audioBuffer.length, // 保持相同长度
+                            audioCompressionConfig.sampleRate // 降低采样率
+                        );
+                        
+                        const source = offlineContext.createBufferSource();
+                        source.buffer = audioBuffer;
+                        source.connect(offlineContext.destination);
+                        source.start();
+                        
+                        const renderedBuffer = await offlineContext.startRendering();
+                        
+                        // 将压缩后的音频转换为WAV格式
+                        const wavBlob = await audioBufferToWav(renderedBuffer);
+                        
+                        // 记录压缩前后的大小
+                        const originalSize = audioBlob.size;
+                        const compressedSize = wavBlob.size;
+                        const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+                        
+                        console.log(`音频压缩完成: ${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)} (压缩率: ${compressionRatio}%)`);
+                        
+                        const compressedReader = new FileReader();
+                        compressedReader.onload = function() {
+                            resolve({
+                                audioData: compressedReader.result,
+                                mimeType: 'audio/wav',
+                                format: 'audio/wav',
+                                compressed: true,
+                                originalSize: originalSize,
+                                compressedSize: compressedSize,
+                                compressionRatio: compressionRatio
+                            });
+                        };
+                        compressedReader.readAsDataURL(wavBlob);
+                        
+                    } catch (error) {
+                        console.error('音频压缩失败:', error);
+                        // 压缩失败时返回原始音频
+                        const fallbackReader = new FileReader();
+                        fallbackReader.onload = function() {
+                            resolve({
+                                audioData: fallbackReader.result,
+                                mimeType: audioBlob.type,
+                                format: audioBlob.type,
+                                compressed: false,
+                                originalSize: audioBlob.size,
+                                compressedSize: audioBlob.size,
+                                compressionRatio: 0
+                            });
+                        };
+                        fallbackReader.readAsDataURL(audioBlob);
+                    }
+                };
+                
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(audioBlob);
+            });
+        }
+
+        // 将AudioBuffer转换为WAV格式的Blob
+        function audioBufferToWav(buffer) {
+            const numberOfChannels = buffer.numberOfChannels;
+            const length = buffer.length * numberOfChannels * 2;
+            const sampleRate = buffer.sampleRate;
+            
+            const arrayBuffer = new ArrayBuffer(44 + length);
+            const view = new DataView(arrayBuffer);
+            
+            // WAV头部
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + length, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM格式
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+            view.setUint16(32, numberOfChannels * 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, length, true);
+            
+            // 写入音频数据
+            const offset = 44;
+            const channels = [];
+            for (let i = 0; i < numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+            
+            let index = 0;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let channel = 0; channel < numberOfChannels; channel++) {
+                    const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+                    view.setInt16(offset + index, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                    index += 2;
+                }
+            }
+            
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        // 辅助函数：写入字符串到DataView
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // 图片压缩函数
+        async function compressImage(imageDataUrl, quality = 0.7) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    
+                    // 计算新的尺寸（最大宽度800px）
+                    let width = img.width;
+                    let height = img.height;
+                    const maxWidth = 800;
+                    
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // 转换为JPEG格式并压缩
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    const originalSize = imageDataUrl.length;
+                    const compressedSize = compressedDataUrl.length;
+                    const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
+                    
+                    console.log(`图片压缩完成: ${formatFileSize(originalSize)} → ${formatFileSize(compressedSize)} (压缩率: ${compressionRatio}%)`);
+                    
+                    resolve({
+                        imageData: compressedDataUrl,
+                        mimeType: 'image/jpeg',
+                        compressed: true,
+                        originalSize: originalSize,
+                        compressedSize: compressedSize,
+                        compressionRatio: compressionRatio,
+                        width: width,
+                        height: height
+                    });
+                };
+                
+                img.onerror = reject;
+                img.src = imageDataUrl;
+            });
+        }
+
+        // 检查自动备份
+        async function checkAutoBackup() {
+            if (!appData.autoBackupEnabled) return;
+            
+            const dataSize = await calculateTotalDataSize();
+            const sizeMB = dataSize.totalSizeMB;
+            
+            console.log(`当前数据大小: ${sizeMB.toFixed(2)}MB`);
+            
+            // 超过10MB时自动备份
+            if (sizeMB > 10) {
+                console.log('数据超过10MB，开始自动备份...');
+                await autoBackupData();
+            }
+        }
+
+        // 自动备份数据
+        async function autoBackupData() {
+            try {
+                const exportData = {
+                    version: '1.1',
+                    exportDate: new Date().toISOString(),
+                    tasks: appData.tasks,
+                    recordings: appData.recordings,
+                    photos: appData.photos,
+                    feedbacks: appData.feedbacks,
+                    autoBackup: true,
+                    dataSize: await calculateTotalDataSize()
+                };
+                
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                // 创建下载链接
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `复习打卡计划_自动备份_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                // 保存备份信息
+                const backupInfo = {
+                    id: 'last_backup',
+                    date: new Date().toISOString(),
+                    size: dataBlob.size,
+                    fileCount: appData.tasks.length + appData.recordings.length + appData.photos.length
+                };
+                
+                await audioStorage.saveBackupInfo(backupInfo);
+                
+                console.log('自动备份完成');
+                alert(`⚠️ 数据已超过10MB，已自动备份到文件: ${link.download}\n建议定期清理或导出数据以避免数据丢失。`);
+                
+            } catch (error) {
+                console.error('自动备份失败:', error);
+            }
+        }
+
+        // 计算总数据大小（包括IndexedDB中的所有数据）
+        async function calculateTotalDataSize() {
+            try {
+                // 获取所有录音和照片
+                const allRecordings = await audioStorage.getAllRecordings();
+                const allPhotos = await audioStorage.getAllPhotos();
+                
+                let totalSizeBytes = 0;
+                let compressedSizeBytes = 0;
+                let audioCount = 0;
+                let photoCount = 0;
+                
+                // 计算录音数据大小
+                for (const recording of allRecordings) {
+                    if (recording.audioData) {
+                        const base64Length = recording.audioData.length - (recording.audioData.indexOf(',') + 1);
+                        const size = Math.floor(base64Length * 3 / 4);
+                        totalSizeBytes += size;
+                        
+                        if (recording.compressed && recording.compressedSize) {
+                            compressedSizeBytes += recording.compressedSize;
+                        } else {
+                            compressedSizeBytes += size;
+                        }
+                        audioCount++;
+                    }
+                }
+                
+                // 计算照片数据大小
+                for (const photo of allPhotos) {
+                    if (photo.imageData) {
+                        const base64Length = photo.imageData.length - (photo.imageData.indexOf(',') + 1);
+                        const size = Math.floor(base64Length * 3 / 4);
+                        totalSizeBytes += size;
+                        
+                        if (photo.compressed && photo.compressedSize) {
+                            compressedSizeBytes += photo.compressedSize;
+                        } else {
+                            compressedSizeBytes += size;
+                        }
+                        photoCount++;
+                    }
+                }
+                
+                // 计算任务数据大小
+                const tasksJSON = JSON.stringify(appData.tasks);
+                totalSizeBytes += tasksJSON.length;
+                compressedSizeBytes += tasksJSON.length;
+                
+                // 计算反馈数据大小
+                const feedbacksJSON = JSON.stringify(appData.feedbacks);
+                totalSizeBytes += feedbacksJSON.length;
+                compressedSizeBytes += feedbacksJSON.length;
+                
+                return {
+                    totalSize: (totalSizeBytes / (1024 * 1024)).toFixed(2) + ' MB',
+                    compressedSize: (compressedSizeBytes / (1024 * 1024)).toFixed(2) + ' MB',
+                    totalSizeMB: totalSizeBytes / (1024 * 1024),
+                    compressedSizeMB: compressedSizeBytes / (1024 * 1024),
+                    audioCount: audioCount,
+                    photoCount: photoCount,
+                    compressionRatio: totalSizeBytes > 0 ? 
+                        ((totalSizeBytes - compressedSizeBytes) / totalSizeBytes * 100).toFixed(1) + '%' : '0%'
+                };
+                
+            } catch (error) {
+                console.error('计算数据大小失败:', error);
+                return {
+                    totalSize: '0 MB',
+                    compressedSize: '0 MB',
+                    totalSizeMB: 0,
+                    compressedSizeMB: 0,
+                    audioCount: 0,
+                    photoCount: 0,
+                    compressionRatio: '0%'
+                };
+            }
         }
 
         // 设置重做事件监听
@@ -3152,47 +3538,52 @@
                 appData.mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
                     
-                    const reader = new FileReader();
-                    reader.onload = async function() {
-                        const base64Audio = reader.result;
-                        
-                        const recording = {
-                            id: Date.now(),
-                            taskId: appData.currentTask.id,
-                            checkpointIndex: appData.currentCheckpointIndex,
-                            date: new Date().toISOString(),
-                            duration: appData.recordingTime,
-                            audioData: base64Audio,
-                            mimeType: 'audio/wav',
-                            type: 'audio'
-                        };
-                        
-                        createAudioUrlFromData(recording);
-                        
-                        // 保存到IndexedDB
-                        await audioStorage.saveRecording(recording);
-                        
-                        appData.currentRecording = recording;
-                        
-                        stream.getTracks().forEach(track => track.stop());
-                        clearRecordingState();
-                        
-                        recordBtn.classList.remove('recording', 'hidden');
-                        pauseBtn.classList.add('hidden');
-                        stopBtn.classList.add('hidden');
-                        playBtn.classList.remove('hidden');
-                        submitRecordingBtn.disabled = false;
-                        
-                        audioPlayer.src = recording.audioUrl;
-                        audioPlayer.classList.remove('hidden');
-                        
-                        alert('录音已保存！');
-                        renderRecordings();
-                        renderTodayTasks();
-                        renderAllTasks();
-                        renderDataStats();
+                    // 压缩音频
+                    const compressedAudio = await compressAudio(audioBlob);
+                    
+                    const recording = {
+                        id: Date.now(),
+                        taskId: appData.currentTask.id,
+                        checkpointIndex: appData.currentCheckpointIndex,
+                        date: new Date().toISOString(),
+                        duration: appData.recordingTime,
+                        audioData: compressedAudio.audioData,
+                        mimeType: compressedAudio.mimeType,
+                        format: compressedAudio.format,
+                        compressed: compressedAudio.compressed,
+                        originalSize: compressedAudio.originalSize,
+                        compressedSize: compressedAudio.compressedSize,
+                        compressionRatio: compressedAudio.compressionRatio,
+                        type: 'audio'
                     };
-                    reader.readAsDataURL(audioBlob);
+                    
+                    createAudioUrlFromData(recording);
+                    
+                    // 保存到IndexedDB
+                    await audioStorage.saveRecording(recording);
+                    
+                    appData.currentRecording = recording;
+                    
+                    stream.getTracks().forEach(track => track.stop());
+                    clearRecordingState();
+                    
+                    recordBtn.classList.remove('recording', 'hidden');
+                    pauseBtn.classList.add('hidden');
+                    stopBtn.classList.add('hidden');
+                    playBtn.classList.remove('hidden');
+                    submitRecordingBtn.disabled = false;
+                    
+                    audioPlayer.src = recording.audioUrl;
+                    audioPlayer.classList.remove('hidden');
+                    
+                    alert('录音已保存！');
+                    renderRecordings();
+                    renderTodayTasks();
+                    renderAllTasks();
+                    renderDataStats();
+                    
+                    // 检查是否需要自动备份
+                    checkAutoBackup();
                 };
                 
                 appData.mediaRecorder.start();
@@ -4431,6 +4822,9 @@
                 appData.mediaRecorder.onstop = async () => {
                     const audioBlob = new Blob(appData.audioChunks, { type: 'audio/wav' });
                     
+                    // 压缩音频
+                    const compressedAudio = await compressAudio(audioBlob);
+                    
                     const reader = new FileReader();
                     reader.onload = async function() {
                         const base64Audio = reader.result;
@@ -4441,8 +4835,13 @@
                             checkpointIndex: appData.currentCheckpointIndex,
                             date: new Date().toISOString(),
                             duration: appData.recordingTime,
-                            audioData: base64Audio,
-                            mimeType: 'audio/wav',
+                            audioData: compressedAudio.audioData,
+                            mimeType: compressedAudio.mimeType,
+                            format: compressedAudio.format,
+                            compressed: compressedAudio.compressed,
+                            originalSize: compressedAudio.originalSize,
+                            compressedSize: compressedAudio.compressedSize,
+                            compressionRatio: compressedAudio.compressionRatio,
                             type: 'audio'
                         };
                         
@@ -4466,6 +4865,7 @@
                         audioPlayer.classList.remove('hidden');
                         
                         console.log('录音保存完成，ID:', recording.id);
+                        console.log(`压缩信息: ${formatFileSize(compressedAudio.originalSize)} → ${formatFileSize(compressedAudio.compressedSize)} (压缩率: ${compressedAudio.compressionRatio}%)`);
                     };
                     reader.readAsDataURL(audioBlob);
                 };
@@ -4584,6 +4984,9 @@
                     renderAllTasks();
                     renderCalendar();
                     renderDataStats();
+                    
+                    // 检查是否需要自动备份
+                    checkAutoBackup();
                 }
                 return;
             }
@@ -4644,6 +5047,9 @@
             renderAllTasks();
             renderCalendar();
             renderDataStats();
+            
+            // 检查是否需要自动备份
+            checkAutoBackup();
         }
 
         // 启动摄像头
@@ -4723,7 +5129,7 @@
         }
 
         // 拍照
-        function takePhoto() {
+        async function takePhoto() {
             if (!appData.isCameraActive || !appData.cameraStream) {
                 alert('请先启动摄像头！');
                 return;
@@ -4741,10 +5147,13 @@
             context.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
             
             // 将照片转换为Base64
-            const imageData = canvas.toDataURL('image/jpeg');
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // 压缩图片
+            const compressedImage = await compressImage(imageData, 0.7);
             
             // 显示照片预览
-            photoPreview.src = imageData;
+            photoPreview.src = compressedImage.imageData;
             photoPreview.classList.remove('hidden');
             cameraPreview.classList.add('hidden');
             
@@ -4754,8 +5163,14 @@
                 taskId: appData.currentTask.id,
                 checkpointIndex: appData.currentCheckpointIndex,
                 date: new Date().toISOString(),
-                imageData: imageData,
-                mimeType: 'image/jpeg',
+                imageData: compressedImage.imageData,
+                mimeType: compressedImage.mimeType,
+                compressed: compressedImage.compressed,
+                originalSize: compressedImage.originalSize,
+                compressedSize: compressedImage.compressedSize,
+                compressionRatio: compressedImage.compressionRatio,
+                width: compressedImage.width,
+                height: compressedImage.height,
                 type: 'photo'
             };
             
@@ -4767,6 +5182,7 @@
             // 停止摄像头
             stopCamera();
             
+            console.log(`图片压缩信息: ${formatFileSize(compressedImage.originalSize)} → ${formatFileSize(compressedImage.compressedSize)} (压缩率: ${compressedImage.compressionRatio}%)`);
             alert('拍照成功！');
         }
 
@@ -4830,6 +5246,9 @@
                     renderAllTasks();
                     renderCalendar();
                     renderDataStats();
+                    
+                    // 检查是否需要自动备份
+                    checkAutoBackup();
                 }
                 return;
             }
@@ -4893,6 +5312,9 @@
             renderAllTasks();
             renderCalendar();
             renderDataStats();
+            
+            // 检查是否需要自动备份
+            checkAutoBackup();
         }
 
         // 重置拍照界面
@@ -5100,7 +5522,7 @@
             dataManagementModal.classList.add('hidden');
         }
 
-        function updateDataStats() {
+        async function updateDataStats() {
             const totalTasks = appData.tasks.length;
             const completedTasks = appData.tasks.filter(task => {
                 const taskSchedule = getTaskCheckinSchedule(task);
@@ -5111,16 +5533,16 @@
             const todayRecordings = appData.recordings.length;
             const todayPhotos = appData.photos.length;
             
-            const dataSize = calculateDataSize();
+            const dataSize = await calculateTotalDataSize();
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
             document.getElementById('stat-total-recordings').textContent = todayRecordings;
             document.getElementById('stat-total-photos').textContent = todayPhotos;
-            document.getElementById('stat-data-size').textContent = dataSize.totalSize;
+            document.getElementById('stat-data-size').textContent = dataSize.compressedSize;
         }
 
-        function renderDataStats() {
+        async function renderDataStats() {
             const totalTasks = appData.tasks.length;
             
             const completedTasks = appData.tasks.filter(task => {
@@ -5135,81 +5557,49 @@
             const totalDuration = appData.recordings.reduce((total, recording) => total + recording.duration, 0);
             const totalMinutes = Math.floor(totalDuration / 60000);
             
-            const dataSize = calculateDataSize();
+            const dataSize = await calculateTotalDataSize();
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
             document.getElementById('stats-completed-tasks').textContent = completedTasks;
             document.getElementById('stats-total-recordings').textContent = todayRecordings;
             document.getElementById('stats-total-photos').textContent = todayPhotos;
             document.getElementById('stats-total-duration').textContent = `${totalMinutes}分钟`;
-            document.getElementById('stats-data-size').textContent = dataSize.totalSize;
+            document.getElementById('stats-data-size').textContent = dataSize.compressedSize;
             
-            showStorageWarning();
-        }
-
-        // 计算数据大小 - 修复版本
-        function calculateDataSize() {
-            // 获取所有录音和照片的Base64数据大小
-            let totalSizeBytes = 0;
-            
-            // 计算任务数据大小
-            const tasksJSON = JSON.stringify(appData.tasks);
-            totalSizeBytes += tasksJSON.length;
-            
-            // 计算录音数据大小（估算Base64数据大小）
-            for (const recording of appData.recordings) {
-                if (recording.audioData) {
-                    // Base64数据长度 * 3/4 来估算原始二进制大小
-                    const base64Length = recording.audioData.length - (recording.audioData.indexOf(',') + 1);
-                    totalSizeBytes += Math.floor(base64Length * 3 / 4);
-                }
-            }
-            
-            // 计算照片数据大小（估算Base64数据大小）
-            for (const photo of appData.photos) {
-                if (photo.imageData) {
-                    // Base64数据长度 * 3/4 来估算原始二进制大小
-                    const base64Length = photo.imageData.length - (photo.imageData.indexOf(',') + 1);
-                    totalSizeBytes += Math.floor(base64Length * 3 / 4);
-                }
-            }
-            
-            // 计算反馈数据大小
-            const feedbacksJSON = JSON.stringify(appData.feedbacks);
-            totalSizeBytes += feedbacksJSON.length;
-            
-            const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
-            const tasksSize = (tasksJSON.length / 1024).toFixed(2);
-            
-            return {
-                tasksSize: tasksSize + ' KB',
-                totalSize: totalSizeMB + ' MB',
-                totalSizeBytes: totalSizeBytes
-            };
+            showStorageWarning(dataSize);
         }
 
         // 显示存储警告
-        function showStorageWarning() {
-            const dataSize = calculateDataSize();
-            const totalSizeMB = parseFloat(dataSize.totalSize);
+        async function showStorageWarning(dataSize) {
+            if (!dataSize) {
+                dataSize = await calculateTotalDataSize();
+            }
             
-            storageSizeDisplayEl.textContent = dataSize.totalSize;
+            const totalSizeMB = dataSize.totalSizeMB;
+            const compressedSizeMB = dataSize.compressedSizeMB;
+            
+            storageSizeDisplayEl.textContent = dataSize.compressedSize;
             storageWarningEl.classList.remove('hidden', 'low', 'medium', 'high');
             
             if (totalSizeMB > 50) { // 增加到50MB警告
                 storageWarningEl.classList.add('high');
                 storageSizeDisplayEl.classList.add('high');
-                storageMessageEl.textContent = '⚠️ 数据存储量较大（超过50MB），建议及时清理或导出备份数据';
+                storageMessageEl.textContent = `⚠️ 数据存储量较大（原始: ${dataSize.totalSize}，压缩后: ${dataSize.compressedSize}），超过10MB将自动备份！`;
                 storageWarningEl.classList.remove('hidden');
+                
+                // 如果超过10MB，立即触发自动备份
+                if (compressedSizeMB > 10) {
+                    setTimeout(() => autoBackupData(), 1000);
+                }
             } else if (totalSizeMB > 20) {
                 storageWarningEl.classList.add('medium');
                 storageSizeDisplayEl.classList.add('medium');
-                storageMessageEl.textContent = '数据存储量适中，建议定期导出备份';
+                storageMessageEl.textContent = `数据存储量适中（原始: ${dataSize.totalSize}，压缩后: ${dataSize.compressedSize}），建议定期导出备份`;
                 storageWarningEl.classList.remove('hidden');
             } else {
                 storageWarningEl.classList.add('low');
                 storageSizeDisplayEl.classList.add('low');
-                storageMessageEl.textContent = '数据存储量正常';
+                storageMessageEl.textContent = `数据存储量正常（原始: ${dataSize.totalSize}，压缩后: ${dataSize.compressedSize}）`;
                 storageWarningEl.classList.remove('hidden');
             }
         }
@@ -5508,17 +5898,18 @@
                     }
                     
                     const date = new Date(checkin.date).toLocaleString();
-                    const fileSize = checkin.audioData ? 
-                        formatFileSize(new Blob([checkin.audioData]).size) : 
-                        (checkin.imageData ? formatFileSize(new Blob([checkin.imageData]).size) : '未知大小');
+                    const fileSize = checkin.compressedSize ? 
+                        formatFileSize(checkin.compressedSize) : 
+                        (checkin.originalSize ? formatFileSize(checkin.originalSize) : '未知大小');
                     
                     const checkinType = checkin.type === 'audio' ? '录音' : '照片';
+                    const compressedInfo = checkin.compressed ? `(压缩率: ${checkin.compressionRatio || '未知'}%)` : '';
                     
                     checkinEl.innerHTML = `
                         <div class="recording-info">
                             <div class="recording-name">${taskName} - ${dayDisplay} (${checkinType})</div>
                             <div class="recording-duration">
-                                ${date} | ${checkin.type === 'audio' ? `时长: ${formatTime(checkin.duration)} | ` : ''}大小: ${fileSize}
+                                ${date} | ${checkin.type === 'audio' ? `时长: ${formatTime(checkin.duration)} | ` : ''}大小: ${fileSize} ${compressedInfo}
                             </div>
                         </div>
                         <div class="task-actions">
