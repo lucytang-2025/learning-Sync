@@ -1575,6 +1575,16 @@
             color: #ff6b6b;
             font-weight: bold;
         }
+        
+        /* 清零当天录音按钮样式 */
+        .btn-clear-recordings {
+            background: #feca57;
+            color: #333;
+        }
+        
+        .btn-clear-recordings:hover {
+            background: #f7b731;
+        }
     </style>
 </head>
 <body>
@@ -1881,6 +1891,7 @@
                     <div class="data-actions">
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
                         <button class="btn btn-excel" id="export-excel-btn">导出为Excel</button>
+                        <button class="btn btn-clear-recordings" id="clear-today-recordings-btn">清零当天录音</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
@@ -1927,6 +1938,7 @@
                         <li><strong>安全存储:</strong> 所有数据使用IndexedDB存储，支持至少250MB数据，不会被浏览器自动清理</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
+                        <li>使用"清零当天录音"功能清理今日的录音和照片记录，释放存储空间</li>
                         <li>在其他设备上使用"导入数据"功能恢复备份</li>
                         <li>注意：导入数据将覆盖当前设备上的所有数据</li>
                         <li>每个任务只保留最新一次打卡录音或照片</li>
@@ -1972,6 +1984,12 @@
                     <h4>导出为Excel</h4>
                     <p>将任务数据导出为Excel电子表格，方便查看和统计。</p>
                     <button class="btn btn-excel" id="export-excel-modal-btn">导出为Excel</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>清零当天录音</h4>
+                    <p>清除今日所有的录音和照片记录，释放存储空间。</p>
+                    <button class="btn btn-clear-recordings" id="clear-today-recordings-modal-btn">清零当天录音</button>
                 </div>
                 
                 <div class="data-section">
@@ -2371,6 +2389,31 @@
                 }
             }
 
+            // 清理当天录音和照片
+            async clearTodayRecordingsAndPhotos() {
+                if (!this.db) await this.open();
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                
+                // 清理当天录音
+                const todayRecordings = await this.getTodayRecordings();
+                for (const recording of todayRecordings) {
+                    await this.deleteRecording(recording.id);
+                }
+                
+                // 清理当天照片
+                const todayPhotos = await this.getTodayPhotos();
+                for (const photo of todayPhotos) {
+                    await this.deletePhoto(photo.id);
+                }
+                
+                console.log('当天录音和照片已清理');
+                return todayRecordings.length + todayPhotos.length;
+            }
+
             // 获取存储统计信息
             async getStorageStats() {
                 if (!this.db) await this.open();
@@ -2513,6 +2556,10 @@
         const importDataFile = document.getElementById('import-data-file');
         const importDataBtn = document.getElementById('import-data-btn');
         const clearDataBtn = document.getElementById('clear-data-btn');
+        
+        // 新增：清零当天录音按钮
+        const clearTodayRecordingsBtn = document.getElementById('clear-today-recordings-btn');
+        const clearTodayRecordingsModalBtn = document.getElementById('clear-today-recordings-modal-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -2701,6 +2748,11 @@
             exportDataBtn.addEventListener('click', exportData);
             exportExcelBtn.addEventListener('click', exportToExcel);
             exportExcelModalBtn.addEventListener('click', exportToExcel);
+            
+            // 清零当天录音按钮事件
+            clearTodayRecordingsBtn.addEventListener('click', clearTodayRecordings);
+            clearTodayRecordingsModalBtn.addEventListener('click', clearTodayRecordings);
+            
             importDataFile.addEventListener('change', handleImportFileSelect);
             importDataBtn.addEventListener('click', importData);
             clearDataBtn.addEventListener('click', clearAllData);
@@ -4798,6 +4850,38 @@
                 storageSizeDisplayEl.classList.add('low');
                 storageMessageEl.textContent = `数据存储量正常（${storageStats.totalSizeMB} MB），IndexedDB最多可存储约${storageStats.estimatedMaxCapacity}MB`;
                 storageWarningEl.classList.remove('hidden');
+            }
+        }
+
+        // 清零当天录音和照片功能
+        async function clearTodayRecordings() {
+            if (!confirm('确定要清零当天的所有录音和照片记录吗？此操作不可撤销！')) {
+                return;
+            }
+            
+            if (!confirm('再次确认：这将删除今天的所有打卡记录，但不会影响任务进度，确定要继续吗？')) {
+                return;
+            }
+            
+            try {
+                const clearedCount = await dataStorage.clearTodayRecordingsAndPhotos();
+                
+                // 重新加载今日打卡记录
+                appData.recordings = await dataStorage.getTodayRecordings();
+                appData.photos = await dataStorage.getTodayPhotos();
+                
+                // 更新界面
+                renderRecordings();
+                renderDataStats();
+                
+                if (clearedCount > 0) {
+                    alert(`已成功清理${clearedCount}个当天打卡记录！存储空间已释放。`);
+                } else {
+                    alert('今天还没有任何打卡记录需要清理。');
+                }
+            } catch (error) {
+                console.error('清零当天录音失败:', error);
+                alert('清零失败：' + error.message);
             }
         }
 
