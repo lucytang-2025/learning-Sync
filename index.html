@@ -1731,7 +1731,7 @@
                 </div>
                 
                 <div id="default-schedule-info" class="custom-schedule-container">
-                    <p><strong>默认打卡计划:</strong> 第1, 2, 3, 5, 8, 15, 30, 90, 180天打卡</p>
+                    <p><strong>默认打卡计划:</strong> 第1, 2, 4, 7, 15, 30, 90, 150天打卡</p>
                 </div>
                 
                 <div id="daily-schedule-container" class="daily-schedule-container hidden">
@@ -2269,8 +2269,8 @@
             selectedPhotos: new Set()
         };
 
-        // 默认打卡时间表
-        const checkinSchedule = [1, 2, 3, 5, 8, 15, 30, 90, 180];
+        // 默认打卡时间表 - 修改为第1, 2, 4, 7, 15, 30, 90, 150天
+        const checkinSchedule = [1, 2, 4, 7, 15, 30, 90, 150];
 
         // IndexedDB存储管理 - 增强版
         class DataStorage {
