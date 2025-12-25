@@ -1655,6 +1655,48 @@
             gap: 10px;
             margin-top: 15px;
         }
+
+        /* 新增：一键打卡按钮样式 */
+        .btn-bulk-checkin {
+            background: #ff9f43;
+            color: white;
+        }
+        
+        .btn-bulk-checkin:hover {
+            background: #e67e22;
+        }
+
+        /* 内存监控警告样式 */
+        .memory-warning-modal {
+            max-width: 400px;
+        }
+
+        .memory-warning-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .memory-warning-icon {
+            font-size: 48px;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+        }
+
+        .memory-warning-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cleanup {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-cleanup:hover {
+            background: #ff5252;
+        }
     </style>
 </head>
 <body>
@@ -1962,6 +2004,7 @@
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
                         <button class="btn btn-excel" id="export-excel-btn">导出为Excel</button>
                         <button class="btn btn-manage" id="manage-recordings-btn">管理录音/照片</button>
+                        <button class="btn btn-bulk-checkin" id="bulk-checkin-btn">一键打卡</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
@@ -2006,6 +2049,8 @@
                     <h3>使用说明</h3>
                     <ol class="instructions-list">
                         <li><strong>安全存储:</strong> 所有数据使用IndexedDB存储，支持至少250MB数据，不会被浏览器自动清理</li>
+                        <li><strong>一键打卡:</strong> 使用"一键打卡"功能可以快速完成所有未打卡的任务</li>
+                        <li><strong>内存监控:</strong> 当数据接近8MB时，系统会自动提醒清理数据</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
                         <li>使用"管理录音/照片"功能手动删除不需要的媒体文件以释放空间</li>
@@ -2061,6 +2106,12 @@
                     <p>从JSON文件导入任务和打卡记录，将覆盖当前设备上的所有数据。</p>
                     <input type="file" id="import-data-file" accept=".json" style="margin: 10px 0;">
                     <button class="btn btn-danger" id="import-data-btn" disabled>导入数据</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>一键打卡</h4>
+                    <p>快速完成所有未打卡的任务。</p>
+                    <button class="btn btn-bulk-checkin" id="bulk-checkin-modal-btn">一键打卡</button>
                 </div>
                 
                 <div class="data-section">
@@ -2230,6 +2281,31 @@
         </div>
     </div>
 
+    <!-- 新增：内存监控警告模态框 -->
+    <div id="memory-warning-modal" class="modal hidden">
+        <div class="modal-content memory-warning-modal">
+            <div class="modal-header">
+                <h3>⚠️ 内存使用警告</h3>
+                <button class="close-btn" id="close-memory-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="memory-warning-content">
+                    <div class="memory-warning-icon">⚠️</div>
+                    <h4>存储空间接近限制</h4>
+                    <p id="memory-warning-message">当前数据存储量已接近8MB，建议及时清理数据以保持应用流畅运行。</p>
+                    <p>当前使用: <span id="current-memory-usage">0 MB</span> / 8MB</p>
+                    <div class="memory-warning-actions">
+                        <button class="btn btn-cleanup" id="cleanup-data-btn">立即清理</button>
+                        <button class="btn btn-secondary" id="later-btn">稍后处理</button>
+                    </div>
+                    <p class="last-cleanup-time" style="margin-top: 15px; font-size: 12px; color: #64748b;">
+                        上次清理时间: <span id="last-cleanup-time">从未清理</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 应用数据
         const appData = {
@@ -2264,19 +2340,25 @@
             isRedo: false,
             redoTask: null,
             redoCheckpointIndex: null,
-            // 新增：录音管理状态
             selectedRecordings: new Set(),
-            selectedPhotos: new Set()
+            selectedPhotos: new Set(),
+            lastMemoryCheck: 0,
+            memoryCheckInterval: null,
+            showMemoryWarning: true
         };
 
         // 默认打卡时间表 - 修改为第1, 2, 4, 7, 15, 30, 90, 150天
         const checkinSchedule = [1, 2, 4, 7, 15, 30, 90, 150];
+        
+        // 内存监控配置
+        const MEMORY_LIMIT = 8 * 1024 * 1024; // 8MB
+        const MEMORY_WARNING_THRESHOLD = 0.9; // 90%阈值
 
         // IndexedDB存储管理 - 增强版
         class DataStorage {
             constructor() {
                 this.dbName = 'CheckinAppDB';
-                this.version = 8; // 增加版本号以支持新功能
+                this.version = 9; // 增加版本号以支持新功能
                 this.db = null;
             }
 
@@ -2568,6 +2650,9 @@
                 // 清理照片
                 await this.cleanupStoreByDate('photos', thirtyDaysAgo);
                 
+                // 保存清理时间
+                await this.saveSetting('lastCleanupTime', new Date().toISOString());
+                
                 console.log('旧数据清理完成');
             }
 
@@ -2614,6 +2699,7 @@
                 totalSize += tasksJson.length;
                 
                 const totalSizeMB = totalSize / (1024 * 1024);
+                const totalSizeBytes = totalSize;
                 const maxCapacityMB = 250; // IndexedDB通常支持250MB以上
                 const usagePercent = Math.min((totalSizeMB / maxCapacityMB) * 100, 100);
                 
@@ -2622,10 +2708,21 @@
                     recordingsCount: recordings.length,
                     photosCount: photos.length,
                     totalSize: totalSize,
+                    totalSizeBytes: totalSizeBytes,
                     totalSizeMB: totalSizeMB.toFixed(2),
                     maxCapacityMB: maxCapacityMB,
                     usagePercent: usagePercent.toFixed(1),
                     estimatedMaxCapacity: maxCapacityMB
+                };
+            }
+
+            // 获取内存使用情况
+            async getMemoryUsage() {
+                const stats = await this.getStorageStats();
+                return {
+                    bytes: stats.totalSizeBytes,
+                    megabytes: parseFloat(stats.totalSizeMB),
+                    percent: (stats.totalSizeBytes / MEMORY_LIMIT) * 100
                 };
             }
 
@@ -2725,6 +2822,10 @@
         const importDataFile = document.getElementById('import-data-file');
         const importDataBtn = document.getElementById('import-data-btn');
         const clearDataBtn = document.getElementById('clear-data-btn');
+        
+        // 新增：一键打卡按钮
+        const bulkCheckinBtn = document.getElementById('bulk-checkin-btn');
+        const bulkCheckinModalBtn = document.getElementById('bulk-checkin-modal-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -2788,6 +2889,15 @@
         const manageCapacityFillEl = document.getElementById('manage-capacity-fill');
         const manageCapacityTextEl = document.getElementById('manage-capacity-text');
         const manageCapacityStatusEl = document.getElementById('manage-capacity-status');
+        
+        // 新增：内存监控相关元素
+        const memoryWarningModal = document.getElementById('memory-warning-modal');
+        const closeMemoryModalBtn = document.getElementById('close-memory-modal');
+        const memoryWarningMessage = document.getElementById('memory-warning-message');
+        const currentMemoryUsage = document.getElementById('current-memory-usage');
+        const cleanupDataBtn = document.getElementById('cleanup-data-btn');
+        const laterBtn = document.getElementById('later-btn');
+        const lastCleanupTime = document.getElementById('last-cleanup-time');
 
         // 初始化应用
         async function initApp() {
@@ -2800,7 +2910,9 @@
             setupTaskDetailsEventListeners();
             setupCustomDateEventListeners();
             setupRedoEventListeners();
-            setupRecordingsManageEventListeners(); // 新增：录音管理事件监听
+            setupRecordingsManageEventListeners();
+            setupMemoryMonitoring();
+            setupBulkCheckinListeners();
             
             restoreRecordingUrls();
             
@@ -2816,6 +2928,372 @@
             dailyStartDateInput.value = today;
             
             console.log('应用初始化完成');
+        }
+
+        // 设置一键打卡事件监听
+        function setupBulkCheckinListeners() {
+            bulkCheckinBtn.addEventListener('click', showBulkCheckinModal);
+            bulkCheckinModalBtn.addEventListener('click', showBulkCheckinModal);
+        }
+
+        // 显示一键打卡模态框
+        function showBulkCheckinModal() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let overdueCount = 0;
+            let todayCount = 0;
+            let redoCount = 0;
+            
+            for (const task of appData.tasks) {
+                if (task.status !== 'active') continue;
+                
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                
+                // 检查今天的打卡点
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+                if (checkpointIndex !== -1) {
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    const hasCheckedIn = checkpointIndex === 0 ? 
+                        isFirstDayCheckinComplete(task, checkpointIndex) : 
+                        !!checkin;
+                    const needsRedo = checkin && checkin.status === 'needs_redo';
+                    
+                    if (!hasCheckedIn) {
+                        todayCount++;
+                    } else if (needsRedo) {
+                        redoCount++;
+                    }
+                }
+                
+                // 检查逾期打卡点
+                for (let i = 0; i < taskSchedule.length; i++) {
+                    const checkpointDay = taskSchedule[i];
+                    if (checkpointDay < daysSinceStart) {
+                        const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                        if (!checkin) {
+                            overdueCount++;
+                        } else if (checkin.status === 'needs_redo') {
+                            redoCount++;
+                        }
+                    }
+                }
+            }
+            
+            const totalCheckins = overdueCount + todayCount + redoCount;
+            
+            if (totalCheckins === 0) {
+                alert('当前没有需要打卡的任务！');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>一键打卡</h3>
+                        <button class="close-btn" id="close-bulk-checkin-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="data-section">
+                            <h4>可打卡任务统计</h4>
+                            <div class="data-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">今日未打卡:</span>
+                                    <span class="stat-value">${todayCount} 个</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">逾期未打卡:</span>
+                                    <span class="stat-value">${overdueCount} 个</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">需要重做:</span>
+                                    <span class="stat-value">${redoCount} 个</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">总计:</span>
+                                    <span class="stat-value">${totalCheckins} 个</span>
+                                </div>
+                            </div>
+                            <p>一键打卡将为所有未完成的任务自动标记为"已完成"。</p>
+                            <p><strong>注意:</strong> 一键打卡不会生成录音或照片，只会标记为完成状态。</p>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn btn-bulk-checkin" id="confirm-bulk-checkin-btn">确认一键打卡</button>
+                            <button class="btn btn-secondary" id="cancel-bulk-checkin-btn">取消</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeBtn = document.getElementById('close-bulk-checkin-modal');
+            const confirmBtn = document.getElementById('confirm-bulk-checkin-btn');
+            const cancelBtn = document.getElementById('cancel-bulk-checkin-btn');
+            
+            closeBtn.onclick = () => document.body.removeChild(modal);
+            cancelBtn.onclick = () => document.body.removeChild(modal);
+            
+            confirmBtn.onclick = async () => {
+                await performBulkCheckin();
+                document.body.removeChild(modal);
+            };
+        }
+
+        // 执行一键打卡
+        async function performBulkCheckin() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            let completedCount = 0;
+            let failedCount = 0;
+            
+            // 创建一个伪录音对象用于一键打卡
+            const fakeRecording = {
+                id: Date.now(),
+                taskId: 0,
+                checkpointIndex: 0,
+                date: new Date().toISOString(),
+                duration: 0,
+                audioData: '',
+                mimeType: 'audio/wav',
+                type: 'bulk'
+            };
+            
+            for (const task of appData.tasks) {
+                if (task.status !== 'active') continue;
+                
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                let taskCompleted = false;
+                
+                // 处理今天的打卡点
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+                if (checkpointIndex !== -1) {
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    const hasCheckedIn = checkpointIndex === 0 ? 
+                        isFirstDayCheckinComplete(task, checkpointIndex) : 
+                        !!checkin;
+                    const needsRedo = checkin && checkin.status === 'needs_redo';
+                    
+                    if (!hasCheckedIn || needsRedo) {
+                        try {
+                            const newCheckin = {
+                                checkpointIndex: checkpointIndex,
+                                date: new Date().toISOString(),
+                                type: 'bulk',
+                                status: 'completed',
+                                bulkCheckin: true
+                            };
+                            
+                            if (needsRedo) {
+                                // 更新现有的重做打卡
+                                const checkinIndex = task.checkins.findIndex(c => c.checkpointIndex === checkpointIndex);
+                                task.checkins[checkinIndex] = newCheckin;
+                            } else {
+                                task.checkins.push(newCheckin);
+                            }
+                            
+                            completedCount++;
+                            taskCompleted = true;
+                        } catch (error) {
+                            console.error('一键打卡失败:', error);
+                            failedCount++;
+                        }
+                    }
+                }
+                
+                // 处理逾期打卡点
+                for (let i = 0; i < taskSchedule.length; i++) {
+                    const checkpointDay = taskSchedule[i];
+                    if (checkpointDay < daysSinceStart) {
+                        const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                        if (!checkin) {
+                            try {
+                                task.checkins.push({
+                                    checkpointIndex: i,
+                                    date: new Date().toISOString(),
+                                    type: 'bulk',
+                                    status: 'completed',
+                                    bulkCheckin: true
+                                });
+                                
+                                if (!taskCompleted) {
+                                    completedCount++;
+                                    taskCompleted = true;
+                                }
+                            } catch (error) {
+                                console.error('逾期打卡失败:', error);
+                                failedCount++;
+                            }
+                        } else if (checkin.status === 'needs_redo') {
+                            try {
+                                checkin.status = 'completed';
+                                checkin.date = new Date().toISOString();
+                                
+                                if (!taskCompleted) {
+                                    completedCount++;
+                                    taskCompleted = true;
+                                }
+                            } catch (error) {
+                                console.error('重做打卡失败:', error);
+                                failedCount++;
+                            }
+                        }
+                    }
+                }
+                
+                // 检查任务是否完成
+                if (taskCompleted) {
+                    const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+                    const totalCheckins = taskSchedule.length;
+                    
+                    if (completedCheckins === totalCheckins) {
+                        task.status = 'completed';
+                    }
+                }
+            }
+            
+            if (completedCount > 0) {
+                await saveTasks();
+                
+                renderTodayTasks();
+                renderAllTasks();
+                renderCalendar();
+                renderRecordings();
+                renderDataStats();
+                
+                alert(`一键打卡完成！成功打卡 ${completedCount} 个任务${failedCount > 0 ? `，失败 ${failedCount} 个` : ''}`);
+            } else {
+                alert('没有需要打卡的任务！');
+            }
+        }
+
+        // 设置内存监控
+        function setupMemoryMonitoring() {
+            // 每分钟检查一次内存使用情况
+            appData.memoryCheckInterval = setInterval(async () => {
+                await checkMemoryUsage();
+            }, 60000); // 每分钟检查一次
+            
+            // 页面加载时立即检查一次
+            setTimeout(async () => {
+                await checkMemoryUsage();
+            }, 3000);
+            
+            // 设置内存警告模态框事件
+            setupMemoryModalEvents();
+            
+            // 加载上次清理时间
+            loadLastCleanupTime();
+        }
+
+        // 设置内存警告模态框事件
+        function setupMemoryModalEvents() {
+            closeMemoryModalBtn.addEventListener('click', () => {
+                memoryWarningModal.classList.add('hidden');
+            });
+            
+            cleanupDataBtn.addEventListener('click', async () => {
+                await cleanupData();
+                memoryWarningModal.classList.add('hidden');
+            });
+            
+            laterBtn.addEventListener('click', () => {
+                memoryWarningModal.classList.add('hidden');
+                // 设置3小时内不再显示警告
+                appData.showMemoryWarning = false;
+                setTimeout(() => {
+                    appData.showMemoryWarning = true;
+                }, 3 * 60 * 60 * 1000);
+            });
+        }
+
+        // 加载上次清理时间
+        async function loadLastCleanupTime() {
+            try {
+                const lastCleanup = await dataStorage.getSetting('lastCleanupTime');
+                if (lastCleanup) {
+                    const cleanupDate = new Date(lastCleanup);
+                    lastCleanupTime.textContent = cleanupDate.toLocaleString();
+                } else {
+                    lastCleanupTime.textContent = '从未清理';
+                }
+            } catch (error) {
+                console.error('加载清理时间失败:', error);
+            }
+        }
+
+        // 检查内存使用情况
+        async function checkMemoryUsage() {
+            try {
+                const memoryUsage = await dataStorage.getMemoryUsage();
+                
+                // 更新内存使用显示
+                currentMemoryUsage.textContent = memoryUsage.megabytes.toFixed(2) + ' MB';
+                
+                // 检查是否超过阈值
+                if (memoryUsage.bytes > MEMORY_LIMIT * MEMORY_WARNING_THRESHOLD) {
+                    // 显示内存警告
+                    showMemoryWarning(memoryUsage);
+                }
+                
+                console.log('内存使用情况:', {
+                    bytes: memoryUsage.bytes,
+                    mb: memoryUsage.megabytes,
+                    percent: memoryUsage.percent
+                });
+                
+                return memoryUsage;
+            } catch (error) {
+                console.error('检查内存使用失败:', error);
+                return null;
+            }
+        }
+
+        // 显示内存警告
+        function showMemoryWarning(memoryUsage) {
+            if (!appData.showMemoryWarning) return;
+            
+            const percent = (memoryUsage.bytes / MEMORY_LIMIT * 100).toFixed(1);
+            memoryWarningMessage.textContent = `当前数据存储量已使用 ${percent}% (${memoryUsage.megabytes.toFixed(2)} MB)，接近8MB限制。建议及时清理数据以保持应用流畅运行。`;
+            
+            memoryWarningModal.classList.remove('hidden');
+        }
+
+        // 清理数据
+        async function cleanupData() {
+            try {
+                // 删除30天前的录音和照片
+                await dataStorage.cleanupOldData();
+                
+                // 更新清理时间
+                const now = new Date();
+                lastCleanupTime.textContent = now.toLocaleString();
+                
+                // 重新检查内存使用情况
+                const memoryUsage = await checkMemoryUsage();
+                
+                // 更新界面
+                await loadAllRecordingsAndPhotos();
+                renderDataStats();
+                renderRecordings();
+                
+                alert('数据清理完成！已删除30天前的录音和照片。');
+                
+            } catch (error) {
+                console.error('清理数据失败:', error);
+                alert('清理数据失败: ' + error.message);
+            }
         }
 
         // 从IndexedDB加载数据
@@ -5049,6 +5527,9 @@
             
             // 显示存储警告
             showStorageWarning(storageStats);
+            
+            // 检查内存使用情况
+            await checkMemoryUsage();
         }
 
         // 显示存储警告
