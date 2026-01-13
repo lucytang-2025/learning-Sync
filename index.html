@@ -1697,6 +1697,80 @@
         .btn-cleanup:hover {
             background: #ff5252;
         }
+
+        /* 新增：时间编辑样式 */
+        .time-edit-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .time-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .time-edit-header h4 {
+            margin: 0;
+            color: #475569;
+        }
+
+        .checkin-time-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .checkin-time-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .checkin-time-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .checkin-time-date {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .checkin-time-index {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .time-edit-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .time-edit-input input {
+            flex: 1;
+        }
+
+        .no-checkins-message {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -1861,6 +1935,22 @@
                     <label for="edit-task-desc">任务描述</label>
                     <textarea id="edit-task-desc" placeholder="输入任务描述（可选）"></textarea>
                 </div>
+                
+                <div class="form-group">
+                    <label for="edit-create-date">任务创建时间</label>
+                    <input type="datetime-local" id="edit-create-date">
+                </div>
+                
+                <div id="checkin-times-section" class="time-edit-section">
+                    <div class="time-edit-header">
+                        <h4>打卡时间管理</h4>
+                        <button class="btn btn-secondary" id="refresh-checkin-times">刷新</button>
+                    </div>
+                    <div class="checkin-time-list" id="checkin-time-list">
+                        <!-- 打卡时间列表将在这里动态生成 -->
+                    </div>
+                </div>
+                
                 <div class="task-actions">
                     <button class="btn btn-primary" id="update-task">更新任务</button>
                     <button class="btn btn-secondary" id="cancel-edit-task">取消</button>
@@ -2899,6 +2989,12 @@
         const laterBtn = document.getElementById('later-btn');
         const lastCleanupTime = document.getElementById('last-cleanup-time');
 
+        // 新增：时间编辑相关元素
+        const editCreateDateInput = document.getElementById('edit-create-date');
+        const checkinTimesSection = document.getElementById('checkin-times-section');
+        const checkinTimeList = document.getElementById('checkin-time-list');
+        const refreshCheckinTimesBtn = document.getElementById('refresh-checkin-times');
+
         // 初始化应用
         async function initApp() {
             console.log('初始化应用...');
@@ -2911,6 +3007,7 @@
             setupCustomDateEventListeners();
             setupRedoEventListeners();
             setupRecordingsManageEventListeners();
+            setupTimeEditEventListeners();
             setupMemoryMonitoring();
             setupBulkCheckinListeners();
             
@@ -2928,6 +3025,195 @@
             dailyStartDateInput.value = today;
             
             console.log('应用初始化完成');
+        }
+
+        // 设置时间编辑事件监听
+        function setupTimeEditEventListeners() {
+            refreshCheckinTimesBtn.addEventListener('click', () => {
+                if (appData.editingTask) {
+                    renderCheckinTimes(appData.editingTask);
+                }
+            });
+        }
+
+        // 显示编辑任务表单 - 修改后的函数
+        function showEditTaskForm(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            appData.editingTask = task;
+            editTaskFormEl.classList.remove('hidden');
+            hideTaskForm();
+            
+            document.getElementById('edit-task-subject').value = task.subject;
+            document.getElementById('edit-task-name').value = task.name;
+            document.getElementById('edit-task-desc').value = task.description || '';
+            
+            // 设置创建时间
+            const createDate = new Date(task.createDate);
+            editCreateDateInput.value = formatDateTimeLocal(createDate);
+            
+            // 渲染打卡时间列表
+            renderCheckinTimes(task);
+            
+            editTaskFormEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 格式化日期时间为本地字符串格式
+        function formatDateTimeLocal(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+
+        // 渲染打卡时间列表
+        function renderCheckinTimes(task) {
+            checkinTimeList.innerHTML = '';
+            
+            if (!task.checkins || task.checkins.length === 0) {
+                checkinTimeList.innerHTML = `
+                    <div class="no-checkins-message">
+                        <p>暂无打卡记录</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // 按打卡点索引排序
+            const sortedCheckins = [...task.checkins].sort((a, b) => a.checkpointIndex - b.checkpointIndex);
+            
+            sortedCheckins.forEach((checkin, index) => {
+                const checkinTimeItem = document.createElement('div');
+                checkinTimeItem.className = 'checkin-time-item';
+                
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const checkpointDay = taskSchedule[checkin.checkpointIndex];
+                
+                let dayDisplay;
+                if (task.scheduleType === 'daily') {
+                    dayDisplay = `第${checkpointDay + 1}天`;
+                } else if (task.scheduleType === 'custom') {
+                    const startDate = new Date(task.createDate);
+                    const checkinDate = new Date(startDate.getTime() + checkpointDay * 24 * 60 * 60 * 1000);
+                    dayDisplay = checkinDate.toLocaleDateString();
+                } else {
+                    dayDisplay = `第${checkpointDay}天`;
+                }
+                
+                const checkinDate = new Date(checkin.date);
+                const checkinDateStr = checkinDate.toLocaleString();
+                
+                checkinTimeItem.innerHTML = `
+                    <div class="checkin-time-info">
+                        <div class="checkin-time-date">${dayDisplay} - ${checkinDateStr}</div>
+                        <div class="checkin-time-index">打卡点: ${checkin.checkpointIndex} | 类型: ${checkin.type || '未知'} | 状态: ${checkin.status || '完成'}</div>
+                    </div>
+                    <div class="time-edit-input">
+                        <input type="datetime-local" 
+                               id="checkin-time-${index}" 
+                               value="${formatDateTimeLocal(checkinDate)}"
+                               data-checkpoint-index="${checkin.checkpointIndex}">
+                        <button class="btn btn-secondary" onclick="updateCheckinTime(${task.id}, ${checkin.checkpointIndex}, ${index})">
+                            更新
+                        </button>
+                    </div>
+                `;
+                
+                checkinTimeList.appendChild(checkinTimeItem);
+            });
+        }
+
+        // 更新打卡时间
+        async function updateCheckinTime(taskId, checkpointIndex, inputIndex) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            if (!checkin) return;
+            
+            const timeInput = document.getElementById(`checkin-time-${inputIndex}`);
+            if (!timeInput) return;
+            
+            const newTime = new Date(timeInput.value);
+            if (isNaN(newTime.getTime())) {
+                alert('无效的时间格式');
+                return;
+            }
+            
+            checkin.date = newTime.toISOString();
+            
+            // 如果是录音或照片打卡，同时更新对应的录音/照片记录
+            if (checkin.recordingId) {
+                try {
+                    const recording = await dataStorage.getRecording(checkin.recordingId);
+                    if (recording) {
+                        recording.date = newTime.toISOString();
+                        await dataStorage.saveRecording(recording);
+                    }
+                } catch (error) {
+                    console.error('更新录音时间失败:', error);
+                }
+            }
+            
+            if (checkin.photoId) {
+                try {
+                    const photo = await dataStorage.getPhoto(checkin.photoId);
+                    if (photo) {
+                        photo.date = newTime.toISOString();
+                        await dataStorage.savePhoto(photo);
+                    }
+                } catch (error) {
+                    console.error('更新照片时间失败:', error);
+                }
+            }
+            
+            await saveTasks();
+            
+            // 刷新显示
+            renderCheckinTimes(task);
+            
+            alert('打卡时间已更新');
+        }
+
+        // 更新任务 - 修改后的函数
+        async function updateTask() {
+            if (!appData.editingTask) return;
+            
+            const subject = document.getElementById('edit-task-subject').value;
+            const name = document.getElementById('edit-task-name').value.trim();
+            const desc = document.getElementById('edit-task-desc').value.trim();
+            const createDateStr = document.getElementById('edit-create-date').value;
+            
+            if (!name) {
+                alert('请输入任务名称');
+                return;
+            }
+            
+            // 更新任务信息
+            appData.editingTask.subject = subject;
+            appData.editingTask.name = name;
+            appData.editingTask.description = desc;
+            
+            // 更新创建时间
+            if (createDateStr) {
+                const newCreateDate = new Date(createDateStr);
+                if (!isNaN(newCreateDate.getTime())) {
+                    appData.editingTask.createDate = newCreateDate.toISOString();
+                }
+            }
+            
+            await saveTasks();
+            hideEditTaskForm();
+            renderAllTasks();
+            renderTodayTasks();
+            renderCalendar();
+            renderDataStats();
+            
+            alert('任务更新成功！');
         }
 
         // 设置一键打卡事件监听
@@ -3601,6 +3887,14 @@
             document.getElementById('edit-task-subject').value = task.subject;
             document.getElementById('edit-task-name').value = task.name;
             document.getElementById('edit-task-desc').value = task.description || '';
+            
+            // 设置创建时间
+            const createDate = new Date(task.createDate);
+            editCreateDateInput.value = formatDateTimeLocal(createDate);
+            
+            // 渲染打卡时间列表
+            renderCheckinTimes(task);
+            
             editTaskFormEl.scrollIntoView({ behavior: 'smooth' });
         }
 
@@ -3686,15 +3980,25 @@
             const subject = document.getElementById('edit-task-subject').value;
             const name = document.getElementById('edit-task-name').value.trim();
             const desc = document.getElementById('edit-task-desc').value.trim();
+            const createDateStr = document.getElementById('edit-create-date').value;
             
             if (!name) {
                 alert('请输入任务名称');
                 return;
             }
             
+            // 更新任务信息
             appData.editingTask.subject = subject;
             appData.editingTask.name = name;
             appData.editingTask.description = desc;
+            
+            // 更新创建时间
+            if (createDateStr) {
+                const newCreateDate = new Date(createDateStr);
+                if (!isNaN(newCreateDate.getTime())) {
+                    appData.editingTask.createDate = newCreateDate.toISOString();
+                }
+            }
             
             await saveTasks();
             hideEditTaskForm();
