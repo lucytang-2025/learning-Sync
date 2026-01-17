@@ -1888,6 +1888,16 @@
         .btn-bulk-pause:hover {
             background: #5a6268;
         }
+
+        /* 新增：批量取消暂停按钮样式 */
+        .btn-bulk-resume {
+            background: #20c997;
+            color: white;
+        }
+        
+        .btn-bulk-resume:hover {
+            background: #1ba87e;
+        }
         
         /* 新增：批量暂停任务选择器样式 */
         .pause-task-selector {
@@ -2007,6 +2017,20 @@
         
         .selected-tasks-count strong {
             color: #4facfe;
+        }
+
+        /* 新增：批量取消暂停模态框样式 */
+        .resume-management {
+            background: #f0fff4;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #1dd1a1;
+        }
+
+        .resume-management h4 {
+            color: #1dd1a1;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -2333,6 +2357,7 @@
                         <button class="btn btn-manage" id="manage-recordings-btn">管理录音/照片</button>
                         <button class="btn btn-bulk-checkin" id="bulk-checkin-btn">一键打卡</button>
                         <button class="btn btn-bulk-pause" id="bulk-pause-btn">批量暂停任务</button>
+                        <button class="btn btn-bulk-resume" id="bulk-resume-btn">批量取消暂停</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
@@ -2384,6 +2409,7 @@
                         <li><strong>安全存储:</strong> 所有数据使用IndexedDB存储，支持至少250MB数据，不会被浏览器自动清理</li>
                         <li><strong>一键打卡:</strong> 使用"一键打卡"功能可以快速完成所有未打卡的任务</li>
                         <li><strong>批量暂停:</strong> 使用"批量暂停任务"功能可以暂停多个任务的打卡计划</li>
+                        <li><strong>批量取消暂停:</strong> 使用"批量取消暂停"功能可以恢复多个暂停的任务</li>
                         <li><strong>内存监控:</strong> 当数据接近8MB时，系统会自动提醒清理数据</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
@@ -2452,6 +2478,12 @@
                     <h4>批量暂停任务</h4>
                     <p>暂停多个任务的打卡计划，设置暂停期限。</p>
                     <button class="btn btn-bulk-pause" id="bulk-pause-modal-btn">批量暂停任务</button>
+                </div>
+                
+                <div class="data-section">
+                    <h4>批量取消暂停</h4>
+                    <p>恢复多个暂停的任务，让它们重新出现在打卡列表中。</p>
+                    <button class="btn btn-bulk-resume" id="bulk-resume-modal-btn">批量取消暂停</button>
                 </div>
                 
                 <div class="data-section">
@@ -2596,6 +2628,57 @@
                 <div class="task-actions">
                     <button class="btn btn-bulk-pause" id="confirm-pause-btn">确认暂停</button>
                     <button class="btn btn-secondary" id="cancel-pause-btn">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：取消暂停管理模态框 -->
+    <div id="resume-management-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>批量取消暂停</h3>
+                <button class="close-btn" id="close-resume-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="resume-management">
+                    <h4>选择要恢复的任务</h4>
+                    <div class="data-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">可恢复任务:</span>
+                            <span class="stat-value" id="available-resume-tasks-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已选中:</span>
+                            <span class="stat-value" id="selected-resume-tasks-count">0</span>
+                        </div>
+                    </div>
+                    <p>恢复后，任务将重新出现在今日任务中，继续按原计划进行打卡。</p>
+                </div>
+                
+                <div class="pause-task-selector">
+                    <div class="select-all-tasks">
+                        <input type="checkbox" id="select-all-resume-tasks">
+                        <label for="select-all-resume-tasks">全选所有可恢复任务</label>
+                    </div>
+                    
+                    <div class="task-selection-list" id="resume-task-selection-list">
+                        <!-- 任务选择列表将在这里动态生成 -->
+                    </div>
+                    
+                    <div class="selected-tasks-count" id="selected-resume-tasks-info">
+                        已选择 <strong>0</strong> 个任务
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="resume-reason-input">恢复原因（可选）</label>
+                    <textarea id="resume-reason-input" placeholder="请输入恢复原因，例如：考试结束、休假结束等..."></textarea>
+                </div>
+                
+                <div class="task-actions">
+                    <button class="btn btn-bulk-resume" id="confirm-resume-btn">确认恢复</button>
+                    <button class="btn btn-secondary" id="cancel-resume-btn">取消</button>
                 </div>
             </div>
         </div>
@@ -2755,7 +2838,8 @@
             redoCheckpointIndex: null,
             selectedRecordings: new Set(),
             selectedPhotos: new Set(),
-            selectedTasksForPause: new Set(), // 新增：存储选中要暂停的任务
+            selectedTasksForPause: new Set(),
+            selectedTasksForResume: new Set(),
             lastMemoryCheck: 0,
             memoryCheckInterval: null,
             showMemoryWarning: true
@@ -3238,13 +3322,17 @@
         const importDataBtn = document.getElementById('import-data-btn');
         const clearDataBtn = document.getElementById('clear-data-btn');
         
-        // 新增：一键打卡按钮
+        // 一键打卡按钮
         const bulkCheckinBtn = document.getElementById('bulk-checkin-btn');
         const bulkCheckinModalBtn = document.getElementById('bulk-checkin-modal-btn');
         
-        // 新增：批量暂停按钮
+        // 批量暂停按钮
         const bulkPauseBtn = document.getElementById('bulk-pause-btn');
         const bulkPauseModalBtn = document.getElementById('bulk-pause-modal-btn');
+
+        // 新增：批量取消暂停按钮
+        const bulkResumeBtn = document.getElementById('bulk-resume-btn');
+        const bulkResumeModalBtn = document.getElementById('bulk-resume-modal-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -3260,7 +3348,7 @@
         const markRedoBtn = document.getElementById('mark-redo-btn');
         const cancelRedoBtn = document.getElementById('cancel-redo-btn');
 
-        // 新增：暂停管理模态框元素
+        // 暂停管理模态框元素
         const pauseManagementModal = document.getElementById('pause-management-modal');
         const closePauseModalBtn = document.getElementById('close-pause-modal');
         const pauseReasonInput = document.getElementById('pause-reason-input');
@@ -3276,6 +3364,18 @@
         const taskSelectionListEl = document.getElementById('task-selection-list');
         const selectAllTasksBtn = document.getElementById('select-all-tasks');
 
+        // 新增：取消暂停管理模态框元素
+        const resumeManagementModal = document.getElementById('resume-management-modal');
+        const closeResumeModalBtn = document.getElementById('close-resume-modal');
+        const resumeReasonInput = document.getElementById('resume-reason-input');
+        const confirmResumeBtn = document.getElementById('confirm-resume-btn');
+        const cancelResumeBtn = document.getElementById('cancel-resume-btn');
+        const availableResumeTasksCountEl = document.getElementById('available-resume-tasks-count');
+        const selectedResumeTasksCountEl = document.getElementById('selected-resume-tasks-count');
+        const selectedResumeTasksInfoEl = document.getElementById('selected-resume-tasks-info');
+        const resumeTaskSelectionListEl = document.getElementById('resume-task-selection-list');
+        const selectAllResumeTasksBtn = document.getElementById('select-all-resume-tasks');
+
         // 存储容量显示元素
         const capacityFillEl = document.getElementById('capacity-fill');
         const capacityTextEl = document.getElementById('capacity-text');
@@ -3284,7 +3384,7 @@
         const modalCapacityTextEl = document.getElementById('modal-capacity-text');
         const modalCapacityStatusEl = document.getElementById('modal-capacity-status');
 
-        // 新增：自定义日期相关元素
+        // 自定义日期相关元素
         const scheduleTypeSelectors = document.querySelectorAll('.schedule-type');
         const defaultScheduleInfo = document.getElementById('default-schedule-info');
         const dailyScheduleContainer = document.getElementById('daily-schedule-container');
@@ -3293,17 +3393,17 @@
         const addCustomDateBtn = document.getElementById('add-custom-date');
         const customDatesList = document.getElementById('custom-dates-list');
         
-        // 新增：每日打卡相关元素
+        // 每日打卡相关元素
         const dailyStartDateInput = document.getElementById('daily-start-date');
         const dailyEndDateInput = document.getElementById('daily-end-date');
         const dailyDurationInput = document.getElementById('daily-duration');
         
-        // 新增：存储警告相关元素
+        // 存储警告相关元素
         const storageWarningEl = document.getElementById('storage-warning');
         const storageSizeDisplayEl = document.getElementById('storage-size-display');
         const storageMessageEl = document.getElementById('storage-message');
         
-        // 新增：录音管理相关元素
+        // 录音管理相关元素
         const manageRecordingsBtn = document.getElementById('manage-recordings-btn');
         const recordingsManageModal = document.getElementById('recordings-manage-modal');
         const closeRecordingsModalBtn = document.getElementById('close-recordings-modal');
@@ -3325,7 +3425,7 @@
         const manageCapacityTextEl = document.getElementById('manage-capacity-text');
         const manageCapacityStatusEl = document.getElementById('manage-capacity-status');
         
-        // 新增：内存监控相关元素
+        // 内存监控相关元素
         const memoryWarningModal = document.getElementById('memory-warning-modal');
         const closeMemoryModalBtn = document.getElementById('close-memory-modal');
         const memoryWarningMessage = document.getElementById('memory-warning-message');
@@ -3334,7 +3434,7 @@
         const laterBtn = document.getElementById('later-btn');
         const lastCleanupTime = document.getElementById('last-cleanup-time');
 
-        // 新增：时间编辑相关元素
+        // 时间编辑相关元素
         const editCreateDateInput = document.getElementById('edit-create-date');
         const checkinTimesSection = document.getElementById('checkin-times-section');
         const checkinTimeList = document.getElementById('checkin-time-list');
@@ -3354,6 +3454,7 @@
             setupRecordingsManageEventListeners();
             setupTimeEditEventListeners();
             setupPauseEventListeners();
+            setupResumeEventListeners(); // 新增：设置取消暂停事件监听
             setupMemoryMonitoring();
             setupBulkCheckinListeners();
             
@@ -3422,6 +3523,36 @@
             updatePauseUntilDate();
         }
 
+        // 新增：设置取消暂停事件监听
+        function setupResumeEventListeners() {
+            bulkResumeBtn.addEventListener('click', showResumeManagementModal);
+            bulkResumeModalBtn.addEventListener('click', showResumeManagementModal);
+            closeResumeModalBtn.addEventListener('click', hideResumeManagementModal);
+            cancelResumeBtn.addEventListener('click', hideResumeManagementModal);
+            confirmResumeBtn.addEventListener('click', performBulkResume);
+            
+            // 全选按钮事件
+            selectAllResumeTasksBtn.addEventListener('change', function() {
+                const isChecked = this.checked;
+                
+                // 更新所有任务的选中状态
+                const taskCheckboxes = document.querySelectorAll('.resume-task-selection-checkbox');
+                taskCheckboxes.forEach(checkbox => {
+                    if (!checkbox.disabled) {
+                        checkbox.checked = isChecked;
+                        const taskId = parseInt(checkbox.dataset.taskId);
+                        if (isChecked) {
+                            appData.selectedTasksForResume.add(taskId);
+                        } else {
+                            appData.selectedTasksForResume.delete(taskId);
+                        }
+                    }
+                });
+                
+                updateSelectedResumeTasksInfo();
+            });
+        }
+
         // 更新暂停截止日期
         function updatePauseUntilDate() {
             const days = getSelectedPauseDays();
@@ -3457,6 +3588,23 @@
             selectAllTasksBtn.checked = false;
             
             pauseManagementModal.classList.remove('hidden');
+        }
+
+        // 新增：显示取消暂停管理模态框
+        function showResumeManagementModal() {
+            // 清空之前的选择
+            appData.selectedTasksForResume.clear();
+            
+            // 渲染可恢复的任务列表
+            renderResumeTaskList();
+            
+            // 重置表单
+            resumeReasonInput.value = '';
+            
+            // 更新全选按钮状态
+            selectAllResumeTasksBtn.checked = false;
+            
+            resumeManagementModal.classList.remove('hidden');
         }
 
         // 渲染可暂停的任务列表
@@ -3569,6 +3717,86 @@
             updateSelectedTasksInfo();
         }
 
+        // 新增：渲染可恢复的任务列表
+        function renderResumeTaskList() {
+            resumeTaskSelectionListEl.innerHTML = '';
+            
+            // 获取可恢复的任务（已暂停的任务）
+            const availableTasks = appData.tasks.filter(task => 
+                task.status === 'active' && isTaskPaused(task)
+            );
+            
+            if (availableTasks.length === 0) {
+                resumeTaskSelectionListEl.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #64748b;">
+                        <p>目前没有已暂停的任务</p>
+                    </div>
+                `;
+                availableResumeTasksCountEl.textContent = '0';
+                selectedResumeTasksCountEl.textContent = '0';
+                selectedResumeTasksInfoEl.innerHTML = '已选择 <strong>0</strong> 个任务';
+                confirmResumeBtn.disabled = true;
+                return;
+            }
+            
+            availableResumeTasksCountEl.textContent = availableTasks.length;
+            
+            // 按暂停截止日期排序
+            availableTasks.sort((a, b) => {
+                const aDate = new Date(a.pausedUntil);
+                const bDate = new Date(b.pausedUntil);
+                return aDate - bDate;
+            });
+            
+            // 获取今天的日期
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // 渲染每个任务
+            availableTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-selection-item';
+                
+                // 暂停信息
+                const pausedUntil = new Date(task.pausedUntil);
+                const now = new Date();
+                const daysLeft = Math.ceil((pausedUntil - now) / (1000 * 60 * 60 * 24));
+                
+                // 计算进度
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+                const totalCheckins = taskSchedule.length;
+                const progress = totalCheckins > 0 ? Math.round((completedCheckins / totalCheckins) * 100) : 0;
+                
+                // 频率信息
+                let frequencyInfo = '';
+                if (task.scheduleType === 'daily') {
+                    frequencyInfo = ` | ${getFrequencyDisplayInfo(task)}`;
+                }
+                
+                taskItem.innerHTML = `
+                    <input type="checkbox" class="resume-task-selection-checkbox task-selection-checkbox" 
+                           data-task-id="${task.id}"
+                           id="resume-task-select-${task.id}"
+                           onchange="toggleTaskForResume(${task.id}, this.checked)">
+                    <div class="task-selection-info">
+                        <div class="task-selection-name">${task.subject} - ${task.name}</div>
+                        <div class="task-selection-details">
+                            进度: ${completedCheckins}/${totalCheckins} (${progress}%)${frequencyInfo} | 
+                            暂停原因: ${task.pauseReason || '未指定原因'}
+                        </div>
+                        <div class="task-selection-details" style="color: #64748b; font-size: 11px; margin-top: 3px;">
+                            暂停截止: ${pausedUntil.toLocaleDateString()} (剩余 ${daysLeft} 天)
+                        </div>
+                    </div>
+                `;
+                
+                resumeTaskSelectionListEl.appendChild(taskItem);
+            });
+            
+            updateSelectedResumeTasksInfo();
+        }
+
         // 切换任务的暂停选择状态
         function toggleTaskForPause(taskId, isSelected) {
             if (isSelected) {
@@ -3580,6 +3808,19 @@
             // 更新全选按钮状态
             updateSelectAllButton();
             updateSelectedTasksInfo();
+        }
+
+        // 新增：切换任务的取消暂停选择状态
+        function toggleTaskForResume(taskId, isSelected) {
+            if (isSelected) {
+                appData.selectedTasksForResume.add(taskId);
+            } else {
+                appData.selectedTasksForResume.delete(taskId);
+            }
+            
+            // 更新全选按钮状态
+            updateSelectAllResumeButton();
+            updateSelectedResumeTasksInfo();
         }
 
         // 更新全选按钮状态
@@ -3597,6 +3838,21 @@
             }
         }
 
+        // 新增：更新取消暂停全选按钮状态
+        function updateSelectAllResumeButton() {
+            const availableTasks = appData.tasks.filter(task => 
+                task.status === 'active' && isTaskPaused(task)
+            );
+            
+            const taskCheckboxes = document.querySelectorAll('.resume-task-selection-checkbox:not(:disabled)');
+            const checkedCount = Array.from(taskCheckboxes).filter(cb => cb.checked).length;
+            
+            if (availableTasks.length > 0) {
+                selectAllResumeTasksBtn.checked = checkedCount === availableTasks.length;
+                selectAllResumeTasksBtn.indeterminate = checkedCount > 0 && checkedCount < availableTasks.length;
+            }
+        }
+
         // 更新选中任务信息
         function updateSelectedTasksInfo() {
             const selectedCount = appData.selectedTasksForPause.size;
@@ -3607,12 +3863,27 @@
             confirmPauseBtn.disabled = selectedCount === 0;
         }
 
+        // 新增：更新选中恢复任务信息
+        function updateSelectedResumeTasksInfo() {
+            const selectedCount = appData.selectedTasksForResume.size;
+            selectedResumeTasksCountEl.textContent = selectedCount;
+            selectedResumeTasksInfoEl.innerHTML = `已选择 <strong>${selectedCount}</strong> 个任务`;
+            
+            // 更新确认按钮状态
+            confirmResumeBtn.disabled = selectedCount === 0;
+        }
+
         // 隐藏暂停管理模态框
         function hidePauseManagementModal() {
             pauseManagementModal.classList.add('hidden');
         }
 
-        // 执行批量暂停（修改后的函数）
+        // 新增：隐藏取消暂停管理模态框
+        function hideResumeManagementModal() {
+            resumeManagementModal.classList.add('hidden');
+        }
+
+        // 执行批量暂停
         async function performBulkPause() {
             const days = getSelectedPauseDays();
             const reason = pauseReasonInput.value.trim();
@@ -3670,6 +3941,59 @@
                 alert(`成功暂停了 ${pausedCount} 个任务，暂停截止日期为 ${untilDate.toLocaleDateString()}${skippedCount > 0 ? `，跳过 ${skippedCount} 个无法暂停的任务` : ''}`);
             } else {
                 alert('没有成功暂停任何任务');
+            }
+        }
+
+        // 新增：执行批量取消暂停
+        async function performBulkResume() {
+            const reason = resumeReasonInput.value.trim();
+            
+            const selectedTaskIds = Array.from(appData.selectedTasksForResume);
+            
+            if (selectedTaskIds.length === 0) {
+                alert('请选择要恢复的任务');
+                return;
+            }
+            
+            let resumedCount = 0;
+            let skippedCount = 0;
+            
+            for (const taskId of selectedTaskIds) {
+                const task = appData.tasks.find(t => t.id === taskId);
+                if (!task || task.status !== 'active' || !isTaskPaused(task)) {
+                    skippedCount++;
+                    continue;
+                }
+                
+                // 清除暂停信息
+                delete task.pausedUntil;
+                delete task.pauseReason;
+                delete task.pauseDate;
+                delete task.pauseDays;
+                
+                // 添加恢复记录
+                task.resumeReason = reason || '用户手动恢复';
+                task.resumeDate = new Date().toISOString();
+                
+                resumedCount++;
+            }
+            
+            await saveTasks();
+            
+            // 清空选择
+            appData.selectedTasksForResume.clear();
+            
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+            
+            hideResumeManagementModal();
+            
+            if (resumedCount > 0) {
+                alert(`成功恢复了 ${resumedCount} 个任务${skippedCount > 0 ? `，跳过 ${skippedCount} 个无法恢复的任务` : ''}`);
+            } else {
+                alert('没有成功恢复任何任务');
             }
         }
 
@@ -4437,7 +4761,7 @@
             clearDataBtn.addEventListener('click', clearAllData);
         }
 
-        // 新增：设置录音管理事件监听器
+        // 设置录音管理事件监听器
         function setupRecordingsManageEventListeners() {
             manageRecordingsBtn.addEventListener('click', showRecordingsManageModal);
             closeRecordingsModalBtn.addEventListener('click', hideRecordingsManageModal);
