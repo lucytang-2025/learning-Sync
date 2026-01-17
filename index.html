@@ -114,6 +114,12 @@
             background: #fff9e6;
         }
 
+        .task-item.paused {
+            border-left-color: #6c757d;
+            background: #f8f9fa;
+            opacity: 0.7;
+        }
+
         .task-item.pinned {
             border-left-color: #ff9ff3;
             background: #fff5f9;
@@ -170,6 +176,11 @@
 
         .status-needs-redo {
             background: #ff9f43;
+            color: white;
+        }
+
+        .status-paused {
+            background: #6c757d;
             color: white;
         }
 
@@ -275,6 +286,24 @@
 
         .btn-unpin:hover {
             background: #b2bec3;
+        }
+
+        .btn-pause {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-pause:hover {
+            background: #5a6268;
+        }
+
+        .btn-resume {
+            background: #20c997;
+            color: white;
+        }
+
+        .btn-resume:hover {
+            background: #1ba87e;
         }
 
         .recorder-container {
@@ -532,6 +561,10 @@
             background: #ff9f43;
         }
 
+        .indicator-paused {
+            background: #6c757d;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -613,6 +646,10 @@
 
         .status-needs-redo {
             color: #ff9f43;
+        }
+
+        .status-paused {
+            color: #6c757d;
         }
 
         footer {
@@ -910,6 +947,10 @@
 
         .status-needs-redo-icon {
             color: #ff9f43;
+        }
+
+        .status-paused-icon {
+            color: #6c757d;
         }
 
         .today-tasks-header {
@@ -1771,6 +1812,202 @@
             color: #64748b;
             font-size: 14px;
         }
+
+        /* 新增：暂停任务样式 */
+        .pause-badge {
+            display: inline-block;
+            background: #6c757d;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 8px;
+            font-weight: normal;
+        }
+
+        .pause-notice {
+            background: #f8f9fa;
+            border: 1px solid #6c757d;
+            border-radius: 6px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .pause-notice h4 {
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .pause-management {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #6c757d;
+        }
+
+        .pause-management h4 {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+
+        .pause-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 3px solid #6c757d;
+        }
+
+        .pause-info {
+            flex: 1;
+        }
+
+        .pause-reason {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        .pause-deadline {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        .btn-bulk-pause {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-bulk-pause:hover {
+            background: #5a6268;
+        }
+        
+        /* 新增：批量暂停任务选择器样式 */
+        .pause-task-selector {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .select-all-tasks {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .select-all-tasks input {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        
+        .select-all-tasks label {
+            margin: 0;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .task-selection-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+        
+        .task-selection-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .task-selection-item:hover {
+            background: #f8fafc;
+        }
+        
+        .task-selection-item.selected {
+            background: #f0f9ff;
+            border-left: 3px solid #4facfe;
+        }
+        
+        .task-selection-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+        
+        .task-selection-info {
+            flex: 1;
+        }
+        
+        .task-selection-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: #475569;
+        }
+        
+        .task-selection-details {
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .task-selection-status {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+        
+        .task-selection-status.active {
+            background: #e2e8f0;
+            color: #475569;
+        }
+        
+        .task-selection-status.today {
+            background: #4ecdc4;
+            color: white;
+        }
+        
+        .task-selection-status.overdue {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .task-selection-status.paused {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .selected-tasks-count {
+            margin-top: 10px;
+            padding: 8px;
+            background: #f0f9ff;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+        
+        .selected-tasks-count strong {
+            color: #4facfe;
+        }
     </style>
 </head>
 <body>
@@ -2095,6 +2332,7 @@
                         <button class="btn btn-excel" id="export-excel-btn">导出为Excel</button>
                         <button class="btn btn-manage" id="manage-recordings-btn">管理录音/照片</button>
                         <button class="btn btn-bulk-checkin" id="bulk-checkin-btn">一键打卡</button>
+                        <button class="btn btn-bulk-pause" id="bulk-pause-btn">批量暂停任务</button>
                         <button class="btn btn-secondary" id="clear-data-btn">清除所有数据</button>
                     </div>
                 </div>
@@ -2116,6 +2354,11 @@
                             <div class="stat-icon">✅</div>
                             <div class="stat-number" id="stats-completed-tasks">0</div>
                             <div class="stat-label">已完成</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⏸️</div>
+                            <div class="stat-number" id="stats-paused-tasks">0</div>
+                            <div class="stat-label">已暂停</div>
                         </div>
                         <div class="stat-card">
                             <div class="stat-icon">🎤</div>
@@ -2140,6 +2383,7 @@
                     <ol class="instructions-list">
                         <li><strong>安全存储:</strong> 所有数据使用IndexedDB存储，支持至少250MB数据，不会被浏览器自动清理</li>
                         <li><strong>一键打卡:</strong> 使用"一键打卡"功能可以快速完成所有未打卡的任务</li>
+                        <li><strong>批量暂停:</strong> 使用"批量暂停任务"功能可以暂停多个任务的打卡计划</li>
                         <li><strong>内存监控:</strong> 当数据接近8MB时，系统会自动提醒清理数据</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
@@ -2205,6 +2449,12 @@
                 </div>
                 
                 <div class="data-section">
+                    <h4>批量暂停任务</h4>
+                    <p>暂停多个任务的打卡计划，设置暂停期限。</p>
+                    <button class="btn btn-bulk-pause" id="bulk-pause-modal-btn">批量暂停任务</button>
+                </div>
+                
+                <div class="data-section">
                     <h4>数据统计</h4>
                     <div class="data-stats">
                         <div class="stat-item">
@@ -2214,6 +2464,10 @@
                         <div class="stat-item">
                             <span class="stat-label">已完成任务:</span>
                             <span class="stat-value" id="stat-completed-tasks">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已暂停任务:</span>
+                            <span class="stat-value" id="stat-paused-tasks">0</span>
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">今日录音:</span>
@@ -2273,6 +2527,75 @@
                 <div class="task-actions">
                     <button class="btn btn-warning" id="mark-redo-btn">标记为需要重做</button>
                     <button class="btn btn-secondary" id="cancel-redo-btn">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：暂停管理模态框 -->
+    <div id="pause-management-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>批量暂停任务</h3>
+                <button class="close-btn" id="close-pause-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pause-management">
+                    <h4>选择要暂停的任务</h4>
+                    <div class="data-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">可暂停任务:</span>
+                            <span class="stat-value" id="available-tasks-count">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已选中:</span>
+                            <span class="stat-value" id="selected-tasks-count">0</span>
+                        </div>
+                    </div>
+                    <p>暂停期间，任务将不会出现在今日任务中，也不会产生逾期记录。</p>
+                </div>
+                
+                <div class="pause-task-selector">
+                    <div class="select-all-tasks">
+                        <input type="checkbox" id="select-all-tasks">
+                        <label for="select-all-tasks">全选所有可暂停任务</label>
+                    </div>
+                    
+                    <div class="task-selection-list" id="task-selection-list">
+                        <!-- 任务选择列表将在这里动态生成 -->
+                    </div>
+                    
+                    <div class="selected-tasks-count" id="selected-tasks-info">
+                        已选择 <strong>0</strong> 个任务
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pause-reason-input">暂停原因（可选）</label>
+                    <textarea id="pause-reason-input" placeholder="请输入暂停原因，例如：考试期间、休假等..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="pause-days-input">暂停天数</label>
+                    <select id="pause-days-input">
+                        <option value="1">1天</option>
+                        <option value="3">3天</option>
+                        <option value="7" selected>7天</option>
+                        <option value="14">14天</option>
+                        <option value="30">30天</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+                <div class="form-group hidden" id="custom-pause-days-container">
+                    <label for="custom-pause-days">自定义暂停天数</label>
+                    <input type="number" id="custom-pause-days" min="1" max="365" value="7">
+                </div>
+                <div class="form-group">
+                    <label for="pause-until-date">暂停截止日期</label>
+                    <input type="date" id="pause-until-date">
+                </div>
+                <div class="task-actions">
+                    <button class="btn btn-bulk-pause" id="confirm-pause-btn">确认暂停</button>
+                    <button class="btn btn-secondary" id="cancel-pause-btn">取消</button>
                 </div>
             </div>
         </div>
@@ -2432,6 +2755,7 @@
             redoCheckpointIndex: null,
             selectedRecordings: new Set(),
             selectedPhotos: new Set(),
+            selectedTasksForPause: new Set(), // 新增：存储选中要暂停的任务
             lastMemoryCheck: 0,
             memoryCheckInterval: null,
             showMemoryWarning: true
@@ -2448,7 +2772,7 @@
         class DataStorage {
             constructor() {
                 this.dbName = 'CheckinAppDB';
-                this.version = 9; // 增加版本号以支持新功能
+                this.version = 10; // 增加版本号以支持暂停功能
                 this.db = null;
             }
 
@@ -2472,6 +2796,7 @@
                             taskStore.createIndex('subject', 'subject', { unique: false });
                             taskStore.createIndex('status', 'status', { unique: false });
                             taskStore.createIndex('createDate', 'createDate', { unique: false });
+                            taskStore.createIndex('pausedUntil', 'pausedUntil', { unique: false });
                         }
                         
                         if (!db.objectStoreNames.contains('recordings')) {
@@ -2916,6 +3241,10 @@
         // 新增：一键打卡按钮
         const bulkCheckinBtn = document.getElementById('bulk-checkin-btn');
         const bulkCheckinModalBtn = document.getElementById('bulk-checkin-modal-btn');
+        
+        // 新增：批量暂停按钮
+        const bulkPauseBtn = document.getElementById('bulk-pause-btn');
+        const bulkPauseModalBtn = document.getElementById('bulk-pause-modal-btn');
 
         const taskDetailsModal = document.getElementById('task-details-modal');
         const taskDetailsTitle = document.getElementById('task-details-title');
@@ -2930,6 +3259,22 @@
         const redoDeadlineInput = document.getElementById('redo-deadline-input');
         const markRedoBtn = document.getElementById('mark-redo-btn');
         const cancelRedoBtn = document.getElementById('cancel-redo-btn');
+
+        // 新增：暂停管理模态框元素
+        const pauseManagementModal = document.getElementById('pause-management-modal');
+        const closePauseModalBtn = document.getElementById('close-pause-modal');
+        const pauseReasonInput = document.getElementById('pause-reason-input');
+        const pauseDaysInput = document.getElementById('pause-days-input');
+        const customPauseDaysContainer = document.getElementById('custom-pause-days-container');
+        const customPauseDaysInput = document.getElementById('custom-pause-days');
+        const pauseUntilDateInput = document.getElementById('pause-until-date');
+        const confirmPauseBtn = document.getElementById('confirm-pause-btn');
+        const cancelPauseBtn = document.getElementById('cancel-pause-btn');
+        const availableTasksCountEl = document.getElementById('available-tasks-count');
+        const selectedTasksCountEl = document.getElementById('selected-tasks-count');
+        const selectedTasksInfoEl = document.getElementById('selected-tasks-info');
+        const taskSelectionListEl = document.getElementById('task-selection-list');
+        const selectAllTasksBtn = document.getElementById('select-all-tasks');
 
         // 存储容量显示元素
         const capacityFillEl = document.getElementById('capacity-fill');
@@ -3008,6 +3353,7 @@
             setupRedoEventListeners();
             setupRecordingsManageEventListeners();
             setupTimeEditEventListeners();
+            setupPauseEventListeners();
             setupMemoryMonitoring();
             setupBulkCheckinListeners();
             
@@ -3024,7 +3370,393 @@
             document.getElementById('task-date').value = today;
             dailyStartDateInput.value = today;
             
+            // 检查并恢复过期暂停的任务
+            await checkAndResumePausedTasks();
+            
             console.log('应用初始化完成');
+        }
+
+        // 设置暂停事件监听
+        function setupPauseEventListeners() {
+            bulkPauseBtn.addEventListener('click', showPauseManagementModal);
+            bulkPauseModalBtn.addEventListener('click', showPauseManagementModal);
+            closePauseModalBtn.addEventListener('click', hidePauseManagementModal);
+            cancelPauseBtn.addEventListener('click', hidePauseManagementModal);
+            confirmPauseBtn.addEventListener('click', performBulkPause);
+            
+            // 暂停天数选择事件
+            pauseDaysInput.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customPauseDaysContainer.classList.remove('hidden');
+                } else {
+                    customPauseDaysContainer.classList.add('hidden');
+                    updatePauseUntilDate();
+                }
+            });
+            
+            // 自定义暂停天数输入事件
+            customPauseDaysInput.addEventListener('input', updatePauseUntilDate);
+            
+            // 全选按钮事件
+            selectAllTasksBtn.addEventListener('change', function() {
+                const isChecked = this.checked;
+                
+                // 更新所有任务的选中状态
+                const taskCheckboxes = document.querySelectorAll('.task-selection-checkbox');
+                taskCheckboxes.forEach(checkbox => {
+                    if (!checkbox.disabled) {
+                        checkbox.checked = isChecked;
+                        const taskId = parseInt(checkbox.dataset.taskId);
+                        if (isChecked) {
+                            appData.selectedTasksForPause.add(taskId);
+                        } else {
+                            appData.selectedTasksForPause.delete(taskId);
+                        }
+                    }
+                });
+                
+                updateSelectedTasksInfo();
+            });
+            
+            // 初始化暂停截止日期
+            updatePauseUntilDate();
+        }
+
+        // 更新暂停截止日期
+        function updatePauseUntilDate() {
+            const days = getSelectedPauseDays();
+            const untilDate = new Date();
+            untilDate.setDate(untilDate.getDate() + days);
+            pauseUntilDateInput.valueAsDate = untilDate;
+        }
+
+        // 获取选中的暂停天数
+        function getSelectedPauseDays() {
+            if (pauseDaysInput.value === 'custom') {
+                return parseInt(customPauseDaysInput.value) || 7;
+            }
+            return parseInt(pauseDaysInput.value);
+        }
+
+        // 显示暂停管理模态框
+        function showPauseManagementModal() {
+            // 清空之前的选择
+            appData.selectedTasksForPause.clear();
+            
+            // 渲染可暂停的任务列表
+            renderPauseTaskList();
+            
+            // 重置表单
+            pauseReasonInput.value = '';
+            pauseDaysInput.value = '7';
+            customPauseDaysContainer.classList.add('hidden');
+            customPauseDaysInput.value = '7';
+            updatePauseUntilDate();
+            
+            // 更新全选按钮状态
+            selectAllTasksBtn.checked = false;
+            
+            pauseManagementModal.classList.remove('hidden');
+        }
+
+        // 渲染可暂停的任务列表
+        function renderPauseTaskList() {
+            taskSelectionListEl.innerHTML = '';
+            
+            // 获取可暂停的任务（活跃且未暂停的任务）
+            const availableTasks = appData.tasks.filter(task => 
+                task.status === 'active' && !isTaskPaused(task)
+            );
+            
+            if (availableTasks.length === 0) {
+                taskSelectionListEl.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #64748b;">
+                        <p>目前没有可暂停的活跃任务</p>
+                    </div>
+                `;
+                availableTasksCountEl.textContent = '0';
+                selectedTasksCountEl.textContent = '0';
+                selectedTasksInfoEl.innerHTML = '已选择 <strong>0</strong> 个任务';
+                return;
+            }
+            
+            availableTasksCountEl.textContent = availableTasks.length;
+            
+            // 按科目和名称排序
+            availableTasks.sort((a, b) => {
+                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
+                const subjectA = subjectOrder[a.subject] || 6;
+                const subjectB = subjectOrder[b.subject] || 6;
+                
+                if (subjectA !== subjectB) {
+                    return subjectA - subjectB;
+                }
+                
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+            
+            // 获取今天的日期
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // 渲染每个任务
+            availableTasks.forEach(task => {
+                const taskItem = document.createElement('div');
+                taskItem.className = 'task-selection-item';
+                
+                // 检查任务状态
+                const taskSchedule = getTaskCheckinSchedule(task);
+                const taskDate = new Date(task.createDate);
+                taskDate.setHours(0, 0, 0, 0);
+                
+                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+                
+                let statusText = '活跃';
+                let statusClass = 'active';
+                let hasTodayTask = false;
+                
+                if (checkpointIndex !== -1) {
+                    const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+                    if (!checkin) {
+                        statusText = '今日需打卡';
+                        statusClass = 'today';
+                        hasTodayTask = true;
+                    }
+                }
+                
+                // 检查逾期
+                for (let i = 0; i < taskSchedule.length; i++) {
+                    const checkpointDay = taskSchedule[i];
+                    if (checkpointDay < daysSinceStart) {
+                        const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                        if (!checkin) {
+                            statusText = '已逾期';
+                            statusClass = 'overdue';
+                            break;
+                        }
+                    }
+                }
+                
+                // 计算进度
+                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+                const totalCheckins = taskSchedule.length;
+                const progress = totalCheckins > 0 ? Math.round((completedCheckins / totalCheckins) * 100) : 0;
+                
+                // 频率信息
+                let frequencyInfo = '';
+                if (task.scheduleType === 'daily') {
+                    frequencyInfo = ` | ${getFrequencyDisplayInfo(task)}`;
+                }
+                
+                taskItem.innerHTML = `
+                    <input type="checkbox" class="task-selection-checkbox" 
+                           data-task-id="${task.id}"
+                           id="task-select-${task.id}"
+                           onchange="toggleTaskForPause(${task.id}, this.checked)">
+                    <div class="task-selection-info">
+                        <div class="task-selection-name">${task.subject} - ${task.name}</div>
+                        <div class="task-selection-details">
+                            进度: ${completedCheckins}/${totalCheckins} (${progress}%)${frequencyInfo} | 
+                            <span class="task-selection-status ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                `;
+                
+                taskSelectionListEl.appendChild(taskItem);
+            });
+            
+            updateSelectedTasksInfo();
+        }
+
+        // 切换任务的暂停选择状态
+        function toggleTaskForPause(taskId, isSelected) {
+            if (isSelected) {
+                appData.selectedTasksForPause.add(taskId);
+            } else {
+                appData.selectedTasksForPause.delete(taskId);
+            }
+            
+            // 更新全选按钮状态
+            updateSelectAllButton();
+            updateSelectedTasksInfo();
+        }
+
+        // 更新全选按钮状态
+        function updateSelectAllButton() {
+            const availableTasks = appData.tasks.filter(task => 
+                task.status === 'active' && !isTaskPaused(task)
+            );
+            
+            const taskCheckboxes = document.querySelectorAll('.task-selection-checkbox:not(:disabled)');
+            const checkedCount = Array.from(taskCheckboxes).filter(cb => cb.checked).length;
+            
+            if (availableTasks.length > 0) {
+                selectAllTasksBtn.checked = checkedCount === availableTasks.length;
+                selectAllTasksBtn.indeterminate = checkedCount > 0 && checkedCount < availableTasks.length;
+            }
+        }
+
+        // 更新选中任务信息
+        function updateSelectedTasksInfo() {
+            const selectedCount = appData.selectedTasksForPause.size;
+            selectedTasksCountEl.textContent = selectedCount;
+            selectedTasksInfoEl.innerHTML = `已选择 <strong>${selectedCount}</strong> 个任务`;
+            
+            // 更新确认按钮状态
+            confirmPauseBtn.disabled = selectedCount === 0;
+        }
+
+        // 隐藏暂停管理模态框
+        function hidePauseManagementModal() {
+            pauseManagementModal.classList.add('hidden');
+        }
+
+        // 执行批量暂停（修改后的函数）
+        async function performBulkPause() {
+            const days = getSelectedPauseDays();
+            const reason = pauseReasonInput.value.trim();
+            const untilDate = new Date(pauseUntilDateInput.value);
+            
+            if (days <= 0) {
+                alert('暂停天数必须大于0');
+                return;
+            }
+            
+            if (untilDate <= new Date()) {
+                alert('暂停截止日期必须是将来的日期');
+                return;
+            }
+            
+            const selectedTaskIds = Array.from(appData.selectedTasksForPause);
+            
+            if (selectedTaskIds.length === 0) {
+                alert('请选择要暂停的任务');
+                return;
+            }
+            
+            let pausedCount = 0;
+            let skippedCount = 0;
+            
+            for (const taskId of selectedTaskIds) {
+                const task = appData.tasks.find(t => t.id === taskId);
+                if (!task || task.status !== 'active' || isTaskPaused(task)) {
+                    skippedCount++;
+                    continue;
+                }
+                
+                // 设置暂停信息
+                task.pausedUntil = untilDate.toISOString();
+                task.pauseReason = reason || '用户手动暂停';
+                task.pauseDate = new Date().toISOString();
+                task.pauseDays = days;
+                
+                pausedCount++;
+            }
+            
+            await saveTasks();
+            
+            // 清空选择
+            appData.selectedTasksForPause.clear();
+            
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+            
+            hidePauseManagementModal();
+            
+            if (pausedCount > 0) {
+                alert(`成功暂停了 ${pausedCount} 个任务，暂停截止日期为 ${untilDate.toLocaleDateString()}${skippedCount > 0 ? `，跳过 ${skippedCount} 个无法暂停的任务` : ''}`);
+            } else {
+                alert('没有成功暂停任何任务');
+            }
+        }
+
+        // 检查任务是否暂停
+        function isTaskPaused(task) {
+            if (!task.pausedUntil) return false;
+            
+            const now = new Date();
+            const pausedUntil = new Date(task.pausedUntil);
+            
+            // 如果暂停已过期，恢复任务
+            if (now > pausedUntil) {
+                // 自动恢复任务
+                delete task.pausedUntil;
+                delete task.pauseReason;
+                delete task.pauseDate;
+                delete task.pauseDays;
+                return false;
+            }
+            
+            return true;
+        }
+
+        // 检查并恢复过期暂停的任务
+        async function checkAndResumePausedTasks() {
+            let resumedCount = 0;
+            
+            for (const task of appData.tasks) {
+                if (task.pausedUntil) {
+                    const now = new Date();
+                    const pausedUntil = new Date(task.pausedUntil);
+                    
+                    if (now > pausedUntil) {
+                        // 恢复任务
+                        delete task.pausedUntil;
+                        delete task.pauseReason;
+                        delete task.pauseDate;
+                        delete task.pauseDays;
+                        resumedCount++;
+                    }
+                }
+            }
+            
+            if (resumedCount > 0) {
+                await saveTasks();
+                console.log(`自动恢复了 ${resumedCount} 个过期暂停的任务`);
+            }
+        }
+
+        // 恢复单个任务
+        async function resumeTask(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task || !task.pausedUntil) return;
+            
+            delete task.pausedUntil;
+            delete task.pauseReason;
+            delete task.pauseDate;
+            delete task.pauseDays;
+            
+            await saveTasks();
+            
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+            
+            alert('任务已恢复');
+        }
+
+        // 在任务项中显示暂停信息
+        function renderPauseInfo(task) {
+            if (!isTaskPaused(task)) return '';
+            
+            const pausedUntil = new Date(task.pausedUntil);
+            const now = new Date();
+            const daysLeft = Math.ceil((pausedUntil - now) / (1000 * 60 * 60 * 24));
+            
+            return `
+                <div class="pause-notice">
+                    <h4>⏸️ 任务已暂停</h4>
+                    <p><strong>原因:</strong> ${task.pauseReason || '未指定原因'}</p>
+                    <p><strong>恢复日期:</strong> ${pausedUntil.toLocaleDateString()} (剩余 ${daysLeft} 天)</p>
+                    <button class="btn btn-resume" onclick="resumeTask(${task.id})">
+                        立即恢复
+                    </button>
+                </div>
+            `;
         }
 
         // 设置时间编辑事件监听
@@ -3232,7 +3964,7 @@
             let redoCount = 0;
             
             for (const task of appData.tasks) {
-                if (task.status !== 'active') continue;
+                if (task.status !== 'active' || isTaskPaused(task)) continue;
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const taskDate = new Date(task.createDate);
@@ -3353,7 +4085,7 @@
             };
             
             for (const task of appData.tasks) {
-                if (task.status !== 'active') continue;
+                if (task.status !== 'active' || isTaskPaused(task)) continue;
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const taskDate = new Date(task.createDate);
@@ -4307,7 +5039,7 @@
             let uncompletedTasks = 0;
             
             for (const task of appData.tasks) {
-                if (task.status !== 'active') continue;
+                if (task.status !== 'active' || isTaskPaused(task)) continue;
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const taskDate = new Date(task.createDate);
@@ -4407,6 +5139,8 @@
                 taskClass += ' completed';
             } else if (needsRedo) {
                 taskClass += ' needs-redo';
+            } else if (isTaskPaused(task)) {
+                taskClass += ' paused';
             }
             
             // 添加置顶样式
@@ -4449,6 +5183,10 @@
             const pinnedBadge = task.pinned ? 
                 `<span class="pinned-badge">置顶</span>` : '';
             
+            // 添加暂停标识
+            const pauseBadge = isTaskPaused(task) ? 
+                `<span class="pause-badge">已暂停</span>` : '';
+            
             // 第一天打卡次数显示
             const firstDayCheckinInfo = checkpointIndex === 0 && task.firstDayCheckinCount > 1 ? 
                 `<div class="checkin-count-info">第一天需要打卡 ${getFirstDayCheckinCount(task)}/${task.firstDayCheckinCount} 次</div>` : '';
@@ -4456,13 +5194,16 @@
             // 重做信息
             const redoInfo = needsRedo ? renderRedoInfo(task, checkpointIndex) : '';
             
+            // 暂停信息
+            const pauseInfo = isTaskPaused(task) ? renderPauseInfo(task) : '';
+            
             taskEl.innerHTML = `
                 <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}${pauseBadge}
                         ${needsRedo ? '<span class="redo-badge">需重做</span>' : ''}
                     </div>
-                    <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
-                        ${statusText} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓ 今日已打卡' : '未完成')}
+                    <div class="task-status ${isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
+                        ${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓ 今日已打卡' : '未完成'))}
                     </div>
                 </div>
                 ${task.description ? `<p>${task.description.replace(/\n/g, '<br>')}</p>` : ''}
@@ -4488,8 +5229,9 @@
                     ${generateCompactCheckinInfo(task)}
                 </div>
                 ${redoInfo}
+                ${pauseInfo}
                 <div class="task-actions">
-                    ${(!hasCheckedIn || needsRedo) ? 
+                    ${(!isTaskPaused(task) && (!hasCheckedIn || needsRedo)) ? 
                         `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
                             ${needsRedo ? '重做打卡' : '立即打卡'}
                         </button>` : ''}
@@ -4498,6 +5240,10 @@
                     <button class="${task.pinned ? 'btn btn-unpin' : 'btn btn-pin'}" onclick="toggleTaskPin(${task.id})">
                         ${task.pinned ? '取消置顶' : '置顶'}
                     </button>
+                    ${isTaskPaused(task) ? 
+                        `<button class="btn btn-resume" onclick="resumeTask(${task.id})">恢复</button>` :
+                        `<button class="btn btn-pause" onclick="pauseSingleTask(${task.id})">暂停</button>`
+                    }
                     <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
                     <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
                     ${completedCheckins > 0 ? 
@@ -4506,6 +5252,30 @@
             `;
             
             container.appendChild(taskEl);
+        }
+
+        // 暂停单个任务
+        async function pauseSingleTask(taskId) {
+            const task = appData.tasks.find(t => t.id === taskId);
+            if (!task || isTaskPaused(task)) return;
+            
+            const days = 7; // 默认暂停7天
+            const untilDate = new Date();
+            untilDate.setDate(untilDate.getDate() + days);
+            
+            task.pausedUntil = untilDate.toISOString();
+            task.pauseReason = '用户手动暂停';
+            task.pauseDate = new Date().toISOString();
+            task.pauseDays = days;
+            
+            await saveTasks();
+            
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+            
+            alert(`任务已暂停，将于 ${untilDate.toLocaleDateString()} 恢复`);
         }
 
         // 获取科目对应的CSS类名
@@ -4622,6 +5392,7 @@
             // 分离已完成和未完成的任务
             const pinnedTasks = [];
             const activeTasks = [];
+            const pausedTasks = [];
             const completedTasks = [];
             
             appData.tasks.forEach(task => {
@@ -4631,6 +5402,8 @@
                 // 首先检查是否为置顶任务
                 if (task.pinned) {
                     pinnedTasks.push(task);
+                } else if (isTaskPaused(task)) {
+                    pausedTasks.push(task);
                 } else if (completedCheckins === taskSchedule.length) {
                     completedTasks.push(task);
                 } else {
@@ -4655,6 +5428,9 @@
                 return a.name.localeCompare(b.name, 'zh-CN');
             });
             
+            // 对已暂停任务按暂停截止日期排序
+            pausedTasks.sort((a, b) => new Date(a.pausedUntil) - new Date(b.pausedUntil));
+            
             // 对已完成任务按完成时间倒序排列
             completedTasks.sort((a, b) => {
                 const aLastCheckin = a.checkins.length > 0 ? 
@@ -4664,8 +5440,8 @@
                 return bLastCheckin - aLastCheckin;
             });
             
-            // 合并任务列表：置顶任务在前，未完成的任务在中间，已完成的任务在后
-            const sortedTasks = [...pinnedTasks, ...activeTasks, ...completedTasks];
+            // 合并任务列表：置顶任务在前，未完成的任务在中间，已暂停的任务在中间，已完成的任务在后
+            const sortedTasks = [...pinnedTasks, ...activeTasks, ...pausedTasks, ...completedTasks];
             
             sortedTasks.forEach(task => {
                 const taskEl = document.createElement('div');
@@ -4674,6 +5450,11 @@
                 // 添加置顶样式
                 if (task.pinned) {
                     taskEl.classList.add('pinned');
+                }
+                
+                // 添加暂停样式
+                if (isTaskPaused(task)) {
+                    taskEl.classList.add('paused');
                 }
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
@@ -4715,12 +5496,15 @@
                 
                 const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
                 const hasOverdueCheckin = hasOverdue || hasRedo;
-                const checkinBtnEnabled = canCheckinToday || hasOverdueCheckin;
+                const checkinBtnEnabled = (canCheckinToday || hasOverdueCheckin) && !isTaskPaused(task);
                 
                 let statusClass = 'status-future';
                 let statusText = '';
                 
-                if (hasOverdue) {
+                if (isTaskPaused(task)) {
+                    statusClass = 'status-paused';
+                    statusText = '已暂停';
+                } else if (hasOverdue) {
                     statusClass = 'status-overdue';
                     statusText = '有逾期';
                 } else if (hasRedo) {
@@ -4751,6 +5535,10 @@
                 const pinnedBadge = task.pinned ? 
                     `<span class="pinned-badge">置顶</span>` : '';
                 
+                // 添加暂停标识
+                const pauseBadge = isTaskPaused(task) ? 
+                    `<span class="pause-badge">已暂停</span>` : '';
+                
                 // 第一天打卡次数显示
                 const firstDayCheckinInfo = checkpointIndex === 0 && task.firstDayCheckinCount > 1 ? 
                     `<div class="checkin-count-info">第一天需要打卡 ${getFirstDayCheckinCount(task)}/${task.firstDayCheckinCount} 次</div>` : '';
@@ -4758,9 +5546,12 @@
                 // 重做信息
                 const redoInfo = needsRedoToday ? renderRedoInfo(task, checkpointIndex) : '';
                 
+                // 暂停信息
+                const pauseInfo = isTaskPaused(task) ? renderPauseInfo(task) : '';
+                
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}
+                        <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}${pauseBadge}
                             ${hasRedo ? '<span class="redo-badge">需重做</span>' : ''}
                         </div>
                         <div class="task-status ${statusClass}">
@@ -4791,15 +5582,20 @@
                         ${compactCheckinInfo}
                     </div>
                     ${redoInfo}
+                    ${pauseInfo}
                     <div class="task-actions">
                         <button class="btn ${checkinBtnEnabled ? 'btn-primary' : 'btn-disabled'}" onclick="handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
-                            ${needsRedoToday ? '重做打卡' : '打卡'}
+                            ${isTaskPaused(task) ? '已暂停' : (needsRedoToday ? '重做打卡' : '打卡')}
                         </button>
                         <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                         <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
                         <button class="${task.pinned ? 'btn btn-unpin' : 'btn btn-pin'}" onclick="toggleTaskPin(${task.id})">
                             ${task.pinned ? '取消置顶' : '置顶'}
                         </button>
+                        ${isTaskPaused(task) ? 
+                            `<button class="btn btn-resume" onclick="resumeTask(${task.id})">恢复</button>` :
+                            `<button class="btn btn-pause" onclick="pauseSingleTask(${task.id})">暂停</button>`
+                        }
                         <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
                         <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
                         ${hasPlayableRecording ? 
@@ -4942,6 +5738,12 @@
         function startCheckin(taskId, checkpointIndex = null) {
             const task = appData.tasks.find(t => t.id === taskId);
             if (!task) return;
+            
+            // 检查任务是否暂停
+            if (isTaskPaused(task)) {
+                alert('此任务已暂停，无法打卡');
+                return;
+            }
             
             appData.currentTask = task;
             appData.isRedo = false;
@@ -5694,6 +6496,26 @@
                 `;
             }).join('');
             
+            // 暂停信息
+            let pauseInfo = '';
+            if (isTaskPaused(task)) {
+                const pausedUntil = new Date(task.pausedUntil);
+                const now = new Date();
+                const daysLeft = Math.ceil((pausedUntil - now) / (1000 * 60 * 60 * 24));
+                
+                pauseInfo = `
+                    <div class="form-group">
+                        <label>暂停状态</label>
+                        <p style="color: #6c757d;">
+                            ⏸️ 任务已暂停<br>
+                            <strong>暂停原因:</strong> ${task.pauseReason || '未指定原因'}<br>
+                            <strong>恢复日期:</strong> ${pausedUntil.toLocaleDateString()} (剩余 ${daysLeft} 天)<br>
+                            <strong>暂停开始:</strong> ${new Date(task.pauseDate).toLocaleDateString()}
+                        </p>
+                    </div>
+                `;
+            }
+            
             taskDetailsTitle.textContent = `${task.subject} - ${task.name}`;
             taskDetailsContent.innerHTML = `
                 <div class="form-group">
@@ -5722,6 +6544,7 @@
                         <p>${getDailyScheduleInfo(task)}</p>
                     </div>
                 ` : ''}
+                ${pauseInfo}
                 <div class="checkin-progress">
                     <h4>打卡进度</h4>
                     ${checkinDetails}
@@ -5754,6 +6577,8 @@
                 return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
             
+            const pausedTasks = appData.tasks.filter(task => isTaskPaused(task)).length;
+            
             // 只统计今天的打卡记录数量
             const todayRecordings = appData.recordings.length;
             const todayPhotos = appData.photos.length;
@@ -5762,6 +6587,7 @@
 
             document.getElementById('stat-total-tasks').textContent = totalTasks;
             document.getElementById('stat-completed-tasks').textContent = completedTasks;
+            document.getElementById('stat-paused-tasks').textContent = pausedTasks;
             document.getElementById('stat-total-recordings').textContent = todayRecordings;
             document.getElementById('stat-total-photos').textContent = todayPhotos;
             document.getElementById('stat-data-size').textContent = storageStats.totalSizeMB + ' MB';
@@ -5814,6 +6640,8 @@
                 return task.checkins.filter(c => c.status === 'completed').length === taskSchedule.length;
             }).length;
             
+            const pausedTasks = appData.tasks.filter(task => isTaskPaused(task)).length;
+            
             // 只统计今天的打卡记录数量
             const todayRecordings = appData.recordings.length;
             const todayPhotos = appData.photos.length;
@@ -5822,6 +6650,7 @@
 
             document.getElementById('stats-total-tasks').textContent = totalTasks;
             document.getElementById('stats-completed-tasks').textContent = completedTasks;
+            document.getElementById('stats-paused-tasks').textContent = pausedTasks;
             document.getElementById('stats-total-recordings').textContent = todayRecordings;
             document.getElementById('stats-total-photos').textContent = todayPhotos;
             document.getElementById('stats-data-size').textContent = storageStats.totalSizeMB + ' MB';
@@ -5869,7 +6698,7 @@
                 const feedbacks = await dataStorage.getAllFromStore('feedbacks');
                 
                 const exportData = {
-                    version: '2.0',
+                    version: '2.1',
                     exportDate: new Date().toISOString(),
                     source: 'IndexedDB',
                     tasks: tasks,
@@ -5922,6 +6751,8 @@
                     "计划类型",
                     "第一天打卡次数",
                     "置顶",
+                    "暂停状态",
+                    "暂停截止日期",
                     "已完成打卡",
                     "总打卡次数",
                     "完成进度",
@@ -5946,6 +6777,11 @@
                         lastCheckinDate = new Date(sortedCheckins[0].date).toLocaleString();
                     }
                     
+                    // 暂停状态
+                    const isPaused = isTaskPaused(task);
+                    const pausedStatus = isPaused ? '已暂停' : '正常';
+                    const pausedUntil = isPaused ? new Date(task.pausedUntil).toLocaleDateString() : '';
+                    
                     const row = [
                         task.id,
                         task.subject,
@@ -5956,6 +6792,8 @@
                         task.scheduleType,
                         task.firstDayCheckinCount || 1,
                         task.pinned ? '是' : '否',
+                        pausedStatus,
+                        pausedUntil,
                         completedCheckins,
                         totalCheckins,
                         progressPercent,
@@ -6268,7 +7106,7 @@
                 
                 // 获取该日期的任务数量
                 const tasksOnDate = getTasksOnDate(date);
-                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed + tasksOnDate.needsRedo;
+                const totalTasks = tasksOnDate.overdue + tasksOnDate.today + tasksOnDate.future + tasksOnDate.completed + tasksOnDate.needsRedo + tasksOnDate.paused;
                 
                 let indicators = '';
                 if (tasksOnDate.overdue > 0) {
@@ -6285,6 +7123,9 @@
                 }
                 if (tasksOnDate.needsRedo > 0) {
                     indicators += '<div class="task-indicator indicator-needs-redo"></div>';
+                }
+                if (tasksOnDate.paused > 0) {
+                    indicators += '<div class="task-indicator indicator-paused"></div>';
                 }
                 
                 // 添加任务数量指示器
@@ -6338,7 +7179,8 @@
                 today: 0,
                 future: 0,
                 completed: 0,
-                needsRedo: 0
+                needsRedo: 0,
+                paused: 0
             };
             
             appData.tasks.forEach(task => {
@@ -6365,7 +7207,9 @@
                             result.needsRedo++;
                         }
                     } else {
-                        if (daysSinceStart < 0) {
+                        if (isTaskPaused(task)) {
+                            result.paused++;
+                        } else if (daysSinceStart < 0) {
                             result.future++;
                         } else if (daysSinceStart === 0) {
                             result.today++;
@@ -6453,7 +7297,9 @@
                 const taskEl = document.createElement('div');
                 
                 let taskClass = 'task-item';
-                if (isOverdue) {
+                if (isTaskPaused(task)) {
+                    taskClass += ' paused';
+                } else if (isOverdue) {
                     taskClass += ' overdue';
                 } else if (hasCheckedIn) {
                     taskClass += ' completed';
@@ -6475,19 +7321,27 @@
                     dayDisplay = `第${checkpointDay}天`;
                 }
                 
+                // 暂停信息
+                const pauseInfo = isTaskPaused(task) ? renderPauseInfo(task) : '';
+                
                 taskEl.innerHTML = `
                     <div class="task-header">
                         <div class="task-name">${task.subject} - ${task.name}</div>
-                        <div class="task-status ${needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today'))}">
-                            ${isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
+                        <div class="task-status ${isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
+                            ${isTaskPaused(task) ? '已暂停' : (isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay)} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                         </div>
                     </div>
                     <p>${task.description ? task.description.replace(/\n/g, '<br>') : ''}</p>
+                    ${pauseInfo}
                     <div class="task-actions">
-                        ${(!hasCheckedIn || needsRedo) ? 
+                        ${(!isTaskPaused(task) && (!hasCheckedIn || needsRedo)) ? 
                             `<button class="btn btn-primary" onclick="startCheckin(${task.id}, ${checkpointIndex})">
                                 ${needsRedo ? '重做打卡' : '打卡'}
                             </button>` : ''}
+                        ${isTaskPaused(task) ? 
+                            `<button class="btn btn-resume" onclick="resumeTask(${task.id})">恢复</button>` :
+                            `<button class="btn btn-pause" onclick="pauseSingleTask(${task.id})">暂停</button>`
+                        }
                     </div>
                 `;
                 
@@ -6569,7 +7423,7 @@
             const redoTasks = [];
             
             appData.tasks.forEach(task => {
-                if (task.status !== 'active') return;
+                if (task.status !== 'active' || isTaskPaused(task)) return;
                 
                 task.checkins.forEach(checkin => {
                     if (checkin.status === 'needs_redo') {
