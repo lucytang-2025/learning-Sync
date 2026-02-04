@@ -105,7 +105,7 @@
         }
 
         .task-item.pending-review {
-            border-left-color: #feca57;
+            border-left-color: #1dd1a1;
             background: #fff9e6;
         }
 
@@ -633,7 +633,7 @@
         }
 
         .status-pending {
-            color: #feca57;
+            color: #1dd1a1;
         }
 
         .status-missed {
@@ -899,7 +899,7 @@
         }
 
         .subject-other {
-            color: #feca57;
+            color: #1dd1a1;
         }
 
         .task-details-modal {
@@ -938,7 +938,7 @@
         }
 
         .status-pending-icon {
-            color: #feca57;
+            color: #1dd1a1;
         }
 
         .status-missed-icon {
@@ -1013,7 +1013,7 @@
 
         .storage-warning.medium {
             background: #fff9e6;
-            border-color: #feca57;
+            border-color: #1dd1a1;
         }
 
         .storage-warning.low {
@@ -1038,7 +1038,7 @@
         }
 
         .storage-size.medium {
-            color: #feca57;
+            color: #1dd1a1;
         }
 
         .storage-size.low {
@@ -1608,7 +1608,7 @@
         }
         
         .capacity-warning {
-            color: #feca57;
+            color: #1dd1a1;
             font-weight: bold;
         }
         
@@ -6112,54 +6112,27 @@ function getTaskCheckinSchedule(task) {
             const pausedTasks = [];
             const completedTasks = [];
             
-            normalTasks.forEach(task => {
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                
-                // 首先检查是否为置顶任务
-                if (task.pinned) {
-                    pinnedTasks.push(task);
-                } else if (isTaskPaused(task)) {
-                    pausedTasks.push(task);
-                } else if (completedCheckins === taskSchedule.length) {
-                    completedTasks.push(task);
-                } else {
-                    activeTasks.push(task);
-                }
-            });
-            
-            // 对置顶任务按创建时间倒序排列
-            pinnedTasks.sort((a, b) => new Date(b.createDate) - new Date(a.createDate));
-            
-            // 对未完成任务按科目和字母排序
-            activeTasks.sort((a, b) => {
-                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-                const subjectA = subjectOrder[a.subject] || 6;
-                const subjectB = subjectOrder[b.subject] || 6;
-                
-                if (subjectA !== subjectB) {
-                    return subjectA - subjectB;
-                }
-                
-                // 相同科目按字母顺序排序
-                return a.name.localeCompare(b.name, 'zh-CN');
-            });
-            
-            // 对已暂停任务按暂停截止日期排序
-            pausedTasks.sort((a, b) => new Date(a.pausedUntil) - new Date(b.pausedUntil));
-            
-            // 对已完成任务按完成时间倒序排列
-            completedTasks.sort((a, b) => {
-                const aLastCheckin = a.checkins.length > 0 ? 
-                    new Date(a.checkins[a.checkins.length - 1].date) : new Date(0);
-                const bLastCheckin = b.checkins.length > 0 ? 
-                    new Date(b.checkins[b.checkins.length - 1].date) : new Date(0);
-                return bLastCheckin - aLastCheckin;
-            });
-            
-            // 合并任务列表：父任务在前，然后置顶任务，未完成的任务，已暂停的任务，已完成的任务
-            const sortedTasks = [...parentTasks, ...pinnedTasks, ...activeTasks, ...pausedTasks, ...completedTasks];
-            
+// 简单合并所有任务（除了子任务）
+const sortedTasks = [...parentTasks, ...normalTasks];
+
+// 按照今日任务一样的规则排序：先置顶，再科目，最后名称
+sortedTasks.sort((a, b) => {
+    // 1. 置顶任务排在最前面
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    
+    // 2. 然后按科目排序
+    const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
+    const subjectA = subjectOrder[a.subject] || 6;
+    const subjectB = subjectOrder[b.subject] || 6;
+    
+    if (subjectA !== subjectB) {
+        return subjectA - subjectB;
+    }
+    
+    // 3. 相同科目按字母顺序排序
+    return a.name.localeCompare(b.name, 'zh-CN');
+});            
             sortedTasks.forEach(task => {
                 // 跳过已经渲染的父任务
                 if (task.isParentTask && document.getElementById(`parent-task-${task.id}`)) {
