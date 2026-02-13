@@ -7239,40 +7239,24 @@ ${completedCheckins > 0 ?
         }
 
         // 通用保存
-        async _saveFile(blob, fileName) {
-            if (this.mode === 'native' && this.directoryHandle && this.permissionVerified) {
-                try {
-                    const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: true });
-                    const writable = await fileHandle.createWritable();
-                    await writable.write(blob);
-                    await writable.close();
-                    const file = await fileHandle.getFile();
-                    return { 
-                        success: true, 
-                        fileName, 
-                        size: file.size, 
-                        native: true 
-                    };
-                } catch(err) {
-                    console.warn('本地保存失败，降级下载', err);
-                }
-            }
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-            return { 
-                success: true, 
-                fileName, 
-                size: blob.size, 
-                native: false, 
-                fallback: true 
-            };
-        }
+        // 通用保存 - 华为平板也能用！
+async _saveFile(blob, fileName) {
+    // 直接弹出保存窗口，华为平板会自动存到“下载”文件夹
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;      // 文件名：录音_时间戳.webm
+    document.body.appendChild(a);
+    a.click();                 // 华为平板会弹出“另存为”
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    return { 
+        success: true, 
+        fileName, 
+        size: blob.size 
+    };
+}
 
         // 获取文件URL（用于播放/查看）
         async getFileUrl(fileName) {
