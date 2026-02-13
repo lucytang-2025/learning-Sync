@@ -5,2227 +5,334 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>复习打卡计划 - 安全存储版</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-
-        header {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-
-        .app-description {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .tabs {
-            display: flex;
-            background: #f1f5f9;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .tab.active {
-            background: white;
-            color: #4facfe;
-            border-bottom: 3px solid #4facfe;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 20px;
-            min-height: 500px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .task-list {
-            margin-bottom: 20px;
-        }
-
-        .task-item {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid #4facfe;
-            transition: transform 0.2s;
-        }
-
-        .task-item:hover {
-            transform: translateY(-2px);
-        }
-
-        .task-item.overdue {
-            border-left-color: #ff6b6b;
-            background: #fff5f5;
-        }
-
-        .task-item.completed {
-            border-left-color: #1dd1a1;
-            background: #f0fff4;
-        }
-
-        .task-item.pending-review {
-            border-left-color: #1dd1a1;
-            background: #fff9e6;
-        }
-
-        .task-item.needs-redo {
-            border-left-color: #ff9f43;
-            background: #fff9e6;
-        }
-
-        .task-item.paused {
-            border-left-color: #6c757d;
-            background: #f8f9fa;
-            opacity: 0.7;
-        }
-
-        .task-item.pinned {
-            border-left-color: #ff9ff3;
-            background: #fff5f9;
-            box-shadow: 0 4px 12px rgba(255, 159, 243, 0.2);
-        }
-
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .task-name {
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .task-status {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .status-overdue {
-            background: #ff6b6b;
-        }
-
-        .status-today {
-            background: #4ecdc4;
-        }
-
-        .status-future {
-            background: #45aaf2;
-        }
-
-        .status-completed {
-            background: #1dd1a1;
-        }
-
-        .status-pending {
-            background: #feca57;
-        }
-
-        .status-pending-review {
-            background: #ff9ff3;
-        }
-
-        .status-rejected {
-            background: #ff9f43;
-        }
-
-        .status-needs-redo {
-            background: #ff9f43;
-            color: white;
-        }
-
-        .status-paused {
-            background: #6c757d;
-            color: white;
-        }
-
-        .task-progress {
-            margin: 10px 0;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4facfe, #00f2fe);
-            border-radius: 4px;
-            transition: width 0.5s;
-        }
-
-        .progress-text {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        .task-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #4facfe;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #3a9bf7;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .btn-danger {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #ff5252;
-        }
-
-        .btn-warning {
-            background: #ff9f43;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background: #ff8c2a;
-        }
-
-        .btn-disabled {
-            background: #cbd5e1;
-            color: #94a3b8;
-            cursor: not-allowed;
-        }
-
-        .btn-disabled:hover {
-            background: #cbd5e1;
-        }
-
-        .btn-pin {
-            background: #ff9ff3;
-            color: white;
-        }
-
-        .btn-pin:hover {
-            background: #ff85e6;
-        }
-
-        .btn-unpin {
-            background: #c8d6e5;
-            color: #576574;
-        }
-
-        .btn-unpin:hover {
-            background: #b2bec3;
-        }
-
-        .btn-pause {
-            background: #6c757d;
-            color: white;
-        }
-
-        .btn-pause:hover {
-            background: #5a6268;
-        }
-
-        .btn-resume {
-            background: #20c997;
-            color: white;
-        }
-
-        .btn-resume:hover {
-            background: #1ba87e;
-        }
-
-        .recorder-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .recorder-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .recorder-display {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .timer {
-            font-size: 48px;
-            font-weight: 700;
-            color: #4facfe;
-            margin: 20px 0;
-        }
-
-        .recorder-controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .recorder-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .record-btn {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .record-btn.recording {
-            animation: pulse 1.5s infinite;
-        }
-
-        .pause-btn {
-            background: #feca57;
-            color: white;
-        }
-
-        .stop-btn {
-            background: #48dbfb;
-            color: white;
-        }
-
-        .play-btn {
-            background: #1dd1a1;
-            color: white;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .waveform {
-            height: 100px;
-            background: #f8fafc;
-            border-radius: 10px;
-            margin: 20px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .waveform-bar {
-            position: absolute;
-            bottom: 0;
-            width: 4px;
-            background: #4facfe;
-            border-radius: 2px 2px 0 0;
-        }
-
-        .recordings-list {
-            margin-top: 20px;
-        }
-
-        .recording-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-
-        .recording-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .recording-name {
-            font-weight: 600;
-        }
-
-        .recording-duration {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .calendar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px 0;
-        }
-
-        .calendar-nav {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .calendar-nav-btn {
-            background: #4facfe;
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .calendar-nav-btn:hover {
-            background: #3a9bf7;
-        }
-
-        .calendar-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #475569;
-        }
-
-        .calendar {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
-            margin-top: 10px;
-        }
-
-        .calendar-weekday {
-            text-align: center;
-            font-weight: 600;
-            padding: 10px 0;
-            color: #475569;
-            background: #f8fafc;
-            border-radius: 5px;
-        }
-
-        .calendar-day {
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            padding: 5px;
-            position: relative;
-            border: 2px solid transparent;
-        }
-
-        .calendar-day:hover {
-            background: #f1f5f9;
-        }
-
-        .calendar-day.active {
-            background: #4facfe;
-            color: white;
-        }
-
-        .calendar-day.selected {
-            background: #ff6b6b;
-            color: white;
-            border-color: #ff6b6b;
-            transform: scale(1.05);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        .calendar-day.today {
-            border-color: #ff6b6b;
-        }
-
-        .calendar-day.other-month {
-            color: #cbd5e1;
-        }
-
-        .day-number {
-            font-size: 16px;
-            font-weight: 600;
-        }
-
-        .task-indicator {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            margin-top: 2px;
-        }
-
-        .indicator-overdue {
-            background: #ff6b6b;
-        }
-
-        .indicator-today {
-            background: #4ecdc4;
-        }
-
-        .indicator-future {
-            background: #45aaf2;
-        }
-
-        .indicator-completed {
-            background: #1dd1a1;
-        }
-
-        .indicator-pending-review {
-            background: #ff9ff3;
-        }
-
-        .indicator-rejected {
-            background: #ff9f43;
-        }
-
-        .indicator-needs-redo {
-            background: #ff9f43;
-        }
-
-        .indicator-paused {
-            background: #6c757d;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #475569;
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-
-        textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #64748b;
-        }
-
-        .empty-state i {
-            font-size: 48px;
-            margin-bottom: 15px;
-            opacity: 0.5;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .checkin-history {
-            margin-top: 10px;
-        }
-
-        .history-item {
-            padding: 8px 12px;
-            border-left: 3px solid #4facfe;
-            background: #f8fafc;
-            margin-bottom: 8px;
-            border-radius: 0 8px 8px 0;
-            font-size: 12px;
-        }
-
-        .history-date {
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-
-        .history-status {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        .status-completed {
-            color: #1dd1a1;
-        }
-
-        .status-pending {
-            color: #1dd1a1;
-        }
-
-        .status-missed {
-            color: #ff6b6b;
-        }
-
-        .status-pending-review {
-            color: #ff9ff3;
-        }
-
-        .status-needs-redo {
-            color: #ff9f43;
-        }
-
-        .status-paused {
-            color: #6c757d;
-        }
-
-        footer {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-            font-size: 14px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .task-form-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .audio-player {
-            width: 100%;
-            margin: 10px 0;
-        }
-
-        .recording-status {
-            text-align: center;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: 600;
-        }
-
-        .status-recording {
-            background: #fff5f5;
-            color: #ff6b6b;
-        }
-
-        .status-playing {
-            background: #f0fff4;
-            color: #1dd1a1;
-        }
-
-        .last-recording-time {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        .edit-task-form {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .compact-checkin-info {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        .compact-checkin-item {
-            display: inline-block;
-            background: #f1f5f9;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-right: 5px;
-            margin-bottom: 3px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #333; min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: rgba(255, 255, 255, 0.95); border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); overflow: hidden; }
+        header { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 20px; text-align: center; }
+        h1 { font-size: 28px; margin-bottom: 10px; }
+        .app-description { font-size: 14px; opacity: 0.9; }
+        .tabs { display: flex; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; }
+        .tab { flex: 1; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .tab.active { background: white; color: #4facfe; border-bottom: 3px solid #4facfe; }
+        .tab-content { display: none; padding: 20px; min-height: 500px; }
+        .tab-content.active { display: block; }
+        .task-list { margin-bottom: 20px; }
+        .task-item { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border-left: 4px solid #4facfe; transition: transform 0.2s; }
+        .task-item:hover { transform: translateY(-2px); }
+        .task-item.overdue { border-left-color: #ff6b6b; background: #fff5f5; }
+        .task-item.completed { border-left-color: #1dd1a1; background: #f0fff4; }
+        .task-item.pending-review { border-left-color: #1dd1a1; background: #fff9e6; }
+        .task-item.needs-redo { border-left-color: #ff9f43; background: #fff9e6; }
+        .task-item.paused { border-left-color: #6c757d; background: #f8f9fa; opacity: 0.7; }
+        .task-item.pinned { border-left-color: #ff9ff3; background: #fff5f9; box-shadow: 0 4px 12px rgba(255, 159, 243, 0.2); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .task-name { font-weight: 600; font-size: 18px; }
+        .task-status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; color: white; }
+        .status-overdue { background: #ff6b6b; }
+        .status-today { background: #4ecdc4; }
+        .status-future { background: #45aaf2; }
+        .status-completed { background: #1dd1a1; }
+        .status-pending { background: #feca57; }
+        .status-pending-review { background: #ff9ff3; }
+        .status-rejected { background: #ff9f43; }
+        .status-needs-redo { background: #ff9f43; color: white; }
+        .status-paused { background: #6c757d; color: white; }
+        .task-progress { margin: 10px 0; }
+        .progress-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4facfe, #00f2fe); border-radius: 4px; transition: width 0.5s; }
+        .progress-text { font-size: 12px; color: #64748b; margin-top: 5px; }
+        .task-actions { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .btn { padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .btn-primary { background: #4facfe; color: white; }
+        .btn-primary:hover { background: #3a9bf7; }
+        .btn-secondary { background: #e2e8f0; color: #475569; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-danger { background: #ff6b6b; color: white; }
+        .btn-danger:hover { background: #ff5252; }
+        .btn-warning { background: #ff9f43; color: white; }
+        .btn-warning:hover { background: #ff8c2a; }
+        .btn-disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; }
+        .btn-disabled:hover { background: #cbd5e1; }
+        .btn-pin { background: #ff9ff3; color: white; }
+        .btn-pin:hover { background: #ff85e6; }
+        .btn-unpin { background: #c8d6e5; color: #576574; }
+        .btn-unpin:hover { background: #b2bec3; }
+        .btn-pause { background: #6c757d; color: white; }
+        .btn-pause:hover { background: #5a6268; }
+        .btn-resume { background: #20c997; color: white; }
+        .btn-resume:hover { background: #1ba87e; }
+        .btn-excel { background: #1dd1a1; color: white; }
+        .btn-excel:hover { background: #10a17e; }
+        .btn-manage { background: #a29bfe; color: white; }
+        .btn-manage:hover { background: #8c7ae6; }
+        .btn-bulk-checkin { background: #ff9f43; color: white; }
+        .btn-bulk-checkin:hover { background: #e67e22; }
+        .btn-bulk-pause { background: #6c757d; color: white; }
+        .btn-bulk-pause:hover { background: #5a6268; }
+        .btn-bulk-resume { background: #20c997; color: white; }
+        .btn-bulk-resume:hover { background: #1ba87e; }
+        .recorder-container, .photo-container { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); margin-bottom: 20px; }
+        .recorder-header { text-align: center; margin-bottom: 20px; }
+        .recorder-display { text-align: center; margin: 20px 0; }
+        .timer { font-size: 48px; font-weight: 700; color: #4facfe; margin: 20px 0; }
+        .recorder-controls { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .recorder-btn { width: 60px; height: 60px; border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); }
+        .record-btn { background: #ff6b6b; color: white; }
+        .record-btn.recording { animation: pulse 1.5s infinite; }
+        .pause-btn { background: #feca57; color: white; }
+        .stop-btn { background: #48dbfb; color: white; }
+        .play-btn { background: #1dd1a1; color: white; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .waveform { height: 100px; background: #f8fafc; border-radius: 10px; margin: 20px 0; position: relative; overflow: hidden; }
+        .waveform-bar { position: absolute; bottom: 0; width: 4px; background: #4facfe; border-radius: 2px 2px 0 0; }
+        .recordings-list { margin-top: 20px; }
+        .recording-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; }
+        .recording-info { display: flex; flex-direction: column; flex: 1; }
+        .recording-name { font-weight: 600; }
+        .recording-duration { font-size: 12px; color: #64748b; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px 0; }
+        .calendar-nav { display: flex; gap: 10px; align-items: center; }
+        .calendar-nav-btn { background: #4facfe; color: white; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .calendar-nav-btn:hover { background: #3a9bf7; }
+        .calendar-title { font-size: 18px; font-weight: 600; color: #475569; }
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
+        .calendar-weekday { text-align: center; font-weight: 600; padding: 10px 0; color: #475569; background: #f8fafc; border-radius: 5px; }
+        .calendar-day { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; transition: all 0.2s; padding: 5px; position: relative; border: 2px solid transparent; }
+        .calendar-day:hover { background: #f1f5f9; }
+        .calendar-day.active { background: #4facfe; color: white; }
+        .calendar-day.selected { background: #ff6b6b; color: white; border-color: #ff6b6b; transform: scale(1.05); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        .calendar-day.today { border-color: #ff6b6b; }
+        .calendar-day.other-month { color: #cbd5e1; }
+        .day-number { font-size: 16px; font-weight: 600; }
+        .task-indicator { width: 6px; height: 6px; border-radius: 50%; margin-top: 2px; }
+        .indicator-overdue { background: #ff6b6b; }
+        .indicator-today { background: #4ecdc4; }
+        .indicator-future { background: #45aaf2; }
+        .indicator-completed { background: #1dd1a1; }
+        .indicator-pending-review { background: #ff9ff3; }
+        .indicator-rejected { background: #ff9f43; }
+        .indicator-needs-redo { background: #ff9f43; }
+        .indicator-paused { background: #6c757d; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; }
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; }
+        textarea { min-height: 100px; resize: vertical; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #64748b; }
+        .empty-state i { font-size: 48px; margin-bottom: 15px; opacity: 0.5; }
+        .hidden { display: none !important; }
+        .checkin-history { margin-top: 10px; }
+        .history-item { padding: 8px 12px; border-left: 3px solid #4facfe; background: #f8fafc; margin-bottom: 8px; border-radius: 0 8px 8px 0; font-size: 12px; }
+        .history-date { font-weight: 600; margin-bottom: 3px; }
+        .history-status { font-size: 11px; color: #64748b; }
+        .status-completed { color: #1dd1a1; }
+        .status-pending { color: #1dd1a1; }
+        .status-missed { color: #ff6b6b; }
+        .status-pending-review { color: #ff9ff3; }
+        .status-needs-redo { color: #ff9f43; }
+        .status-paused { color: #6c757d; }
+        footer { text-align: center; padding: 20px; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0; }
+        .task-form-container { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .audio-player { width: 100%; margin: 10px 0; }
+        .recording-status { text-align: center; margin: 10px 0; padding: 10px; border-radius: 5px; font-weight: 600; }
+        .status-recording { background: #fff5f5; color: #ff6b6b; }
+        .status-playing { background: #f0fff4; color: #1dd1a1; }
+        .edit-task-form { background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .compact-checkin-info { font-size: 12px; color: #64748b; margin-top: 5px; }
+        .compact-checkin-item { display: inline-block; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; margin-right: 5px; margin-bottom: 3px; }
+        .data-management-container { display: flex; flex-direction: column; gap: 20px; }
+        .data-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .data-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px; }
+        .stat-card { background: #f8fafc; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #4facfe; }
+        .stat-icon { font-size: 24px; margin-bottom: 5px; }
+        .stat-number { font-size: 24px; font-weight: 700; color: #4facfe; margin-bottom: 5px; }
+        .stat-label { font-size: 12px; color: #64748b; }
+        .instructions-list { padding-left: 20px; margin-top: 10px; }
+        .instructions-list li { margin-bottom: 8px; line-height: 1.4; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px; border-bottom: 1px solid #e2e8f0; }
+        .modal-header h3 { margin: 0; color: #475569; }
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b; }
+        .close-btn:hover { color: #475569; }
+        .modal-body { padding: 20px; }
+        .data-section { margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
+        .data-section:last-child { border-bottom: none; margin-bottom: 0; }
+        .data-section h4 { margin-bottom: 10px; color: #475569; }
+        .data-section p { margin-bottom: 15px; color: #64748b; font-size: 14px; }
+        .data-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .stat-label { color: #64748b; font-size: 14px; }
+        .stat-value { font-weight: 600; color: #475569; }
+        .subject-chinese { color: #4facfe; }
+        .subject-math { color: #764ba2; }
+        .subject-english { color: #ff6b6b; }
+        .subject-science { color: #1dd1a1; }
+        .subject-other { color: #1dd1a1; }
+        .task-details-modal { max-width: 600px; }
+        .checkin-progress { margin-top: 15px; }
+        .checkin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+        .checkin-day { font-weight: 600; width: 120px; }
+        .checkin-status { display: flex; align-items: center; gap: 5px; }
+        .status-icon { font-size: 16px; }
+        .status-completed-icon { color: #1dd1a1; }
+        .status-pending-icon { color: #1dd1a1; }
+        .status-missed-icon { color: #ff6b6b; }
+        .status-needs-redo-icon { color: #ff9f43; }
+        .status-paused-icon { color: #6c757d; }
+        .today-tasks-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; }
+        .tasks-count { background: #4facfe; color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+        .rejection-reason { font-size: 12px; color: #ff6b6b; margin-top: 5px; padding: 5px; background: #fff5f5; border-radius: 4px; border-left: 3px solid #ff6b6b; }
+        .redo-notice { background: #fff9e6; border: 1px solid #ff9f43; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 14px; width: 100%; }
+        .redo-notice h4 { color: #ff9f43; margin-bottom: 5px; }
+        .storage-warning { background: #fff5f5; border: 2px solid #ff6b6b; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: center; }
+        .storage-warning.high { background: #fff5f5; border-color: #ff6b6b; animation: pulse-warning 2s infinite; }
+        .storage-warning.medium { background: #fff9e6; border-color: #1dd1a1; }
+        .storage-warning.low { background: #f0fff4; border-color: #1dd1a1; }
+        @keyframes pulse-warning { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        .storage-size { font-weight: 700; font-size: 18px; margin: 5px 0; }
+        .storage-size.high { color: #ff6b6b; }
+        .storage-size.medium { color: #1dd1a1; }
+        .storage-size.low { color: #1dd1a1; }
+        .redo-badge { background: #ff9f43; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .redo-management { background: #fff9e6; border-radius: 8px; padding: 15px; margin: 15px 0; border: 1px solid #ff9f43; }
+        .schedule-type-selector { display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; }
+        .schedule-type { flex: 1; padding: 12px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .schedule-type.active { background: #4facfe; color: white; }
+        .custom-schedule-container { margin-top: 15px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .daily-schedule-container { margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .custom-date-input { display: flex; align-items: center; margin-bottom: 10px; }
+        .custom-date-input label { width: 120px; margin-bottom: 0; margin-right: 10px; }
+        .custom-date-input input { flex: 1; }
+        .add-date-btn { background: #4facfe; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+        .custom-dates-list { margin-top: 15px; max-height: 200px; overflow-y: auto; }
+        .custom-date-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: white; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #4facfe; }
+        .remove-date-btn { background: #ff6b6b; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; }
+        .task-description-display { background: #f8fafc; border-radius: 8px; padding: 15px; margin: 15px 0; border-left: 4px solid #4facfe; white-space: pre-line; }
+        .task-description-title { font-weight: 600; margin-bottom: 8px; color: #475569; }
+        .task-description-content { color: #64748b; line-height: 1.5; white-space: pre-line; }
+        .task-count-indicator { position: absolute; top: 2px; right: 2px; background: #ff6b6b; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .daily-task-badge { display: inline-block; background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .daily-schedule-info { background: #f0f9ff; border-radius: 6px; padding: 10px; margin: 8px 0; border-left: 3px solid #4facfe; }
+        .frequency-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+        .frequency-option { padding: 10px; text-align: center; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .frequency-option.active { background: #4facfe; color: white; border-color: #4facfe; }
+        .weekly-days-selector { margin-top: 10px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .weekdays { display: flex; gap: 5px; margin-top: 8px; }
+        .weekday { flex: 1; padding: 8px; text-align: center; background: white; border: 2px solid #e2e8f0; border-radius: 6px; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .weekday.active { background: #4facfe; color: white; border-color: #4facfe; }
+        .frequency-badge { display: inline-block; background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .checkin-type-selector { display: flex; margin-bottom: 20px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; }
+        .checkin-type { flex: 1; padding: 12px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .checkin-type.active { background: #4facfe; color: white; }
+        .photo-container { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); margin-bottom: 20px; }
+        .photo-preview { width: 100%; max-height: 300px; object-fit: contain; border-radius: 8px; margin: 15px 0; border: 2px dashed #cbd5e1; }
+        .camera-preview { width: 100%; max-height: 400px; object-fit: cover; border-radius: 8px; margin: 15px 0; border: 2px solid #cbd5e1; background: #000; }
+        .first-day-checkin-count { margin-top: 10px; padding: 10px; background: #f0f9ff; border-radius: 6px; border: 1px solid #cbd5e1; }
+        .pinned-badge { display: inline-block; background: #ff9ff3; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .capacity-bar { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .capacity-fill { height: 100%; background: linear-gradient(90deg, #4ecdc4, #45aaf2); border-radius: 5px; transition: width 0.5s; }
+        .capacity-info { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; }
+        .capacity-safe { color: #1dd1a1; font-weight: bold; }
+        .capacity-warning { color: #1dd1a1; font-weight: bold; }
+        .capacity-danger { color: #ff6b6b; font-weight: bold; }
+        .btn-manage { background: #a29bfe; color: white; }
+        .recordings-table-container { max-height: 400px; overflow-y: auto; margin: 15px 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .recordings-table { width: 100%; border-collapse: collapse; }
+        .recordings-table th { background: #f8fafc; padding: 12px; text-align: left; font-weight: 600; color: #475569; border-bottom: 2px solid #e2e8f0; position: sticky; top: 0; }
+        .recordings-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .no-recordings { text-align: center; padding: 40px; color: #64748b; }
+        .pause-badge { display: inline-block; background: #6c757d; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .pause-notice { background: #f8f9fa; border: 1px solid #6c757d; border-radius: 6px; padding: 10px; margin: 10px 0; font-size: 14px; width: 100%; }
+        .pause-notice h4 { color: #6c757d; margin-bottom: 5px; }
+        .subtask-badge { display: inline-block; background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .subtask-start-badge { display: inline-block; background: #ff9f43; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px; margin-left: 8px; font-weight: normal; }
+        .subtask-config-container { margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .subtask-type-selector { display: flex; margin-bottom: 10px; border-radius: 8px; overflow: hidden; border: 1px solid #cbd5e1; }
+        .subtask-type { flex: 1; padding: 10px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.3s; font-weight: 600; }
+        .subtask-type.active { background: #4facfe; color: white; }
+        .subtask-start-number { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .subtask-preview { margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; max-height: 300px; overflow-y: auto; }
+        .subtask-preview-list { list-style-type: none; padding: 0; margin: 0; }
+        .subtask-preview-item { padding: 8px 12px; background: #f8fafc; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #4facfe; font-size: 14px; }
+        .subtask-preview-range { background: #fff3e0; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 3px solid #ff9f43; font-size: 13px; }
+        .subtask-item { background: #f8fafc; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 3px solid #4facfe; }
+        .parent-task-info { background: #f0f9ff; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #4facfe; }
+        .subtask-summary { display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; }
         
-        .data-management-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .data-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .data-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-card {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            border-left: 4px solid #4facfe;
-        }
-
-        .stat-icon {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        .stat-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: #4facfe;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        .instructions-list {
-            padding-left: 20px;
-            margin-top: 10px;
-        }
-
-        .instructions-list li {
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .modal-header h3 {
-            margin: 0;
-            color: #475569;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #64748b;
-        }
-
-        .close-btn:hover {
-            color: #475569;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .data-section {
+        /* ===== 新增：存储路径卡片样式 ===== */
+        .storage-path-card {
+            background: linear-gradient(145deg, #f0f9ff, #e6f2ff);
+            border-radius: 12px;
+            padding: 16px 20px;
             margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e2e8f0;
+            border: 1px solid #b8e2ff;
+            box-shadow: 0 4px 8px rgba(79, 172, 254, 0.1);
         }
-
-        .data-section:last-child {
-            border-bottom: none;
-            margin-bottom: 0;
-        }
-
-        .data-section h4 {
-            margin-bottom: 10px;
-            color: #475569;
-        }
-
-        .data-section p {
-            margin-bottom: 15px;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .data-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .stat-label {
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .stat-value {
-            font-weight: 600;
-            color: #475569;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .subject-chinese {
-            color: #4facfe;
-        }
-
-        .subject-math {
-            color: #764ba2;
-        }
-
-        .subject-english {
-            color: #ff6b6b;
-        }
-
-        .subject-science {
-            color: #1dd1a1;
-        }
-
-        .subject-other {
-            color: #1dd1a1;
-        }
-
-        .task-details-modal {
-            max-width: 600px;
-        }
-
-        .checkin-progress {
-            margin-top: 15px;
-        }
-
-        .checkin-item {
+        .storage-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f1f5f9;
+            margin-bottom: 12px;
         }
-
-        .checkin-day {
-            font-weight: 600;
-            width: 120px;
-        }
-
-        .checkin-status {
+        .storage-title {
             display: flex;
             align-items: center;
-            gap: 5px;
-        }
-
-        .status-icon {
-            font-size: 16px;
-        }
-
-        .status-completed-icon {
-            color: #1dd1a1;
-        }
-
-        .status-pending-icon {
-            color: #1dd1a1;
-        }
-
-        .status-missed-icon {
-            color: #ff6b6b;
-        }
-
-        .status-needs-redo-icon {
-            color: #ff9f43;
-        }
-
-        .status-paused-icon {
-            color: #6c757d;
-        }
-
-        .today-tasks-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .tasks-count {
-            background: #4facfe;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .rejection-reason {
-            font-size: 12px;
-            color: #ff6b6b;
-            margin-top: 5px;
-            padding: 5px;
-            background: #fff5f5;
-            border-radius: 4px;
-            border-left: 3px solid #ff6b6b;
-        }
-
-        .redo-notice {
-            background: #fff9e6;
-            border: 1px solid #ff9f43;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 14px;
-            width: 100%;
-        }
-
-        .redo-notice h4 {
-            color: #ff9f43;
-            margin-bottom: 5px;
-        }
-
-        .storage-warning {
-            background: #fff5f5;
-            border: 2px solid #ff6b6b;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            text-align: center;
-        }
-
-        .storage-warning.high {
-            background: #fff5f5;
-            border-color: #ff6b6b;
-            animation: pulse-warning 2s infinite;
-        }
-
-        .storage-warning.medium {
-            background: #fff9e6;
-            border-color: #1dd1a1;
-        }
-
-        .storage-warning.low {
-            background: #f0fff4;
-            border-color: #1dd1a1;
-        }
-
-        @keyframes pulse-warning {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-
-        .storage-size {
-            font-weight: 700;
-            font-size: 18px;
-            margin: 5px 0;
-        }
-
-        .storage-size.high {
-            color: #ff6b6b;
-        }
-
-        .storage-size.medium {
-            color: #1dd1a1;
-        }
-
-        .storage-size.low {
-            color: #1dd1a1;
-        }
-
-        .rejection-history {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f8fafc;
-            border-radius: 6px;
-        }
-
-        .rejection-history-item {
-            padding: 8px;
-            margin-bottom: 5px;
-            background: white;
-            border-radius: 4px;
-            border-left: 3px solid #ff9f43;
-        }
-
-        .rejection-date {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        .rejection-reason-text {
-            font-size: 12px;
-            color: #475569;
-        }
-
-        /* 新增样式 - 重做功能 */
-        .redo-badge {
-            background: #ff9f43;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-
-        .redo-management {
-            background: #fff9e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border: 1px solid #ff9f43;
-        }
-
-        .redo-management h4 {
-            color: #ff9f43;
-            margin-bottom: 10px;
-        }
-
-        .redo-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border-left: 3px solid #ff9f43;
-        }
-
-        .redo-info {
-            flex: 1;
-        }
-
-        .redo-reason {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 3px;
-        }
-
-        .redo-deadline {
-            font-size: 11px;
-            color: #ff6b6b;
-            margin-top: 2px;
-        }
-
-        /* 自定义日期打卡 */
-        .schedule-type-selector {
-            display: flex;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #cbd5e1;
-        }
-        
-        .schedule-type {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .schedule-type.active {
-            background: #4facfe;
-            color: white;
-        }
-        
-        .custom-schedule-container {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .daily-schedule-container {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f9ff;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .custom-date-input {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .custom-date-input label {
-            width: 120px;
-            margin-bottom: 0;
-            margin-right: 10px;
-        }
-        
-        .custom-date-input input {
-            flex: 1;
-        }
-        
-        .add-date-btn {
-            background: #4facfe;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-        
-        .custom-dates-list {
-            margin-top: 15px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .custom-date-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: white;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border-left: 3px solid #4facfe;
-        }
-        
-        .remove-date-btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-
-        /* 任务描述显示 */
-        .task-description-display {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border-left: 4px solid #4facfe;
-            white-space: pre-line;
-        }
-
-        .task-description-title {
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #475569;
-        }
-
-        .task-description-content {
-            color: #64748b;
-            line-height: 1.5;
-            white-space: pre-line;
-        }
-
-        /* 日历任务数量指示器 */
-        .task-count-indicator {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            background: #ff6b6b;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        .calendar-day {
-            position: relative;
-        }
-
-        /* 每日打卡标识 */
-        .daily-task-badge {
-            display: inline-block;
-            background: #4facfe;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-
-        .daily-schedule-info {
-            background: #f0f9ff;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 8px 0;
-            border-left: 3px solid #4facfe;
-        }
-
-        .daily-schedule-dates {
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        /* 频率选择器样式 */
-        .frequency-selector {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
             gap: 8px;
-            margin-top: 8px;
-        }
-
-        .frequency-option {
-            padding: 10px;
-            text-align: center;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .frequency-option.active {
-            background: #4facfe;
-            color: white;
-            border-color: #4facfe;
-        }
-
-        .frequency-option:hover {
-            border-color: #4facfe;
-        }
-
-        /* 每周日期选择器 */
-        .weekly-days-selector {
-            margin-top: 10px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .weekdays {
-            display: flex;
-            gap: 5px;
-            margin-top: 8px;
-        }
-
-        .weekday {
-            flex: 1;
-            padding: 8px;
-            text-align: center;
-            background: white;
-            border: 2px solid #e2e8f0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .weekday.active {
-            background: #4facfe;
-            color: white;
-            border-color: #4facfe;
-        }
-
-        .weekday:hover {
-            border-color: #4facfe;
-        }
-
-        /* 频率显示标签 */
-        .frequency-badge {
-            display: inline-block;
-            background: #4facfe;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-
-        .daily-frequency-info {
-            background: #f0f9ff;
-            border-radius: 6px;
-            padding: 8px;
-            margin: 5px 0;
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        /* 打卡方式选择器样式 */
-        .checkin-type-selector {
-            display: flex;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #cbd5e1;
-        }
-        
-        .checkin-type {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .checkin-type.active {
-            background: #4facfe;
-            color: white;
-        }
-
-        /* 拍照打卡样式 */
-        .photo-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            margin-bottom: 20px;
-        }
-
-        .photo-preview {
-            width: 100%;
-            max-height: 300px;
-            object-fit: contain;
-            border-radius: 8px;
-            margin: 15px 0;
-            border: 2px dashed #cbd5e1;
-        }
-
-        .photo-controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .photo-btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .photo-btn-primary {
-            background: #4facfe;
-            color: white;
-        }
-
-        .photo-btn-primary:hover {
-            background: #3a9bf7;
-        }
-
-        .photo-btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        .photo-btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .photo-btn-danger {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .photo-btn-danger:hover {
-            background: #ff5252;
-        }
-
-        /* 实时预览样式 */
-        .camera-preview {
-            width: 100%;
-            max-height: 400px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin: 15px 0;
-            border: 2px solid #cbd5e1;
-            background: #000;
-        }
-
-        .camera-controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .camera-btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .camera-btn-primary {
-            background: #4facfe;
-            color: white;
-        }
-
-        .camera-btn-primary:hover {
-            background: #3a9bf7;
-        }
-
-        .camera-btn-secondary {
-            background: #e2e8f0;
-            color: #475569;
-        }
-
-        .camera-btn-secondary:hover {
-            background: #cbd5e1;
-        }
-
-        .camera-btn-danger {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .camera-btn-danger:hover {
-            background: #ff5252;
-        }
-
-        .camera-status {
-            text-align: center;
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: 600;
-        }
-
-        .status-camera-active {
-            background: #f0fff4;
-            color: #1dd1a1;
-        }
-
-        .status-camera-error {
-            background: #fff5f5;
-            color: #ff6b6b;
-        }
-        
-        /* 第一天打卡次数设置 */
-        .first-day-checkin-count {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f0f9ff;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-        }
-        
-        .checkin-count-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        
-        .checkin-count-input input {
-            width: 80px;
-        }
-        
-        .checkin-count-info {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 5px;
-        }
-        
-        /* 置顶标识 */
-        .pinned-badge {
-            display: inline-block;
-            background: #ff9ff3;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-        
-        /* Excel导出按钮样式 */
-        .btn-excel {
-            background: #1dd1a1;
-            color: white;
-        }
-        
-        .btn-excel:hover {
-            background: #10a17e;
-        }
-        
-        /* 存储容量指示器 */
-        .capacity-bar {
-            height: 10px;
-            background: #e2e8f0;
-            border-radius: 5px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        
-        .capacity-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #45aaf2);
-            border-radius: 5px;
-            transition: width 0.5s;
-        }
-        
-        .capacity-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #64748b;
-        }
-        
-        .capacity-safe {
-            color: #1dd1a1;
-            font-weight: bold;
-        }
-        
-        .capacity-warning {
-            color: #1dd1a1;
-            font-weight: bold;
-        }
-        
-        .capacity-danger {
-            color: #ff6b6b;
-            font-weight: bold;
-        }
-        
-        /* 新增：录音管理按钮样式 */
-        .btn-manage {
-            background: #a29bfe;
-            color: white;
-        }
-        
-        .btn-manage:hover {
-            background: #8c7ae6;
-        }
-        
-        /* 录音管理模态框样式 */
-        .recording-manage-modal {
-            max-width: 800px;
-        }
-        
-        .recordings-table-container {
-            max-height: 400px;
-            overflow-y: auto;
-            margin: 15px 0;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-        }
-        
-        .recordings-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .recordings-table th {
-            background: #f8fafc;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #475569;
-            border-bottom: 2px solid #e2e8f0;
-            position: sticky;
-            top: 0;
-        }
-        
-        .recordings-table td {
-            padding: 12px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .recordings-table tr:hover {
-            background: #f8fafc;
-        }
-        
-        .recording-size {
-            font-family: monospace;
-            font-size: 12px;
-            color: #64748b;
-        }
-        
-        .no-recordings {
-            text-align: center;
-            padding: 40px;
-            color: #64748b;
-        }
-        
-        /* 删除确认样式 */
-        .delete-confirm {
-            background: #fff5f5;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border-left: 4px solid #ff6b6b;
-        }
-        
-        .delete-confirm h4 {
-            color: #ff6b6b;
-            margin-bottom: 10px;
-        }
-        
-        .delete-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        /* 新增：一键打卡按钮样式 */
-        .btn-bulk-checkin {
-            background: #ff9f43;
-            color: white;
-        }
-        
-        .btn-bulk-checkin:hover {
-            background: #e67e22;
-        }
-
-        /* 内存监控警告样式 */
-        .memory-warning-modal {
-            max-width: 400px;
-        }
-
-        .memory-warning-content {
-            padding: 20px;
-            text-align: center;
-        }
-
-        .memory-warning-icon {
-            font-size: 48px;
-            color: #ff6b6b;
-            margin-bottom: 15px;
-        }
-
-        .memory-warning-actions {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-cleanup {
-            background: #ff6b6b;
-            color: white;
-        }
-
-        .btn-cleanup:hover {
-            background: #ff5252;
-        }
-
-        /* 新增：时间编辑样式 */
-        .time-edit-section {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border: 1px solid #e2e8f0;
-        }
-
-        .time-edit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .time-edit-header h4 {
-            margin: 0;
-            color: #475569;
-        }
-
-        .checkin-time-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 10px 0;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .checkin-time-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .checkin-time-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .checkin-time-date {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-
-        .checkin-time-index {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        .time-edit-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 5px;
-        }
-
-        .time-edit-input input {
-            flex: 1;
-        }
-
-        .no-checkins-message {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        /* 新增：暂停任务样式 */
-        .pause-badge {
-            display: inline-block;
-            background: #6c757d;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-
-        .pause-notice {
-            background: #f8f9fa;
-            border: 1px solid #6c757d;
-            border-radius: 6px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 14px;
-            width: 100%;
-        }
-
-        .pause-notice h4 {
-            color: #6c757d;
-            margin-bottom: 5px;
-        }
-
-        .pause-management {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border: 1px solid #6c757d;
-        }
-
-        .pause-management h4 {
-            color: #6c757d;
-            margin-bottom: 10px;
-        }
-
-        .pause-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border-left: 3px solid #6c757d;
-        }
-
-        .pause-info {
-            flex: 1;
-        }
-
-        .pause-reason {
-            font-size: 12px;
-            color: #64748b;
-            margin-top: 3px;
-        }
-
-        .pause-deadline {
-            font-size: 11px;
-            color: #6c757d;
-            margin-top: 2px;
-        }
-
-        .btn-bulk-pause {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-bulk-pause:hover {
-            background: #5a6268;
-        }
-
-        /* 新增：批量取消暂停按钮样式 */
-        .btn-bulk-resume {
-            background: #20c997;
-            color: white;
-        }
-        
-        .btn-bulk-resume:hover {
-            background: #1ba87e;
-        }
-        
-        /* 新增：批量暂停任务选择器样式 */
-        .pause-task-selector {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .select-all-tasks {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .select-all-tasks input {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-        }
-        
-        .select-all-tasks label {
-            margin: 0;
-            font-weight: 600;
-            flex: 1;
-        }
-        
-        .task-selection-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-        }
-        
-        .task-selection-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            border-bottom: 1px solid #f1f5f9;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .task-selection-item:hover {
-            background: #f8fafc;
-        }
-        
-        .task-selection-item.selected {
-            background: #f0f9ff;
-            border-left: 3px solid #4facfe;
-        }
-        
-        .task-selection-checkbox {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            cursor: pointer;
-        }
-        
-        .task-selection-info {
-            flex: 1;
-        }
-        
-        .task-selection-name {
-            font-weight: 600;
-            margin-bottom: 3px;
-            color: #475569;
-        }
-        
-        .task-selection-details {
-            font-size: 12px;
-            color: #64748b;
-        }
-        
-        .task-selection-status {
-            font-size: 10px;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-weight: 600;
-        }
-        
-        .task-selection-status.active {
-            background: #e2e8f0;
-            color: #475569;
-        }
-        
-        .task-selection-status.today {
-            background: #4ecdc4;
-            color: white;
-        }
-        
-        .task-selection-status.overdue {
-            background: #ff6b6b;
-            color: white;
-        }
-        
-        .task-selection-status.paused {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .selected-tasks-count {
-            margin-top: 10px;
-            padding: 8px;
-            background: #f0f9ff;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #475569;
-            border: 1px solid #cbd5e1;
-        }
-        
-        .selected-tasks-count strong {
-            color: #4facfe;
-        }
-
-        /* 新增：批量取消暂停模态框样式 */
-        .resume-management {
-            background: #f0fff4;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            border: 1px solid #1dd1a1;
-        }
-
-        .resume-management h4 {
-            color: #1dd1a1;
-            margin-bottom: 10px;
-        }
-        
-        /* 新增：子任务相关样式 */
-        .subtask-config-container {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f9ff;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .subtask-type-selector {
-            display: flex;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid #cbd5e1;
-        }
-        
-        .subtask-type {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-        
-        .subtask-type.active {
-            background: #4facfe;
-            color: white;
-        }
-        
-        .subtask-config {
-            margin-top: 15px;
-        }
-        
-        .subtask-count-input {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .subtask-count-input input {
-            flex: 1;
-        }
-        
-        .subtask-preview {
-            margin-top: 15px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .subtask-preview h4 {
-            margin-bottom: 10px;
-            color: #475569;
-        }
-        
-        .subtask-preview-list {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-        
-        .subtask-preview-item {
-            padding: 8px 12px;
-            background: #f8fafc;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border-left: 3px solid #4facfe;
-            font-size: 14px;
-        }
-        
-        .subtask-item {
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 3px solid #4facfe;
-        }
-        
-        .subtask-item .task-header {
-            margin-bottom: 8px;
-        }
-        
-        .subtask-item .task-name {
+            font-weight: 700;
+            color: #0369a1;
             font-size: 16px;
         }
-        
-        .subtask-item .task-actions {
-            margin-top: 8px;
-        }
-        
-        .subtask-item .task-progress {
-            margin: 8px 0;
-        }
-        
-        .subtask-badge {
-            display: inline-block;
-            background: #4facfe;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            margin-left: 8px;
-            font-weight: normal;
-        }
-        
-        .subtask-indicator {
-            background: #4facfe;
-        }
-        
-        .indicator-subtask {
-            background: #4facfe;
-        }
-        
-        .parent-task-info {
-            background: #f0f9ff;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 4px solid #4facfe;
-        }
-        
-        .parent-task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .parent-task-title {
+        .storage-status {
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
             font-weight: 600;
-            font-size: 18px;
-            color: #475569;
         }
-        
-        .subtask-summary {
+        .status-set { background: #10b981; color: white; }
+        .status-unset { background: #94a3b8; color: white; }
+        .status-fallback { background: #f59e0b; color: white; }
+        .storage-path-detail {
+            background: rgba(255,255,255,0.7);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            word-break: break-all;
+            border: 1px dashed #4facfe;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+        .storage-actions {
             display: flex;
-            gap: 15px;
-            margin-top: 10px;
+            gap: 12px;
             flex-wrap: wrap;
         }
-        
-        .subtask-summary-item {
-            padding: 8px 12px;
-            background: white;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            font-size: 12px;
-            min-width: 120px;
-        }
-        
-        .subtask-summary-label {
-            color: #64748b;
-            margin-bottom: 3px;
-        }
-        
-        .subtask-summary-value {
-            font-weight: 600;
-            color: #475569;
-        }
-        
-        .collapse-subtasks-btn {
-            background: #4facfe;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .collapse-subtasks-btn:hover {
-            background: #3a9bf7;
-        }
-        
-        .subtask-list {
-            margin-top: 15px;
-        }
+        .btn-storage { background: #0284c7; color: white; }
+        .btn-storage:hover { background: #0369a1; }
+        .btn-storage-clear { background: #64748b; color: white; }
+        .btn-storage-clear:hover { background: #475569; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>复习打卡计划 - 安全存储版</h1>
-            <p class="app-description">日积月累、持之以恒，数据安全存储</p>
-        </header>
+    <h1>复习打卡计划 · 本地存储版</h1>
+    <p class="app-description">录音/照片直接保存至您指定的文件夹</p>
+</header>
+
+<div class="storage-path-card" id="storagePathCard">
+    <div class="storage-header">
+        <span class="storage-title">📁 媒体文件存储位置</span>
+        <span class="storage-status" id="storageStatusBadge">未设置</span>
+    </div>
+    <div class="storage-path-detail" id="storagePathDisplay">
+        ⚠️ 未设置本地文件夹，将使用浏览器缓存（临时保存）
+    </div>
+    <div class="storage-actions">
+        <button class="btn btn-storage" id="setStorageFolderBtn">📂 设置存储文件夹</button>
+        <button class="btn btn-storage-clear" id="clearStorageFolderBtn">🗑️ 清除设置(回退缓存)</button>
+    </div>
+</div>
 
         <div class="tabs">
             <div class="tab active" data-tab="today">今日任务</div>
@@ -2368,7 +475,7 @@
                     </div>
                 </div>
                 
-                <!-- 系列子任务设置 -->
+                <!-- 系列子任务设置 - 添加起始编号功能 -->
                 <div id="subtask-settings" class="subtask-config-container hidden">
                     <p><strong>系列子任务设置:</strong> 自动生成系列子任务，每天完成一个</p>
                     
@@ -2380,15 +487,24 @@
                     <div class="form-group">
                         <label>子任务类型</label>
                         <div class="subtask-type-selector">
-    <div class="subtask-type active" data-subtask-type="lesson">课</div>
-    <div class="subtask-type" data-subtask-type="page">页</div>
-    <div class="subtask-type" data-subtask-type="chapter">日</div>
-    <div class="subtask-type" data-subtask-type="unit">单元</div>
-    <div class="subtask-type" data-subtask-type="custom">自定义</div>
-</div>
+                            <div class="subtask-type active" data-subtask-type="lesson">课</div>
+                            <div class="subtask-type" data-subtask-type="page">页</div>
+                            <div class="subtask-type" data-subtask-type="chapter">日</div>
+                            <div class="subtask-type" data-subtask-type="unit">单元</div>
+                            <div class="subtask-type" data-subtask-type="custom">自定义</div>
+                        </div>
                     </div>
                     
                     <div class="subtask-config">
+                        <!-- 新增：起始编号设置 -->
+                        <div class="subtask-start-number">
+                            <label for="subtask-start-number">起始任务编号</label>
+                            <input type="number" id="subtask-start-number" min="1" max="999" value="1" placeholder="例如：1">
+                        </div>
+                        <div class="subtask-start-number-help">
+                            <small>设置第一个子任务的编号，后续任务将以此为基础递增</small>
+                        </div>
+                        
                         <div class="form-group">
                             <label for="subtask-count">子任务数量</label>
                             <div class="subtask-count-input">
@@ -2397,11 +513,12 @@
                             </div>
                             <small>系统将自动生成对应数量的子任务，每天一个</small>
                         </div>
+                        
                         <div class="form-group hidden" id="custom-unit-container">
-    <label for="custom-unit">自定义单位</label>
-    <input type="text" id="custom-unit" placeholder="例如：天、日、节、回">
-    <small>输入你想要的单位，比如：第1天、第一日、第1节、第1回</small>
-</div>
+                            <label for="custom-unit">自定义单位</label>
+                            <input type="text" id="custom-unit" placeholder="例如：天、日、节、回">
+                            <small>输入你想要的单位，比如：第1天、第一日、第1节、第1回</small>
+                        </div>
 
                         <div class="form-group">
                             <label for="subtask-interval">任务间隔天数</label>
@@ -2416,12 +533,15 @@
                         
                         <div class="form-group">
                             <label for="subtask-description-template">子任务描述模板（可选）</label>
-                            <textarea id="subtask-description-template" placeholder="例如：背诵并理解课文内容，掌握重点词汇和语法。可用变量：{index}表示序号，{total}表示总数"></textarea>
-                            <small>可用变量: {index}表示序号，{total}表示总数</small>
+                            <textarea id="subtask-description-template" placeholder="例如：背诵并理解课文内容，掌握重点词汇和语法。可用变量：{index}表示序号，{start}表示起始编号，{total}表示总数"></textarea>
+                            <small>可用变量: {index}表示当前序号，{start}表示起始编号，{total}表示总数</small>
                         </div>
                         
                         <div class="subtask-preview">
                             <h4>子任务预览</h4>
+                            <div id="subtask-preview-range" class="subtask-preview-range">
+                                <!-- 任务编号范围预览 -->
+                            </div>
                             <div id="subtask-preview-list" class="subtask-preview-list">
                                 <!-- 子任务预览将在这里动态生成 -->
                             </div>
@@ -2636,6 +756,7 @@
                     <ol class="instructions-list">
                         <li><strong>安全存储:</strong> 只能存储大概10MB 数据，超过8MB请立即清除录音数据，否则所有任务会被清理。</li>
                         <li><strong>系列子任务:</strong> 新建任务时可以选择"系列子任务"类型，自动生成如"背诵课文 第1课"、"背诵课文 第2课"等子任务</li>
+                        <li><strong>起始任务编号:</strong> 在创建系列子任务时，可以设置"起始任务编号"，例如从第5课开始编号</li>
                         <li><strong>一键打卡:</strong> 使用"一键打卡"功能可以快速完成所有未打卡的任务</li>
                         <li><strong>暂停任务:</strong> 使用"暂停任务"功能可以暂停多个任务的打卡计划</li>
                         <li><strong>取消暂停:</strong> 使用"取消暂停"功能可以恢复多个暂停的任务</li>
@@ -3058,6 +1179,7 @@
             taskType: 'normal',
             subtaskType: 'lesson',
             subtaskCount: 30,
+            subtaskStartNumber: 1, // 新增：子任务起始编号
             subtaskInterval: 1,
             subtaskDescriptionTemplate: ''
         };
@@ -3073,7 +1195,7 @@
         class DataStorage {
             constructor() {
                 this.dbName = 'CheckinAppDB';
-                this.version = 11; // 增加版本号以支持子任务功能
+                this.version = 12; // 增加版本号以支持子任务起始编号
                 this.db = null;
             }
 
@@ -3676,17 +1798,73 @@
         const subtaskSettings = document.getElementById('subtask-settings');
         const subtaskTypeSelectors = document.querySelectorAll('.subtask-type');
         const subtaskStartDateInput = document.getElementById('subtask-start-date');
+        const subtaskStartNumberInput = document.getElementById('subtask-start-number'); // 新增：起始编号输入框
         const subtaskCountInput = document.getElementById('subtask-count');
         const subtaskUnit = document.getElementById('subtask-unit');
         const subtaskIntervalInput = document.getElementById('subtask-interval');
         const subtaskDescriptionTemplateInput = document.getElementById('subtask-description-template');
         const subtaskPreviewList = document.getElementById('subtask-preview-list');
+        const subtaskPreviewRange = document.getElementById('subtask-preview-range'); // 新增：编号范围预览
 
         // 初始化应用
         async function initApp() {
             console.log('初始化应用...');
             
             await loadLocalData();
+            // ===== 新增：第二天自动清除录音/图片数据 =====
+async function clearExpiredMedia() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // 清理 recordings
+    const allRecordings = await dataStorage.getAllRecordings();
+    const expiredRecordings = allRecordings.filter(rec => {
+        const recDate = new Date(rec.date);
+        recDate.setHours(0, 0, 0, 0);
+        return recDate < today; // 非今天的录音 → 删除
+    });
+
+    for (const rec of expiredRecordings) {
+        await dataStorage.deleteRecording(rec.id);
+        // 如果存储在本地文件系统，尝试删除对应文件
+        if (rec.fileName && window.localFileStorage) {
+            try {
+                await window.localFileStorage.deleteFiles([rec.fileName]);
+            } catch (e) {
+                console.warn('删除本地录音文件失败:', e);
+            }
+        }
+    }
+
+    // 清理 photos
+    const allPhotos = await dataStorage.getAllPhotos();
+    const expiredPhotos = allPhotos.filter(photo => {
+        const photoDate = new Date(photo.date);
+        photoDate.setHours(0, 0, 0, 0);
+        return photoDate < today;
+    });
+
+    for (const photo of expiredPhotos) {
+        await dataStorage.deletePhoto(photo.id);
+        if (photo.fileName && window.localFileStorage) {
+            try {
+                await window.localFileStorage.deleteFiles([photo.fileName]);
+            } catch (e) {
+                console.warn('删除本地照片文件失败:', e);
+            }
+        }
+    }
+
+    // 重新加载今日数据
+    appData.recordings = await dataStorage.getTodayRecordings();
+    appData.photos = await dataStorage.getTodayPhotos();
+
+    console.log(`🧹 第二天自动清理：删除了 ${expiredRecordings.length} 条录音，${expiredPhotos.length} 张照片`);
+}
+
+// 执行清理
+await clearExpiredMedia();
+// ===== 结束新增 =====
             setupEventListeners();
             setupCheckinEventListeners();
             setupDataManagementEventListeners();
@@ -3695,10 +1873,10 @@
             setupRedoEventListeners();
             setupRecordingsManageEventListeners();
             setupPauseEventListeners();
-            setupResumeEventListeners(); // 新增：设置取消暂停事件监听
+            setupResumeEventListeners();
             setupMemoryMonitoring();
             setupBulkCheckinListeners();
-            setupSubtaskEventListeners(); // 新增：设置子任务事件监听
+            setupSubtaskEventListeners();
             
             restoreRecordingUrls();
             
@@ -3741,6 +1919,11 @@
             // 子任务数量变化
             subtaskCountInput.addEventListener('input', renderSubtaskPreview);
             
+            // 子任务起始编号变化 - 新增
+            if (subtaskStartNumberInput) {
+                subtaskStartNumberInput.addEventListener('input', renderSubtaskPreview);
+            }
+            
             // 子任务描述模板变化
             subtaskDescriptionTemplateInput.addEventListener('input', renderSubtaskPreview);
         }
@@ -3772,73 +1955,84 @@
         }
 
         // 切换子任务类型
-function switchSubtaskType(type) {
-    appData.subtaskType = type;
-    
-    subtaskTypeSelectors.forEach(t => {
-        if (t.getAttribute('data-subtask-type') === type) {
-            t.classList.add('active');
-        } else {
-            t.classList.remove('active');
+        function switchSubtaskType(type) {
+            appData.subtaskType = type;
+            
+            subtaskTypeSelectors.forEach(t => {
+                if (t.getAttribute('data-subtask-type') === type) {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            
+            // 显示/隐藏自定义单位输入框
+            const customUnitContainer = document.getElementById('custom-unit-container');
+            if (type === 'custom') {
+                customUnitContainer.classList.remove('hidden');
+                subtaskUnit.textContent = '个'; // 临时显示
+            } else {
+                customUnitContainer.classList.add('hidden');
+                // 更新单位显示
+                const unitMap = {
+                    'lesson': '课',
+                    'page': '页',
+                    'chapter': '日',
+                    'unit': '单元'
+                };
+                subtaskUnit.textContent = unitMap[type] || '个';
+            }
+            
+            // 重新渲染预览
+            renderSubtaskPreview();
         }
-    });
-    
-    // 显示/隐藏自定义单位输入框
-    const customUnitContainer = document.getElementById('custom-unit-container');
-    if (type === 'custom') {
-        customUnitContainer.classList.remove('hidden');
-        subtaskUnit.textContent = '个'; // 临时显示
-    } else {
-        customUnitContainer.classList.add('hidden');
-        // 更新单位显示
-        const unitMap = {
-            'lesson': '课',
-            'page': '页',
-            'chapter': '日',
-            'unit': '单元'
-        };
-        subtaskUnit.textContent = unitMap[type] || '个';
-    }
-    
-    // 重新渲染预览
-    renderSubtaskPreview();
-}
 
-        // 渲染子任务预览
+        // 渲染子任务预览 - 支持起始编号
         function renderSubtaskPreview() {
-    const taskName = document.getElementById('task-name').value.trim() || '任务名称';
-    const subtaskCount = parseInt(subtaskCountInput.value) || 30;
-    const subtaskType = appData.subtaskType;
-    const descriptionTemplate = subtaskDescriptionTemplateInput.value;
-    
-    // 获取单位
-    let unit = '';
-    if (subtaskType === 'custom') {
-        // 自定义单位
-        unit = document.getElementById('custom-unit').value.trim() || '个';
-    } else {
-        // 预设单位
-        const unitMap = {
-            'lesson': '课',
-            'page': '页',
-            'chapter': '日',
-            'unit': '单元'
-        };
-        unit = unitMap[subtaskType] || '个';
-    }
-    
-    subtaskPreviewList.innerHTML = '';
+            const taskName = document.getElementById('task-name').value.trim() || '任务名称';
+            const subtaskCount = parseInt(subtaskCountInput.value) || 30;
+            const subtaskStartNumber = parseInt(subtaskStartNumberInput?.value) || 1; // 获取起始编号，默认为1
+            const subtaskType = appData.subtaskType;
+            const descriptionTemplate = subtaskDescriptionTemplateInput.value;
+            
+            // 获取单位
+            let unit = '';
+            if (subtaskType === 'custom') {
+                // 自定义单位
+                unit = document.getElementById('custom-unit').value.trim() || '个';
+            } else {
+                // 预设单位
+                const unitMap = {
+                    'lesson': '课',
+                    'page': '页',
+                    'chapter': '日',
+                    'unit': '单元'
+                };
+                unit = unitMap[subtaskType] || '个';
+            }
+            
+            // 渲染编号范围预览
+            const endNumber = subtaskStartNumber + subtaskCount - 1;
+            subtaskPreviewRange.innerHTML = `
+                <strong>任务编号范围:</strong> 从 <span style="color: #4facfe; font-weight: bold;">第${subtaskStartNumber}${unit}</span> 
+                到 <span style="color: #ff6b6b; font-weight: bold;">第${endNumber}${unit}</span>
+                (共 ${subtaskCount} 个)
+            `;
+            
+            subtaskPreviewList.innerHTML = '';
             
             // 限制预览数量
             const previewCount = Math.min(subtaskCount, 10);
             
-            for (let i = 1; i <= previewCount; i++) {
-                const subtaskName = `${taskName} 第${i}${unit}`;
+            for (let i = 0; i < previewCount; i++) {
+                const currentNumber = subtaskStartNumber + i;
+                const subtaskName = `${taskName} 第${currentNumber}${unit}`;
                 let subtaskDescription = '';
                 
                 if (descriptionTemplate) {
                     subtaskDescription = descriptionTemplate
-                        .replace(/{index}/g, i)
+                        .replace(/{index}/g, currentNumber)
+                        .replace(/{start}/g, subtaskStartNumber)
                         .replace(/{total}/g, subtaskCount);
                 }
                 
@@ -4079,6 +2273,11 @@ function switchSubtaskType(type) {
                     const subtasks = getSubtasks(task.id);
                     const completedSubtasks = subtasks.filter(st => st.status === 'completed').length;
                     subtaskInfo = ` | 子任务: ${completedSubtasks}/${subtasks.length}`;
+                    
+                    // 显示起始编号信息
+                    if (task.subtaskStartNumber) {
+                        subtaskInfo += ` | 起始: 第${task.subtaskStartNumber}${task.subtaskUnit || '课'}`;
+                    }
                 }
                 
                 taskItem.innerHTML = `
@@ -5118,8 +3317,11 @@ function switchSubtaskType(type) {
             switchFrequency('daily');
             renderWeekdaySelector();
             
-            // 初始化子任务设置
+            // 初始化子任务设置 - 包括起始编号
             switchSubtaskType('lesson');
+            if (subtaskStartNumberInput) {
+                subtaskStartNumberInput.value = 1;
+            }
             subtaskCountInput.value = 30;
             subtaskIntervalInput.value = 1;
             subtaskDescriptionTemplateInput.value = '';
@@ -5249,10 +3451,11 @@ function switchSubtaskType(type) {
             alert('任务创建成功！');
         }
 
-        // 保存子任务系列
+        // 保存子任务系列 - 支持起始编号
         async function saveSubtaskSeries(subject, name, desc) {
             const startDate = subtaskStartDateInput.value;
             const subtaskCount = parseInt(subtaskCountInput.value) || 30;
+            const subtaskStartNumber = parseInt(subtaskStartNumberInput?.value) || 1; // 获取起始编号
             const subtaskType = appData.subtaskType;
             const interval = parseInt(subtaskIntervalInput.value) || 1;
             const descriptionTemplate = subtaskDescriptionTemplateInput.value;
@@ -5267,7 +3470,12 @@ function switchSubtaskType(type) {
                 return;
             }
             
-            // 创建父任务（用于展示和管理）
+            if (subtaskStartNumber < 1 || subtaskStartNumber > 999) {
+                alert('起始任务编号应在1-999之间');
+                return;
+            }
+            
+            // 创建父任务（用于展示和管理）- 保存起始编号
             const parentTask = {
                 id: Date.now(),
                 subject: subject,
@@ -5279,6 +3487,7 @@ function switchSubtaskType(type) {
                 scheduleType: 'subtask',
                 subtaskType: subtaskType,
                 subtaskCount: subtaskCount,
+                subtaskStartNumber: subtaskStartNumber, // 保存起始编号
                 subtaskInterval: interval,
                 subtaskDescriptionTemplate: descriptionTemplate,
                 pinned: false,
@@ -5289,38 +3498,40 @@ function switchSubtaskType(type) {
             
             // 创建子任务
             // 获取单位
-let unit = '';
-if (subtaskType === 'custom') {
-    // 自定义单位
-    unit = document.getElementById('custom-unit').value.trim() || '个';
-} else {
-    // 预设单位
-    const unitMap = {
-        'lesson': '课',
-        'page': '页',
-        'chapter': '日',
-        'unit': '单元'
-    };
-    unit = unitMap[subtaskType] || '个';
-}
+            let unit = '';
+            if (subtaskType === 'custom') {
+                // 自定义单位
+                unit = document.getElementById('custom-unit').value.trim() || '个';
+            } else {
+                // 预设单位
+                const unitMap = {
+                    'lesson': '课',
+                    'page': '页',
+                    'chapter': '日',
+                    'unit': '单元'
+                };
+                unit = unitMap[subtaskType] || '个';
+            }
             
             const startDateObj = new Date(startDate);
             
-            for (let i = 1; i <= subtaskCount; i++) {
+            for (let i = 0; i < subtaskCount; i++) {
+                const currentNumber = subtaskStartNumber + i;
                 const subtaskDate = new Date(startDateObj);
-                subtaskDate.setDate(subtaskDate.getDate() + (i - 1) * interval);
+                subtaskDate.setDate(subtaskDate.getDate() + i * interval);
                 
                 let subtaskDescription = '';
                 if (descriptionTemplate) {
                     subtaskDescription = descriptionTemplate
-                        .replace(/{index}/g, i)
+                        .replace(/{index}/g, currentNumber)
+                        .replace(/{start}/g, subtaskStartNumber)
                         .replace(/{total}/g, subtaskCount);
                 }
                 
                 const subtask = {
-                    id: Date.now() + i,
+                    id: Date.now() + i + 1,
                     subject: subject,
-                    name: `${name} 第${i}${unit}`,
+                    name: `${name} 第${currentNumber}${unit}`,
                     description: subtaskDescription,
                     createDate: subtaskDate.toISOString(),
                     status: 'active',
@@ -5332,8 +3543,11 @@ if (subtaskType === 'custom') {
                     firstDayCheckinCount: 1,
                     pinned: false,
                     parentTaskId: parentTask.id,
-                    subtaskIndex: i,
-                    subtaskTotal: subtaskCount
+                    subtaskIndex: currentNumber, // 保存实际编号
+                    subtaskNumber: currentNumber, // 实际编号
+                    subtaskStartNumber: subtaskStartNumber, // 保存起始编号
+                    subtaskTotal: subtaskCount,
+                    subtaskUnit: unit // 保存单位
                 };
                 
                 appData.tasks.push(subtask);
@@ -5347,7 +3561,7 @@ if (subtaskType === 'custom') {
             renderCalendar();
             renderDataStats();
             
-            alert(`成功创建了系列任务"${name}"，包含${subtaskCount}个子任务！`);
+            alert(`成功创建了系列任务"${name}"，包含${subtaskCount}个子任务，从第${subtaskStartNumber}${unit}开始编号！`);
         }
 
         // 更新任务
@@ -5528,27 +3742,27 @@ if (subtaskType === 'custom') {
         }
 
         // 获取任务的打卡计划
-function getTaskCheckinSchedule(task) {
-    // 如果是子任务，也使用默认打卡计划
-    if (task.parentTaskId) {
-        return checkinSchedule;  // 第1, 2, 4, 7, 15, 30, 90, 150天
-    }
-    
-    if (task.scheduleType === 'daily') {
-        return getDailyCheckinSchedule(task);
-    } else if (task.scheduleType === 'custom' && task.customDates) {
-        const startDate = new Date(task.createDate);
-        startDate.setHours(0, 0, 0, 0);
-        
-        return task.customDates.map(customDate => {
-            const date = new Date(customDate);
-            date.setHours(0, 0, 0, 0);
-            return Math.floor((date - startDate) / (1000 * 60 * 60 * 1000 * 24));
-        }).sort((a, b) => a - b);
-    }
-    
-    return checkinSchedule;
-}
+        function getTaskCheckinSchedule(task) {
+            // 如果是子任务，也使用默认打卡计划
+            if (task.parentTaskId) {
+                return checkinSchedule;  // 第1, 2, 4, 7, 15, 30, 90, 150天
+            }
+            
+            if (task.scheduleType === 'daily') {
+                return getDailyCheckinSchedule(task);
+            } else if (task.scheduleType === 'custom' && task.customDates) {
+                const startDate = new Date(task.createDate);
+                startDate.setHours(0, 0, 0, 0);
+                
+                return task.customDates.map(customDate => {
+                    const date = new Date(customDate);
+                    date.setHours(0, 0, 0, 0);
+                    return Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+                }).sort((a, b) => a - b);
+            }
+            
+            return checkinSchedule;
+        }
 
         // 获取每日打卡计划
         function getDailyCheckinSchedule(task) {
@@ -5852,6 +4066,12 @@ function getTaskCheckinSchedule(task) {
             const subtaskBadge = task.parentTaskId ? 
                 `<span class="subtask-badge">子任务</span>` : '';
             
+            // 添加起始编号标识（如果是子任务）
+            let startNumberBadge = '';
+            if (task.parentTaskId && task.subtaskNumber) {
+                startNumberBadge = `<span class="subtask-start-badge">#${task.subtaskNumber}</span>`;
+            }
+            
             // 第一天打卡次数显示
             const firstDayCheckinInfo = checkpointIndex === 0 && task.firstDayCheckinCount > 1 ? 
                 `<div class="checkin-count-info">第一天需要打卡 ${getFirstDayCheckinCount(task)}/${task.firstDayCheckinCount} 次</div>` : '';
@@ -5864,7 +4084,7 @@ function getTaskCheckinSchedule(task) {
             
             taskEl.innerHTML = `
                 <div class="task-header">
-                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}${pauseBadge}${subtaskBadge}
+                    <div class="task-name ${subjectClass}">${task.subject} - ${task.name}${frequencyBadge}${pinnedBadge}${pauseBadge}${subtaskBadge}${startNumberBadge}
                         ${needsRedo ? '<span class="redo-badge">需重做</span>' : ''}
                     </div>
                     <div class="task-status ${isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
@@ -5902,17 +4122,21 @@ function getTaskCheckinSchedule(task) {
                         </button>` : ''}
                     <button class="btn btn-secondary" onclick="showEditTaskForm(${task.id})">编辑</button>
                     <button class="btn btn-secondary" onclick="viewTaskDetails(${task.id})">详情</button>
-                    <button class="${task.pinned ? 'btn btn-unpin' : 'btn btn-pin'}" onclick="toggleTaskPin(${task.id})">
-                        ${task.pinned ? '取消置顶' : '置顶'}
-                    </button>
-                    ${isTaskPaused(task) ? 
-                        `<button class="btn btn-resume" onclick="resumeTask(${task.id})">恢复</button>` :
-                        `<button class="btn btn-pause" onclick="pauseSingleTask(${task.id})">暂停</button>`
-                    }
-                    <button class="btn btn-warning" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
-                    <button class="btn btn-danger" onclick="deleteTask(${task.id})">删除</button>
-                    ${completedCheckins > 0 ? 
-                        `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
+<button class="btn btn-secondary" onclick="toggleTaskPin(${task.id})">
+    ${task.pinned ? '取消置顶' : '置顶'}
+</button>
+
+${isTaskPaused(task) ? 
+    `<button class="btn btn-secondary" onclick="resumeTask(${task.id})">恢复</button>` :
+    `<button class="btn btn-secondary" onclick="pauseSingleTask(${task.id})">暂停</button>`
+}
+
+<button class="btn btn-secondary" onclick="showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
+
+<button class="btn btn-secondary" onclick="deleteTask(${task.id})">删除</button>
+
+${completedCheckins > 0 ? 
+    `<button class="btn btn-secondary" onclick="playLatestRecording(${task.id})" id="play-latest-${task.id}">回放录音</button>` : ''}
                 </div>
             `;
             
@@ -6112,27 +4336,28 @@ function getTaskCheckinSchedule(task) {
             const pausedTasks = [];
             const completedTasks = [];
             
-// 简单合并所有任务（除了子任务）
-const sortedTasks = [...parentTasks, ...normalTasks];
-
-// 按照今日任务一样的规则排序：先置顶，再科目，最后名称
-sortedTasks.sort((a, b) => {
-    // 1. 置顶任务排在最前面
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    
-    // 2. 然后按科目排序
-    const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
-    const subjectA = subjectOrder[a.subject] || 6;
-    const subjectB = subjectOrder[b.subject] || 6;
-    
-    if (subjectA !== subjectB) {
-        return subjectA - subjectB;
-    }
-    
-    // 3. 相同科目按字母顺序排序
-    return a.name.localeCompare(b.name, 'zh-CN');
-});            
+            // 简单合并所有任务（除了子任务）
+            const sortedTasks = [...parentTasks, ...normalTasks];
+            
+            // 按照今日任务一样的规则排序：先置顶，再科目，最后名称
+            sortedTasks.sort((a, b) => {
+                // 1. 置顶任务排在最前面
+                if (a.pinned && !b.pinned) return -1;
+                if (!a.pinned && b.pinned) return 1;
+                
+                // 2. 然后按科目排序
+                const subjectOrder = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
+                const subjectA = subjectOrder[a.subject] || 6;
+                const subjectB = subjectOrder[b.subject] || 6;
+                
+                if (subjectA !== subjectB) {
+                    return subjectA - subjectB;
+                }
+                
+                // 3. 相同科目按字母顺序排序
+                return a.name.localeCompare(b.name, 'zh-CN');
+            });
+            
             sortedTasks.forEach(task => {
                 // 跳过已经渲染的父任务
                 if (task.isParentTask && document.getElementById(`parent-task-${task.id}`)) {
@@ -6307,12 +4532,12 @@ sortedTasks.sort((a, b) => {
             });
         }
 
-        // 渲染父任务及其子任务
+        // 渲染父任务及其子任务 - 支持显示起始编号
         function renderParentTask(parentTask, allSubtasks) {
             const subtasks = allSubtasks.filter(st => st.parentTaskId === parentTask.id);
             
-            // 按子任务索引排序
-            subtasks.sort((a, b) => (a.subtaskIndex || 0) - (b.subtaskIndex || 0));
+            // 按子任务编号排序
+            subtasks.sort((a, b) => (a.subtaskNumber || a.subtaskIndex || 0) - (b.subtaskNumber || b.subtaskIndex || 0));
             
             // 计算完成情况
             const completedSubtasks = subtasks.filter(st => {
@@ -6336,6 +4561,10 @@ sortedTasks.sort((a, b) => {
             };
             const unit = unitMap[parentTask.subtaskType] || '个';
             
+            // 获取起始编号
+            const startNumber = parentTask.subtaskStartNumber || 1;
+            const endNumber = startNumber + (parentTask.subtaskCount || subtasks.length) - 1;
+            
             const isCollapsed = parentTask.collapsed !== false; // 默认展开
             
             parentTaskEl.innerHTML = `
@@ -6351,6 +4580,10 @@ sortedTasks.sort((a, b) => {
                         <div class="subtask-summary-item">
                             <div class="subtask-summary-label">子任务总数</div>
                             <div class="subtask-summary-value">${totalSubtasks} ${unit}</div>
+                        </div>
+                        <div class="subtask-summary-item">
+                            <div class="subtask-summary-label">编号范围</div>
+                            <div class="subtask-summary-value">${startNumber} ~ ${endNumber}</div>
                         </div>
                         <div class="subtask-summary-item">
                             <div class="subtask-summary-label">已完成</div>
@@ -6389,7 +4622,7 @@ sortedTasks.sort((a, b) => {
             allTasksEl.appendChild(parentTaskEl);
         }
 
-        // 渲染子任务项
+        // 渲染子任务项 - 支持显示编号
         function renderSubtaskItem(subtask) {
             const taskSchedule = getTaskCheckinSchedule(subtask);
             const completedCheckins = subtask.checkins.filter(c => c.status === 'completed').length;
@@ -6457,13 +4690,17 @@ sortedTasks.sort((a, b) => {
             
             const subjectClass = `subject-${getSubjectClass(subtask.subject)}`;
             
+            // 显示子任务编号
+            const taskNumber = subtask.subtaskNumber || subtask.subtaskIndex || '';
+            const numberBadge = taskNumber ? `<span class="subtask-start-badge">#${taskNumber}</span>` : '';
+            
             // 暂停信息
             const pauseInfo = isTaskPaused(subtask) ? renderPauseInfo(subtask) : '';
             
             return `
                 <div class="subtask-item">
                     <div class="task-header">
-                        <div class="task-name ${subjectClass}">${subtask.name} <span class="subtask-badge">子任务</span>
+                        <div class="task-name ${subjectClass}">${subtask.name} <span class="subtask-badge">子任务</span>${numberBadge}
                             ${hasRedo ? '<span class="redo-badge">需重做</span>' : ''}
                         </div>
                         <div class="task-status ${statusClass}">
@@ -6515,8 +4752,8 @@ sortedTasks.sort((a, b) => {
             
             const subtasks = getSubtasks(parentTaskId);
             
-            // 按子任务索引排序
-            subtasks.sort((a, b) => (a.subtaskIndex || 0) - (b.subtaskIndex || 0));
+            // 按子任务编号排序
+            subtasks.sort((a, b) => (a.subtaskNumber || a.subtaskIndex || 0) - (b.subtaskNumber || b.subtaskIndex || 0));
             
             const unitMap = {
                 'lesson': '课',
@@ -6526,16 +4763,19 @@ sortedTasks.sort((a, b) => {
             };
             const unit = unitMap[parentTask.subtaskType] || '个';
             
+            const startNumber = parentTask.subtaskStartNumber || 1;
+            
             let subtaskDetails = '';
             subtasks.forEach(subtask => {
                 const taskSchedule = getTaskCheckinSchedule(subtask);
                 const completedCheckins = subtask.checkins.filter(c => c.status === 'completed').length;
                 const totalCheckins = taskSchedule.length;
                 const isCompleted = completedCheckins === totalCheckins;
+                const taskNumber = subtask.subtaskNumber || subtask.subtaskIndex || '';
                 
                 subtaskDetails += `
                     <div class="checkin-item">
-                        <div class="checkin-day">${subtask.name}:</div>
+                        <div class="checkin-day">第${taskNumber}${unit}:</div>
                         <div class="checkin-status">
                             <span class="status-icon ${isCompleted ? 'status-completed-icon' : 'status-missed-icon'}">
                                 ${isCompleted ? '✅' : '❌'}
@@ -6554,7 +4794,7 @@ sortedTasks.sort((a, b) => {
                 </div>
                 <div class="form-group">
                     <label>子任务设置</label>
-                    <p>类型: ${unit}，数量: ${parentTask.subtaskCount || subtasks.length}，间隔: ${parentTask.subtaskInterval || 1}天</p>
+                    <p>类型: ${unit}，起始编号: ${startNumber}，数量: ${parentTask.subtaskCount || subtasks.length}，间隔: ${parentTask.subtaskInterval || 1}天</p>
                 </div>
                 <div class="form-group">
                     <label>创建日期</label>
@@ -6795,11 +5035,12 @@ sortedTasks.sort((a, b) => {
                 recorderCheckpointEl.textContent += ' (重做)';
             }
             
-            // 如果是子任务，显示父任务信息
+            // 如果是子任务，显示父任务信息和编号
             if (appData.currentTask.parentTaskId) {
                 const parentTask = appData.tasks.find(t => t.id === appData.currentTask.parentTaskId);
                 if (parentTask) {
-                    recorderCheckpointEl.textContent += ` [${parentTask.name} 系列]`;
+                    const taskNumber = appData.currentTask.subtaskNumber || appData.currentTask.subtaskIndex || '';
+                    recorderCheckpointEl.textContent += ` [${parentTask.name} 系列 - 第${taskNumber}]`;
                 }
             }
             
@@ -6832,11 +5073,12 @@ sortedTasks.sort((a, b) => {
                 photoCheckpointEl.textContent += ' (重做)';
             }
             
-            // 如果是子任务，显示父任务信息
+            // 如果是子任务，显示父任务信息和编号
             if (appData.currentTask.parentTaskId) {
                 const parentTask = appData.tasks.find(t => t.id === appData.currentTask.parentTaskId);
                 if (parentTask) {
-                    photoCheckpointEl.textContent += ` [${parentTask.name} 系列]`;
+                    const taskNumber = appData.currentTask.subtaskNumber || appData.currentTask.subtaskIndex || '';
+                    photoCheckpointEl.textContent += ` [${parentTask.name} 系列 - 第${taskNumber}]`;
                 }
             }
             
@@ -7551,11 +5793,12 @@ sortedTasks.sort((a, b) => {
             if (task.parentTaskId) {
                 const parentTask = appData.tasks.find(t => t.id === task.parentTaskId);
                 if (parentTask) {
+                    const taskNumber = task.subtaskNumber || task.subtaskIndex || '';
                     parentTaskInfo = `
                         <div class="form-group">
                             <label>所属系列</label>
                             <p>${parentTask.subject} - ${parentTask.name}</p>
-                            <p>子任务: ${task.subtaskIndex || 1}/${task.subtaskTotal || 1}</p>
+                            <p>子任务编号: ${taskNumber} / ${task.subtaskTotal || 1}</p>
                         </div>
                     `;
                 }
@@ -7763,8 +6006,10 @@ sortedTasks.sort((a, b) => {
                     "完成进度",
                     "最近打卡时间",
                     "父任务ID",
-                    "子任务序号",
-                    "子任务总数"
+                    "子任务编号",
+                    "子任务起始编号",
+                    "子任务总数",
+                    "子任务单位"
                 ];
                 
                 csvContent += headers.join(",") + "\n";
@@ -7793,7 +6038,7 @@ sortedTasks.sort((a, b) => {
                     const row = [
                         task.id,
                         task.subject,
-                        task.name,
+                        `"${task.name.replace(/"/g, '""')}"`,
                         task.description ? `"${task.description.replace(/"/g, '""')}"` : '',
                         new Date(task.createDate).toLocaleDateString(),
                         task.status,
@@ -7807,8 +6052,10 @@ sortedTasks.sort((a, b) => {
                         progressPercent,
                         lastCheckinDate,
                         task.parentTaskId || '',
-                        task.subtaskIndex || '',
-                        task.subtaskTotal || ''
+                        task.subtaskNumber || task.subtaskIndex || '',
+                        task.subtaskStartNumber || '',
+                        task.subtaskTotal || '',
+                        task.subtaskUnit || ''
                     ];
                     
                     csvContent += row.join(",") + "\n";
@@ -7990,13 +6237,19 @@ sortedTasks.sort((a, b) => {
                         dayDisplay = `第${checkpointDay}天`;
                     }
                     
+                    // 如果是子任务，显示编号
+                    let taskNumberDisplay = '';
+                    if (task && task.subtaskNumber) {
+                        taskNumberDisplay = ` #${task.subtaskNumber}`;
+                    }
+                    
                     const date = new Date(checkin.date).toLocaleString();
                     
                     const checkinType = checkin.type === 'audio' ? '录音' : '照片';
                     
                     checkinEl.innerHTML = `
                         <div class="recording-info">
-                            <div class="recording-name">${taskName} - ${dayDisplay} (${checkinType})</div>
+                            <div class="recording-name">${taskName}${taskNumberDisplay} - ${dayDisplay} (${checkinType})</div>
                             <div class="recording-duration">
                                 ${date} | ${checkin.type === 'audio' ? `时长: ${formatTime(checkin.duration)}` : '照片打卡'}
                             </div>
@@ -8363,9 +6616,13 @@ sortedTasks.sort((a, b) => {
                 const subtaskBadge = task.parentTaskId ? 
                     `<span class="subtask-badge">子任务</span>` : '';
                 
+                // 子任务编号
+                const taskNumberBadge = (task.parentTaskId && task.subtaskNumber) ? 
+                    `<span class="subtask-start-badge">#${task.subtaskNumber}</span>` : '';
+                
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name">${task.subject} - ${task.name}${subtaskBadge}</div>
+                        <div class="task-name">${task.subject} - ${task.name}${subtaskBadge}${taskNumberBadge}</div>
                         <div class="task-status ${isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
                             ${isTaskPaused(task) ? '已暂停' : (isOverdue ? `逾期${daysSinceStart - getTaskCheckinSchedule(task)[checkpointIndex]}天` : dayDisplay)} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                         </div>
@@ -8439,13 +6696,19 @@ sortedTasks.sort((a, b) => {
                 dayDisplay = `第${checkpointDay}天`;
             }
             
+            // 如果是子任务，显示编号
+            let taskNumberDisplay = '';
+            if (task.subtaskNumber) {
+                taskNumberDisplay = ` (#${task.subtaskNumber})`;
+            }
+            
             const checkinDate = checkin ? new Date(checkin.date).toLocaleString() : '未打卡';
             const currentStatus = checkin ? (checkin.status === 'needs_redo' ? '需重做' : '已完成') : '未打卡';
             
             redoTasksList.innerHTML = `
                 <div class="redo-item">
                     <div class="redo-info">
-                        <strong>${task.subject} - ${task.name}</strong>
+                        <strong>${task.subject} - ${task.name}${taskNumberDisplay}</strong>
                         <div class="redo-reason">${dayDisplay} | 当前状态: ${currentStatus}</div>
                         <div class="redo-reason">原打卡时间: ${checkinDate}</div>
                     </div>
@@ -8619,7 +6882,13 @@ sortedTasks.sort((a, b) => {
             
             appData.allRecordings.forEach(recording => {
                 const task = appData.tasks.find(t => t.id === recording.taskId);
-                const taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
+                let taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
+                
+                // 如果是子任务，显示编号
+                if (task && task.subtaskNumber) {
+                    taskName += ` (#${task.subtaskNumber})`;
+                }
+                
                 const date = new Date(recording.date).toLocaleString();
                 
                 // 计算文件大小
@@ -8667,7 +6936,13 @@ sortedTasks.sort((a, b) => {
             
             appData.allPhotos.forEach(photo => {
                 const task = appData.tasks.find(t => t.id === photo.taskId);
-                const taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
+                let taskName = task ? `${task.subject} - ${task.name}` : '未知任务';
+                
+                // 如果是子任务，显示编号
+                if (task && task.subtaskNumber) {
+                    taskName += ` (#${task.subtaskNumber})`;
+                }
+                
                 const date = new Date(photo.date).toLocaleString();
                 
                 // 计算文件大小
@@ -8875,5 +7150,455 @@ sortedTasks.sort((a, b) => {
             });
         });
     </script>
+<script>
+// ========== 🌟 本地文件存储模块（只做一件事：保存/读取媒体文件，绝不改动原有功能）==========
+(function() {
+    // 存储管理器
+    class LocalFileStorage {
+        constructor() {
+            this.directoryHandle = null;
+            this.permissionVerified = false;
+            this.mode = 'unset'; // 'native', 'fallback', 'unset'
+            this.SETTING_KEY = 'reviewPlan_storageHandle_v1';
+        }
+
+        // 初始化
+        async init() {
+            const stored = localStorage.getItem(this.SETTING_KEY);
+            if (stored && window.showDirectoryPicker) {
+                try {
+                    const data = JSON.parse(stored);
+                    if (data && data.name) {
+                        this.mode = 'unset';
+                    }
+                } catch(e) {}
+            }
+            return false;
+        }
+
+        // 请求文件夹权限
+        async requestFolder() {
+            if (!window.showDirectoryPicker) {
+                this.mode = 'fallback';
+                return { success: false, fallback: true };
+            }
+            try {
+                const handle = await window.showDirectoryPicker({
+                    id: 'ReviewPlanMedia',
+                    mode: 'readwrite'
+                });
+                const opts = { mode: 'readwrite' };
+                if (await handle.queryPermission(opts) !== 'granted') {
+                    if (await handle.requestPermission(opts) !== 'granted') {
+                        throw new Error('权限被拒绝');
+                    }
+                }
+                this.directoryHandle = handle;
+                this.mode = 'native';
+                this.permissionVerified = true;
+                localStorage.setItem(this.SETTING_KEY, JSON.stringify({ 
+                    name: handle.name, 
+                    time: Date.now() 
+                }));
+                return { success: true };
+            } catch(err) {
+                return { success: false, error: err.message };
+            }
+        }
+
+        // 清除设置
+        clearSetting() {
+            this.directoryHandle = null;
+            this.permissionVerified = false;
+            this.mode = 'unset';
+            localStorage.removeItem(this.SETTING_KEY);
+        }
+
+        // 获取状态
+        getStatus() { return this.mode; }
+
+        // 生成文件名
+        _generateFileName(task, checkpointIndex, type, ext) {
+            const safeName = (task.subject + '_' + task.name)
+                .replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')
+                .substring(0, 30);
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0,19);
+            return `${type}_${task.id}_${safeName}_day${checkpointIndex}_${timestamp}.${ext}`;
+        }
+
+        // 保存音频
+        async saveAudio(blob, task, checkpointIndex) {
+            const fileName = this._generateFileName(task, checkpointIndex, 'audio', 'webm');
+            return this._saveFile(blob, fileName);
+        }
+
+        // 保存照片（压缩质量70%已在拍照时完成）
+        async savePhoto(blob, task, checkpointIndex) {
+            const fileName = this._generateFileName(task, checkpointIndex, 'photo', 'jpg');
+            return this._saveFile(blob, fileName);
+        }
+
+        // 通用保存
+        async _saveFile(blob, fileName) {
+            if (this.mode === 'native' && this.directoryHandle && this.permissionVerified) {
+                try {
+                    const fileHandle = await this.directoryHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    const file = await fileHandle.getFile();
+                    return { 
+                        success: true, 
+                        fileName, 
+                        size: file.size, 
+                        native: true 
+                    };
+                } catch(err) {
+                    console.warn('本地保存失败，降级下载', err);
+                }
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+            return { 
+                success: true, 
+                fileName, 
+                size: blob.size, 
+                native: false, 
+                fallback: true 
+            };
+        }
+
+        // 获取文件URL（用于播放/查看）
+        async getFileUrl(fileName) {
+            if (this.mode === 'native' && this.directoryHandle) {
+                try {
+                    const fileHandle = await this.directoryHandle.getFileHandle(fileName);
+                    const file = await fileHandle.getFile();
+                    return { success: true, url: URL.createObjectURL(file) };
+                } catch(err) {
+                    return { success: false };
+                }
+            }
+            return { success: false, fallback: true };
+        }
+
+        // 列出所有媒体文件
+        async listAllMediaFiles() {
+            if (this.mode !== 'native' || !this.directoryHandle) {
+                return { success: false, fallback: true, files: [] };
+            }
+            const files = [];
+            try {
+                for await (const entry of this.directoryHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const name = entry.name;
+                        if (name.startsWith('audio_') || name.startsWith('photo_')) {
+                            const file = await entry.getFile();
+                            files.push({
+                                name,
+                                size: file.size,
+                                lastModified: file.lastModified,
+                                type: name.startsWith('audio_') ? 'audio' : 'photo',
+                                handle: entry
+                            });
+                        }
+                    }
+                }
+                return { success: true, files };
+            } catch(err) {
+                return { success: false, error: err };
+            }
+        }
+
+        // 批量删除
+        async deleteFiles(fileNames) {
+            if (this.mode !== 'native' || !this.directoryHandle) {
+                return { success: false, message: '非本地模式无法删除' };
+            }
+            let success = 0, fail = 0;
+            for (const name of fileNames) {
+                try {
+                    await this.directoryHandle.removeEntry(name);
+                    success++;
+                } catch(err) {
+                    fail++;
+                }
+            }
+            return { success: true, successCount: success, failCount: fail };
+        }
+    }
+
+    // 创建全局实例
+    window.localFileStorage = new LocalFileStorage();
+
+    // ========== UI 控制 ==========
+    document.addEventListener('DOMContentLoaded', async function() {
+        const storage = window.localFileStorage;
+        await storage.init();
+
+        function updateStorageUI() {
+            const badge = document.getElementById('storageStatusBadge');
+            const display = document.getElementById('storagePathDisplay');
+            if (!badge || !display) return;
+            
+            const status = storage.getStatus();
+            if (status === 'native') {
+                badge.textContent = '已设置(本地)';
+                badge.className = 'storage-status status-set';
+                display.innerHTML = `📁 已选择文件夹: ${storage.directoryHandle?.name || '已授权'}<br>✓ 录音/照片将直接保存到该目录`;
+            } else if (status === 'fallback') {
+                badge.textContent = '回退模式(下载)';
+                badge.className = 'storage-status status-fallback';
+                display.innerHTML = '⚠️ 浏览器不支持文件夹API，文件将自动下载到「下载」文件夹';
+            } else {
+                badge.textContent = '未设置';
+                badge.className = 'storage-status status-unset';
+                display.innerHTML = '⚠️ 未设置本地文件夹，媒体文件将临时保存在浏览器缓存中';
+            }
+        }
+
+        const setBtn = document.getElementById('setStorageFolderBtn');
+        const clearBtn = document.getElementById('clearStorageFolderBtn');
+        
+        if (setBtn) {
+            setBtn.addEventListener('click', async function() {
+                const res = await storage.requestFolder();
+                if (res.success) {
+                    alert('✅ 存储文件夹设置成功');
+                } else if (res.fallback) {
+                    storage.mode = 'fallback';
+                    alert('⚠️ 已切换为下载回退模式');
+                } else {
+                    alert('❌ 设置失败：' + (res.error || '用户取消'));
+                }
+                updateStorageUI();
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                storage.clearSetting();
+                storage.mode = 'unset';
+                updateStorageUI();
+                alert('已清除存储路径设置，回退至浏览器缓存模式');
+            });
+        }
+
+        updateStorageUI();
+    });
+
+    // ========== 劫持媒体保存（只替换文件存储方式）==========
+    function patchMediaFunctions() {
+        if (!window.appData || !window.submitRecording || !window.submitPhoto) {
+            setTimeout(patchMediaFunctions, 200);
+            return;
+        }
+
+        console.log('应用本地存储补丁 - 仅替换媒体保存方式');
+
+        const originalSubmitRecording = window.submitRecording;
+        const originalSubmitPhoto = window.submitPhoto;
+        const originalPlayRecording = window.playSavedRecording;
+        const originalViewPhoto = window.viewPhoto;
+
+        // 重写录音提交
+        window.submitRecording = async function() {
+            if (!window.appData.currentRecording) {
+                alert('请先完成录音！');
+                return;
+            }
+
+            const task = window.appData.currentTask;
+            const checkpointIndex = window.appData.currentCheckpointIndex;
+            
+            let audioBlob;
+            try {
+                const base64 = window.appData.currentRecording.audioData;
+                if (!base64) throw new Error('无音频数据');
+                const byteString = atob(base64.split(',')[1]);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+                audioBlob = new Blob([ab], { type: 'audio/webm' });
+            } catch(e) {
+                console.error('音频转换失败', e);
+                alert('音频数据格式错误');
+                return;
+            }
+
+            const storage = window.localFileStorage;
+            const saveResult = await storage.saveAudio(audioBlob, task, checkpointIndex);
+            
+            if (!saveResult.success) {
+                alert('保存音频文件失败，无法提交打卡');
+                return;
+            }
+
+            const recordingId = Date.now();
+            const recording = {
+                id: recordingId,
+                taskId: task.id,
+                checkpointIndex: checkpointIndex,
+                date: new Date().toISOString(),
+                duration: window.appData.recordingTime,
+                fileName: saveResult.fileName,
+                mimeType: 'audio/webm',
+                type: 'audio',
+                size: saveResult.size,
+                native: saveResult.native
+            };
+
+            window.appData.currentRecording = recording;
+            
+            await originalSubmitRecording.call(window);
+        };
+
+        // 重写拍照提交
+        window.submitPhoto = async function() {
+            if (!window.appData.currentPhoto) {
+                alert('请先拍照！');
+                return;
+            }
+
+            const task = window.appData.currentTask;
+            const checkpointIndex = window.appData.currentCheckpointIndex;
+            
+            let imageBlob;
+            try {
+                const base64 = window.appData.currentPhoto.imageData;
+                const byteString = atob(base64.split(',')[1]);
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+                imageBlob = new Blob([ab], { type: 'image/jpeg' });
+            } catch(e) {
+                alert('图片数据错误');
+                return;
+            }
+
+            const storage = window.localFileStorage;
+            const saveResult = await storage.savePhoto(imageBlob, task, checkpointIndex);
+            
+            if (!saveResult.success) {
+                alert('保存照片失败');
+                return;
+            }
+
+            const photoId = Date.now();
+            const photo = {
+                id: photoId,
+                taskId: task.id,
+                checkpointIndex: checkpointIndex,
+                date: new Date().toISOString(),
+                fileName: saveResult.fileName,
+                type: 'photo',
+                size: saveResult.size,
+                native: saveResult.native
+            };
+
+            window.appData.currentPhoto = photo;
+            
+            await originalSubmitPhoto.call(window);
+        };
+
+        // 重写播放录音
+        window.playSavedRecording = async function(recordingId) {
+            let recording = window.appData.recordings?.find(r => r.id === recordingId);
+            if (!recording && window.appData.allRecordings) {
+                recording = window.appData.allRecordings.find(r => r.id === recordingId);
+            }
+            
+            if (!recording || !recording.fileName) {
+                if (originalPlayRecording) originalPlayRecording.call(window, recordingId);
+                return;
+            }
+
+            const storage = window.localFileStorage;
+            const result = await storage.getFileUrl(recording.fileName);
+            
+            if (result.success) {
+                const audio = document.getElementById('audio-player');
+                if (audio) {
+                    audio.src = result.url;
+                    audio.classList.remove('hidden');
+                    audio.play();
+                }
+            } else {
+                alert('无法读取本地录音文件，文件可能已被移动或删除');
+            }
+        };
+
+        // 重写查看照片
+        window.viewPhoto = async function(photoId) {
+            let photo = window.appData.photos?.find(p => p.id === photoId);
+            if (!photo && window.appData.allPhotos) {
+                photo = window.appData.allPhotos.find(p => p.id === photoId);
+            }
+            
+            if (!photo || !photo.fileName) {
+                if (originalViewPhoto) originalViewPhoto.call(window, photoId);
+                return;
+            }
+
+            const storage = window.localFileStorage;
+            const result = await storage.getFileUrl(photo.fileName);
+            
+            if (result.success) {
+                const win = window.open('', '_blank');
+                win.document.write(`<img src="${result.url}" style="max-width:100%;">`);
+            } else {
+                alert('无法读取本地照片文件');
+            }
+        };
+
+        // 重写管理录音/照片
+        const originalManage = window.showRecordingsManageModal;
+        window.showRecordingsManageModal = async function() {
+            const storage = window.localFileStorage;
+            const listResult = await storage.listAllMediaFiles();
+            
+            if (listResult.success) {
+                window.appData.allRecordings = listResult.files
+                    .filter(f => f.type === 'audio')
+                    .map(f => ({
+                        id: f.name,
+                        fileName: f.name,
+                        size: f.size,
+                        date: new Date(f.lastModified).toISOString(),
+                        taskId: null
+                    }));
+                window.appData.allPhotos = listResult.files
+                    .filter(f => f.type === 'photo')
+                    .map(f => ({
+                        id: f.name,
+                        fileName: f.name,
+                        size: f.size,
+                        date: new Date(f.lastModified).toISOString()
+                    }));
+                
+                if (typeof window.renderRecordingsTable === 'function') {
+                    window.renderRecordingsTable();
+                    window.renderPhotosTable();
+                }
+                
+                const modal = document.getElementById('recordings-manage-modal');
+                if (modal) modal.classList.remove('hidden');
+            } else {
+                alert('当前为回退下载模式，无法列出本地文件。请手动到下载文件夹查看。');
+            }
+        };
+
+        console.log('✅ 本地存储补丁安装完成，原有功能完全保留');
+    }
+
+    setTimeout(patchMediaFunctions, 500);
+})();
+</script>
 </body>
 </html>
