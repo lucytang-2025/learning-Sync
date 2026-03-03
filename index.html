@@ -2692,25 +2692,18 @@
                 </div>
                 
 <div class="data-card">
-    <h3>📁 录音保存设置</h3>
-    <div class="form-group">
-        <label for="save-location">保存位置</label>
-        <select id="save-location" class="form-control">
-            <option value="browser">浏览器内存储（默认）</option>
-            <option value="download">下载到电脑文件夹</option>
-        </select>
-        <p style="font-size: 12px; color: #64748b; margin-top: 5px;">
-            ⚠️ 选择"下载到电脑文件夹"后，录音会自动保存到您的"下载"文件夹
-        </p>
-    </div>
-    <div class="form-group" id="download-path-info" style="display: none;">
-        <label>当前保存路径</label>
-        <div style="background: #f8fafc; padding: 10px; border-radius: 6px; word-break: break-all;">
-            <span id="download-path-display">您的下载文件夹</span>
+    <h3>📁 录音自动保存</h3>
+    <div class="form-group" id="download-path-info">
+        <label>录音保存位置</label>
+        <div style="background: #f8fafc; padding: 15px; border-radius: 6px;">
+            <p style="margin: 5px 0;">✅ 录音会自动保存到您的 <strong>下载文件夹</strong></p>
+            <p style="font-size: 12px; color: #64748b; margin: 5px 0;">
+                📍 文件名格式：录音_科目_任务名_日期时间.wav
+            </p>
+            <p style="font-size: 12px; color: #64748b; margin: 5px 0;">
+                💡 您可以在浏览器设置中更改下载位置
+            </p>
         </div>
-        <p style="font-size: 12px; color: #64748b; margin-top: 5px;">
-            💡 您可以在浏览器设置中更改下载文件夹的位置
-        </p>
     </div>
 </div>
                 <div class="data-card">
@@ -3137,7 +3130,6 @@
             selectedTasksForResume: new Set(),
             lastMemoryCheck: 0,
             memoryCheckInterval: null,
-            saveLocation: 'download', // 'browser' 或 'download' - 默认下载到文件夹
             showMemoryWarning: true,
             taskType: 'normal',
             subtaskType: 'lesson',
@@ -3804,14 +3796,6 @@
             // 检查并恢复过期暂停的任务
             await checkAndResumePausedTasks();
             
-// 初始化保存设置
-const saveLocationSelect = document.getElementById('save-location');
-if (saveLocationSelect) {
-    saveLocationSelect.value = appData.saveLocation;
-    if (appData.saveLocation === 'download') {
-        document.getElementById('download-path-info').style.display = 'block';
-    }
-}
             console.log('应用初始化完成');
         }
 
@@ -5069,21 +5053,6 @@ if (saveLocationSelect) {
             importDataFile.addEventListener('change', handleImportFileSelect);
             importDataBtn.addEventListener('click', importData);
             clearDataBtn.addEventListener('click', clearAllData);
-// 录音保存位置设置
-const saveLocationSelect = document.getElementById('save-location');
-if (saveLocationSelect) {
-    saveLocationSelect.addEventListener('change', function() {
-        appData.saveLocation = this.value;
-        const downloadPathInfo = document.getElementById('download-path-info');
-        if (this.value === 'download') {
-            downloadPathInfo.style.display = 'block';
-            // 显示提示信息
-            alert('录音将自动保存到您的下载文件夹。您可以在浏览器设置中更改下载位置。');
-        } else {
-            downloadPathInfo.style.display = 'none';
-        }
-    });
-}
         }
 
         // 设置录音管理事件监听器
@@ -7321,36 +7290,30 @@ if (saveLocationSelect) {
                 type: 'audio',
                 status: 'completed'
             });
-            // 如果选择保存到下载文件夹，自动下载录音文件
-if (appData.saveLocation === 'download' && appData.currentRecording) {
-    try {
-        // 从Base64创建Blob
-        const audioBlob = dataURLtoBlob(appData.currentRecording.audioData);
-        
-        // 创建文件名
-        const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
-        const fileName = `录音_${task ? task.subject + '_' + task.name : '未知'}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.wav`;
-        
-        // 创建下载链接
-        const url = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        // 显示提示
-        const downloadPathInfo = document.getElementById('download-path-info');
-        if (downloadPathInfo) {
-            downloadPathInfo.style.display = 'block';
-        }
-        
-        console.log('录音已下载到下载文件夹:', fileName);
-    } catch (error) {
-        console.error('下载录音失败:', error);
-    }
+ // 自动下载录音文件到下载文件夹
+try {
+    // 从Base64创建Blob
+    const audioBlob = dataURLtoBlob(appData.currentRecording.audioData);
+    
+    // 创建文件名：录音_科目_任务名_日期时间.wav
+    const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}-${now.getSeconds().toString().padStart(2,'0')}`;
+    const fileName = `录音_${task ? task.subject + '_' + task.name.replace(/[\/\\:*?"<>|]/g, '_') : '未知'}_${dateStr}.wav`;
+    
+    // 创建下载链接并自动点击下载
+    const url = URL.createObjectURL(audioBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    console.log('✅ 录音已自动保存到下载文件夹:', fileName);
+} catch (error) {
+    console.error('❌ 下载录音失败:', error);
 }
 
             // 检查是否完成所有打卡
