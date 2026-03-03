@@ -2691,18 +2691,6 @@
                     </div>
                 </div>
                 
-<div class="data-card">
-    <h3>📁 录音保存设置</h3>
-    <div class="form-group">
-        <label for="save-location">保存位置</label>
-        <select id="save-location" class="form-control">
-            <option value="browser">浏览器内存储（默认）</option>
-            <option value="download">下载到电脑文件夹</option>
-        </select>
-        <p style="font-size: 12px; color: #64748b; margin-top: 5px;">
-            ⚠️ 选择"下载到电脑文件夹"后，录音会自动保存到您的"下载"文件夹
-        </p>
-    </div>
     <div class="form-group" id="download-path-info" style="display: none;">
         <label>当前保存路径</label>
         <div style="background: #f8fafc; padding: 10px; border-radius: 6px; word-break: break-all;">
@@ -3137,7 +3125,6 @@
             selectedTasksForResume: new Set(),
             lastMemoryCheck: 0,
             memoryCheckInterval: null,
-            saveLocation: 'browser', // 'browser' 或 'download'
             showMemoryWarning: true,
             taskType: 'normal',
             subtaskType: 'lesson',
@@ -7321,17 +7308,38 @@ if (saveLocationSelect) {
                 type: 'audio',
                 status: 'completed'
             });
-            // 如果选择保存到下载文件夹，自动下载录音文件
-if (appData.saveLocation === 'download' && appData.currentRecording) {
+            // 自动下载录音文件到下载文件夹
+if (appData.currentRecording) {
     try {
+        // 显示下载中的提示
+        const downloadToast = document.createElement('div');
+        downloadToast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4facfe;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-weight: 600;
+        `;
+        downloadToast.innerHTML = '⏳ 正在保存录音文件...';
+        document.body.appendChild(downloadToast);
+        
         // 从Base64创建Blob
         const audioBlob = dataURLtoBlob(appData.currentRecording.audioData);
         
-        // 创建文件名
+        // 创建文件名（使用更友好的格式）
         const task = appData.tasks.find(t => t.id === appData.currentRecording.taskId);
-        const fileName = `录音_${task ? task.subject + '_' + task.name : '未知'}_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.wav`;
+        const taskName = task ? `${task.subject}_${task.name}` : '未知任务';
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`;
+        const fileName = `复习打卡_${taskName}_${dateStr}.wav`;
         
-        // 创建下载链接
+        // 创建下载链接并触发下载
         const url = URL.createObjectURL(audioBlob);
         const a = document.createElement('a');
         a.href = url;
@@ -7339,17 +7347,84 @@ if (appData.saveLocation === 'download' && appData.currentRecording) {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(url);
         
-        // 显示提示
-        const downloadPathInfo = document.getElementById('download-path-info');
-        if (downloadPathInfo) {
-            downloadPathInfo.style.display = 'block';
-        }
+        // 延迟释放URL
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 100);
+        
+        // 移除下载中的提示
+        setTimeout(() => {
+            if (downloadToast.parentNode) {
+                downloadToast.remove();
+            }
+        }, 1500);
+        
+        // 显示成功提示
+        setTimeout(() => {
+            const successToast = document.createElement('div');
+            successToast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #1dd1a1;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                animation: slideIn 0.3s ease;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            successToast.innerHTML = `
+                <span style="font-size: 18px;">✅</span>
+                <div>
+                    <div>录音保存成功！</div>
+                    <div style="font-size: 12px; opacity: 0.9;">文件名: ${fileName}</div>
+                </div>
+            `;
+            document.body.appendChild(successToast);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                if (successToast.parentNode) {
+                    successToast.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => successToast.remove(), 300);
+                }
+            }, 5000);
+        }, 1600);
         
         console.log('录音已下载到下载文件夹:', fileName);
     } catch (error) {
         console.error('下载录音失败:', error);
+        
+        // 显示错误提示
+        const errorToast = document.createElement('div');
+        errorToast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease;
+            font-weight: 600;
+        `;
+        errorToast.innerHTML = `❌ 录音保存失败: ${error.message}`;
+        document.body.appendChild(errorToast);
+        
+        setTimeout(() => {
+            if (errorToast.parentNode) {
+                errorToast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => errorToast.remove(), 300);
+            }
+        }, 3000);
     }
 }
 
