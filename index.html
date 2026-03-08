@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>复习打卡计划 - 修复版</title>
+    <title>复习打卡计划 - 最终版</title>
     <style>
         * {
             margin: 0;
@@ -416,7 +416,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>复习打卡计划 - 修复版</h1>
+            <h1>复习打卡计划 - 最终版</h1>
             <p class="app-description">日积月累、持之以恒，数据安全存储</p>
         </header>
 
@@ -1608,7 +1608,10 @@
                 const hours = Math.floor(totalSeconds / 3600);
                 const minutes = Math.floor((totalSeconds % 3600) / 60);
                 const seconds = totalSeconds % 60;
-                return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const msRemain = Math.floor((ms % 1000) / 10);
+                return hours > 0 
+                    ? `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                    : `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${msRemain.toString().padStart(2, '0')}`;
             };
 
             const formatFileSize = (bytes) => {
@@ -1635,6 +1638,11 @@
                     u8arr[i] = bstr.charCodeAt(i);
                 }
                 return new Blob([u8arr], { type: mime });
+            };
+
+            const getSubjectClass = (subject) => {
+                const map = { '语文': 'chinese', '数学': 'math', '英语': 'english', '科学': 'science', '其他': 'other' };
+                return map[subject] || 'other';
             };
 
             // ==================== 任务计划相关函数 ====================
@@ -1711,13 +1719,25 @@
                     delete task.pauseReason;
                     delete task.pauseDate;
                     return false;
-                                   return true;
                 }
                 return true;
             };
 
             const getSubtasks = (parentTaskId) => {
                 return state.tasks.filter(task => task.parentTaskId === parentTaskId);
+            };
+
+            const getFrequencyDisplayInfo = (task) => {
+                if (task.scheduleType !== 'daily') return '';
+                const freq = task.dailyFrequency || 'daily';
+                const map = { 'daily': '每天', '2days': '每2天一次', '3days': '每3天一次', 'weekly': '每周特定日期' };
+                let info = map[freq];
+                if (freq === 'weekly' && task.selectedWeekdays) {
+                    const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                    const selectedDays = task.selectedWeekdays.map(day => `周${dayNames[day]}`).join('、');
+                    info += ` (${selectedDays})`;
+                }
+                return info;
             };
 
             // ==================== 初始化函数 ====================
@@ -2186,6 +2206,9 @@
 
             const updateTask = async () => {
                 if (!state.editingTask) return;
+                
+                const oldSubject = state.editingTask.subject;
+                const oldName = state.editingTask.name;
                 
                 state.editingTask.subject = DOM.editTaskSubject.value;
                 state.editingTask.name = DOM.editTaskName.value.trim();
@@ -2858,44 +2881,19 @@
                 DOM.photoContainer.classList.toggle('hidden', type !== 'photo');
             };
 
-            // 修复录音问题 - 增加timeslice参数确保数据被定期捕获
             const startRecording = async () => {
                 if (!state.currentTask) { alert('请先选择一个任务！'); return; }
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    
-                    // 检测浏览器支持的音频格式
-                    let mimeType = 'audio/webm';
-                    if (!MediaRecorder.isTypeSupported('audio/webm')) {
-                        if (MediaRecorder.isTypeSupported('audio/ogg')) {
-                            mimeType = 'audio/ogg';
-                        } else {
-                            mimeType = 'audio/mp4';
-                        }
-                    }
-                    
-                    const options = { mimeType: mimeType };
-                    state.mediaRecorder = new MediaRecorder(stream, options);
+                    state.mediaRecorder = new MediaRecorder(stream);
                     state.audioChunks = [];
                     
                     state.mediaRecorder.ondataavailable = (event) => {
-                        if (event.data && event.data.size > 0) {
-                            state.audioChunks.push(event.data);
-                            console.log(`收到音频数据块: ${event.data.size} 字节`);
-                        }
+                        if (event.data.size > 0) state.audioChunks.push(event.data);
                     };
                     
                     state.mediaRecorder.onstop = async () => {
-                        console.log(`录音停止，共收集 ${state.audioChunks.length} 个数据块`);
-                        
-                        if (state.audioChunks.length === 0) {
-                            alert('录音失败：没有捕获到音频数据');
-                            return;
-                        }
-                        
-                        const audioBlob = new Blob(state.audioChunks, { type: mimeType });
-                        console.log(`录音总大小: ${audioBlob.size} 字节`);
-                        
+                        const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
                         const reader = new FileReader();
                         reader.onload = async function() {
                             const recording = {
@@ -2905,10 +2903,9 @@
                                 date: new Date().toISOString(),
                                 duration: state.recordingTime,
                                 audioData: reader.result,
-                                mimeType: mimeType,
+                                mimeType: 'audio/wav',
                                 type: 'audio'
                             };
-                            
                             createAudioUrlFromData(recording);
                             await dataStorage.saveRecording(recording);
                             state.currentRecording = recording;
@@ -2943,18 +2940,15 @@
                     DOM.recordingStatus.style.color = '#ff6b6b';
                     DOM.recordingStatus.classList.remove('hidden');
                     
-                    // 使用timeslice参数每100ms触发一次ondataavailable，确保数据被及时捕获
-                    state.mediaRecorder.start(100);
-                    
+                    state.mediaRecorder.start();
                     state.timerInterval = setInterval(() => {
-                        state.recordingTime += 1000; // 每次增加1秒
+                        state.recordingTime += 10;
                         DOM.timer.textContent = formatTime(state.recordingTime);
                         updateWaveform();
-                    }, 1000);
-                    
+                    }, 10);
                 } catch (error) {
                     console.error('录音启动失败:', error);
-                    alert('无法访问麦克风，请检查权限设置: ' + error.message);
+                    alert('无法访问麦克风，请检查权限设置');
                 }
             };
 
@@ -2964,16 +2958,7 @@
                     const taskName = task ? `${task.subject}_${task.name}` : '未知任务';
                     const date = new Date();
                     const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`;
-                    
-                    // 根据MIME类型确定文件扩展名
-                    let extension = 'webm';
-                    if (recording.mimeType) {
-                        if (recording.mimeType.includes('ogg')) extension = 'ogg';
-                        else if (recording.mimeType.includes('mp4')) extension = 'm4a';
-                        else if (recording.mimeType.includes('wav')) extension = 'wav';
-                    }
-                    
-                    const fileName = `${taskName}_${dateStr}.${extension}`;
+                    const fileName = `${taskName}_${dateStr}.wav`;
                     
                     const audioBlob = dataURLtoBlob(recording.audioData);
                     const url = URL.createObjectURL(audioBlob);
@@ -2997,10 +2982,10 @@
                     DOM.pauseBtn.innerHTML = '❚❚';
                     DOM.recordingStatus.textContent = '录音中...';
                     state.timerInterval = setInterval(() => {
-                        state.recordingTime += 1000;
+                        state.recordingTime += 10;
                         DOM.timer.textContent = formatTime(state.recordingTime);
                         updateWaveform();
-                    }, 1000);
+                    }, 10);
                 } else {
                     state.mediaRecorder.pause();
                     state.isPaused = true;
@@ -3035,10 +3020,7 @@
                 if (state.currentRecording.audioUrl) {
                     DOM.audioPlayer.src = state.currentRecording.audioUrl;
                     DOM.audioPlayer.classList.remove('hidden');
-                    DOM.audioPlayer.play().catch(error => {
-                        console.error('播放失败:', error);
-                        alert('播放录音失败，请尝试重新录音');
-                    });
+                    DOM.audioPlayer.play();
                 }
             };
 
@@ -3331,10 +3313,7 @@
                     switchCheckinType('record');
                     DOM.audioPlayer.src = recording.audioUrl;
                     DOM.audioPlayer.classList.remove('hidden');
-                    DOM.audioPlayer.play().catch(error => {
-                        console.error('播放失败:', error);
-                        alert('播放录音失败，文件可能已损坏');
-                    });
+                    DOM.audioPlayer.play();
                 }
             };
 
