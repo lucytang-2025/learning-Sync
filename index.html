@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>复习打卡计划 - 最终版</title>
+    <title>复习打卡计划 - 最终版 (科目颜色区分 + 自动删除)</title>
     <style>
         * {
             margin: 0;
@@ -411,13 +411,48 @@
             padding: 12px;
             border-bottom: 1px solid #e2e8f0;
         }
+
+        /* 科目颜色标签 */
+        .subject-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            margin-right: 8px;
+        }
+        .subject-chinese { background: #f39c12; }  /* 橙色 */
+        .subject-english { background: #9b59b6; }  /* 紫色 */
+        .subject-math { background: #3498db; }    /* 蓝色 */
+        .subject-science { background: #1abc9c; } /* 绿色 */
+        .subject-other { background: #95a5a6; }   /* 灰色 */
+
+        /* 科目名称颜色 */
+        .subject-name-chinese { color: #f39c12; font-weight: 600; }
+        .subject-name-english { color: #9b59b6; font-weight: 600; }
+        .subject-name-math { color: #3498db; font-weight: 600; }
+        .subject-name-science { color: #1abc9c; font-weight: 600; }
+        .subject-name-other { color: #95a5a6; font-weight: 600; }
+
+        /* 自动清理提示 */
+        .auto-cleanup-badge {
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>复习打卡计划 - 最终版</h1>
-            <p class="app-description">日积月累、持之以恒，数据安全存储</p>
+            <h1>复习打卡计划 - 最终版 <span class="auto-cleanup-badge">每日自动清理录音/照片</span></h1>
+            <p class="app-description">日积月累、持之以恒，数据安全存储，每日凌晨自动清理媒体文件</p>
         </header>
 
         <!-- 标签页 -->
@@ -820,6 +855,7 @@
                         <li><strong>一键打卡:</strong> 快速完成所有逾期和今日未打卡的任务</li>
                         <li><strong>暂停任务:</strong> 可以设置具体的暂停截止日期</li>
                         <li><strong>编辑主任务:</strong> 可以同步更新所有子任务</li>
+                        <li><strong>每日自动清理:</strong> 每天凌晨自动删除所有录音和照片文件，只保留任务数据</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
                         <li>使用"管理录音/照片"功能手动删除不需要的媒体文件</li>
@@ -829,7 +865,7 @@
         </div>
 
         <footer style="text-align: center; padding: 20px; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">
-            <p>复习打卡计划 &copy; 2023 - 使用IndexedDB安全存储</p>
+            <p>复习打卡计划 &copy; 2023 - 使用IndexedDB安全存储，每日凌晨自动清理媒体文件</p>
         </footer>
     </div>
 
@@ -1133,6 +1169,24 @@
             // 科目顺序（用于排序）
             const SUBJECT_ORDER = { '语文': 1, '英语': 2, '数学': 3, '科学': 4, '其他': 5 };
 
+            // 科目颜色映射 - 徽章背景色
+            const SUBJECT_BADGE_COLORS = {
+                '语文': 'subject-chinese',
+                '英语': 'subject-english',
+                '数学': 'subject-math',
+                '科学': 'subject-science',
+                '其他': 'subject-other'
+            };
+
+            // 科目名称文字颜色
+            const SUBJECT_NAME_COLORS = {
+                '语文': 'subject-name-chinese',
+                '英语': 'subject-name-english',
+                '数学': 'subject-name-math',
+                '科学': 'subject-name-science',
+                '其他': 'subject-name-other'
+            };
+
             // ==================== 全局状态 ====================
             const state = {
                 tasks: [],
@@ -1175,14 +1229,17 @@
                 subtaskInterval: 1,
                 subtaskDescriptionTemplate: '',
                 allRecordings: [],
-                allPhotos: []
+                allPhotos: [],
+                // 自动清理相关
+                cleanupInterval: null,
+                lastCleanupDate: null
             };
 
             // ==================== IndexedDB 存储管理 ====================
             class DataStorage {
                 constructor() {
                     this.dbName = 'CheckinAppDB';
-                    this.version = 13;
+                    this.version = 14; // 升级版本号
                     this.db = null;
                 }
 
@@ -1214,6 +1271,10 @@
                             }
                             if (!db.objectStoreNames.contains('settings')) {
                                 db.createObjectStore('settings', { keyPath: 'key' });
+                            }
+                            // 添加lastCleanupDate存储
+                            if (!db.objectStoreNames.contains('system')) {
+                                db.createObjectStore('system', { keyPath: 'key' });
                             }
                         };
                     });
@@ -1317,6 +1378,28 @@
                     })));
                 }
 
+                // 清空所有录音和照片
+                async deleteAllMedia() {
+                    await this.open();
+                    const transaction = this.db.transaction(['recordings', 'photos'], 'readwrite');
+                    
+                    const recordingsStore = transaction.objectStore('recordings');
+                    await new Promise((resolve, reject) => {
+                        const request = recordingsStore.clear();
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    const photosStore = transaction.objectStore('photos');
+                    await new Promise((resolve, reject) => {
+                        const request = photosStore.clear();
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                    
+                    return true;
+                }
+
                 async deleteTaskWithSubtasks(taskId) {
                     const tasks = await this.getAllTasks();
                     const task = tasks.find(t => t.id === taskId);
@@ -1401,6 +1484,30 @@
                         megabytes: parseFloat(stats.totalSizeMB),
                         percent: (stats.totalSize / MEMORY_LIMIT) * 100
                     };
+                }
+
+                // 获取最后清理日期
+                async getLastCleanupDate() {
+                    await this.open();
+                    return new Promise((resolve, reject) => {
+                        const transaction = this.db.transaction(['system'], 'readonly');
+                        const store = transaction.objectStore('system');
+                        const request = store.get('lastCleanupDate');
+                        request.onsuccess = () => resolve(request.result?.value || null);
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+
+                // 保存最后清理日期
+                async saveLastCleanupDate(date) {
+                    await this.open();
+                    return new Promise((resolve, reject) => {
+                        const transaction = this.db.transaction(['system'], 'readwrite');
+                        const store = transaction.objectStore('system');
+                        const request = store.put({ key: 'lastCleanupDate', value: date });
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
                 }
             }
 
@@ -1640,9 +1747,12 @@
                 return new Blob([u8arr], { type: mime });
             };
 
-            const getSubjectClass = (subject) => {
-                const map = { '语文': 'chinese', '数学': 'math', '英语': 'english', '科学': 'science', '其他': 'other' };
-                return map[subject] || 'other';
+            const getSubjectBadgeClass = (subject) => {
+                return SUBJECT_BADGE_COLORS[subject] || 'subject-other';
+            };
+
+            const getSubjectNameColorClass = (subject) => {
+                return SUBJECT_NAME_COLORS[subject] || 'subject-name-other';
             };
 
             // ==================== 任务计划相关函数 ====================
@@ -1740,6 +1850,85 @@
                 return info;
             };
 
+            // ==================== 自动清理函数 ====================
+            const performDailyCleanup = async () => {
+                console.log('执行每日自动清理...');
+                try {
+                    // 获取最后清理日期
+                    const lastCleanup = await dataStorage.getLastCleanupDate();
+                    const now = new Date();
+                    const today = now.toDateString();
+                    
+                    // 如果今天已经清理过，跳过
+                    if (lastCleanup === today) {
+                        console.log('今天已经清理过，跳过');
+                        return;
+                    }
+                    
+                    // 获取所有录音和照片
+                    const recordings = await dataStorage.getAllRecordings();
+                    const photos = await dataStorage.getAllPhotos();
+                    
+                    if (recordings.length > 0 || photos.length > 0) {
+                        // 清空所有媒体文件
+                        await dataStorage.deleteAllMedia();
+                        
+                        // 更新状态
+                        state.recordings = [];
+                        state.photos = [];
+                        state.allRecordings = [];
+                        state.allPhotos = [];
+                        
+                        // 保存清理日期
+                        await dataStorage.saveLastCleanupDate(today);
+                        
+                        console.log(`每日清理完成: 删除了 ${recordings.length} 个录音和 ${photos.length} 张照片`);
+                        
+                        // 更新界面
+                        renderRecordings();
+                        renderDataStats();
+                        
+                        // 显示提示（如果当前页面打开）
+                        if (document.visibilityState === 'visible') {
+                            const toast = document.createElement('div');
+                            toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #4facfe; color: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; animation: slideIn 0.3s ease;';
+                            toast.innerHTML = `✅ 每日自动清理完成<br>已删除 ${recordings.length} 个录音和 ${photos.length} 张照片`;
+                            document.body.appendChild(toast);
+                            setTimeout(() => {
+                                toast.style.animation = 'slideOut 0.3s ease';
+                                setTimeout(() => document.body.removeChild(toast), 300);
+                            }, 3000);
+                        }
+                    } else {
+                        // 没有媒体文件，只记录清理日期
+                        await dataStorage.saveLastCleanupDate(today);
+                        console.log('每日清理: 没有媒体文件需要删除');
+                    }
+                } catch (error) {
+                    console.error('自动清理失败:', error);
+                }
+            };
+
+            // 设置定时检查自动清理
+            const setupAutoCleanup = () => {
+                // 每小时检查一次是否需要清理
+                state.cleanupInterval = setInterval(async () => {
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    
+                    // 每天凌晨 00:00-00:10 之间执行清理
+                    if (hours === 0 && minutes < 10) {
+                        await performDailyCleanup();
+                    }
+                }, 60 * 60 * 1000); // 每小时检查一次
+                
+                // 启动时立即检查一次
+                setTimeout(async () => {
+                    await performDailyCleanup();
+                }, 5000);
+            };
+
             // ==================== 初始化函数 ====================
             const initApp = async () => {
                 console.log('初始化应用...');
@@ -1750,6 +1939,7 @@
                 setupRecordingsManageEventListeners();
                 setupMemoryMonitoring();
                 setupSubtaskEventListeners();
+                setupAutoCleanup(); // 设置自动清理
                 
                 restoreRecordingUrls();
                 renderTodayTasks();
@@ -2350,7 +2540,7 @@
                 DOM.editTaskForm.scrollIntoView({ behavior: 'smooth' });
             };
 
-            // ==================== 今日任务渲染 ====================
+            // ==================== 今日任务渲染（修改部分：科目颜色）====================
             const renderTodayTasks = () => {
                 DOM.todayTasks.innerHTML = '';
                 const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2421,9 +2611,16 @@
                 const statusText = isOverdue ? '逾期' : (task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`);
                 const statusClass = isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')));
 
+                // 添加科目徽章和带颜色的任务名称
+                const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+                const subjectNameColorClass = getSubjectNameColorClass(task.subject);
+
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name">${task.subject} - ${task.name}</div>
+                        <div class="task-name">
+                            <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
+                            <span class="${subjectNameColorClass}">${task.name}</span>
+                        </div>
                         <div class="task-status ${statusClass}">${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓' : ''))}</div>
                     </div>
                     ${task.description ? `<p>${task.description.replace(/\n/g, '<br>')}</p>` : ''}
@@ -2526,9 +2723,15 @@
                     statusText = '已完成';
                 }
 
+                const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+                const subjectNameColorClass = getSubjectNameColorClass(task.subject);
+
                 taskEl.innerHTML = `
                     <div class="task-header">
-                        <div class="task-name">${task.subject} - ${task.name}</div>
+                        <div class="task-name">
+                            <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
+                            <span class="${subjectNameColorClass}">${task.name}</span>
+                        </div>
                         <div class="task-status ${statusClass}">${completedCheckins}/${totalCheckins} ${statusText}</div>
                     </div>
                     ${task.description ? `<p>${task.description}</p>` : ''}
@@ -2569,10 +2772,16 @@
                 const startNumber = parentTask.subtaskStartNumber || 1;
                 const endNumber = startNumber + (parentTask.subtaskCount || subtasks.length) - 1;
 
+                const subjectBadgeClass = getSubjectBadgeClass(parentTask.subject);
+                const subjectNameColorClass = getSubjectNameColorClass(parentTask.subject);
+
                 parentTaskEl.innerHTML = `
                     <div class="parent-task-info">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 600; font-size: 18px;">${parentTask.subject} - ${parentTask.name} <span style="background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">系列任务</span></div>
+                            <div style="font-weight: 600; font-size: 18px;">
+                                <span class="subject-badge ${subjectBadgeClass}">${parentTask.subject}</span>
+                                <span class="${subjectNameColorClass}">${parentTask.name}</span> <span style="background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">系列任务</span>
+                            </div>
                         </div>
                         <p>${parentTask.description || ''}</p>
                         <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
@@ -2755,9 +2964,15 @@
                     const checkpointDay = getTaskCheckinSchedule(task)[checkpointIndex];
                     let dayDisplay = task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${checkpointDay}天`;
 
+                    const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+                    const subjectNameColorClass = getSubjectNameColorClass(task.subject);
+
                     taskEl.innerHTML = `
                         <div class="task-header">
-                            <div class="task-name">${task.subject} - ${task.name}</div>
+                            <div class="task-name">
+                                <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
+                                <span class="${subjectNameColorClass}">${task.name}</span>
+                            </div>
                             <div class="task-status ${isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')))}">
                                 ${isTaskPaused(task) ? '已暂停' : (isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : dayDisplay)} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                             </div>
