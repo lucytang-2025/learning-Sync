@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>复习打卡计划 - 最终版 (科目颜色区分 + 自动删除)</title>
+    <title>复习打卡计划 - 最终版 (优化录音兼容性)</title>
     <style>
         * {
             margin: 0;
@@ -451,8 +451,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>复习打卡计划 - 最终版 <span class="auto-cleanup-badge">每日自动清理录音/照片</span></h1>
-            <p class="app-description">日积月累、持之以恒，数据安全存储，每日凌晨自动清理媒体文件</p>
+            <h1>复习打卡计划 - 优化版 <span class="auto-cleanup-badge">华为浏览器兼容优化</span></h1>
+            <p class="app-description">日积月累、持之以恒，优化录音兼容性，确保完整下载</p>
         </header>
 
         <!-- 标签页 -->
@@ -856,6 +856,7 @@
                         <li><strong>暂停任务:</strong> 可以设置具体的暂停截止日期</li>
                         <li><strong>编辑主任务:</strong> 可以同步更新所有子任务</li>
                         <li><strong>每日自动清理:</strong> 每天凌晨自动删除所有录音和照片文件，只保留任务数据</li>
+                        <li><strong>华为浏览器优化:</strong> 采用WebM格式录音，确保完整下载</li>
                         <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
                         <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
                         <li>使用"管理录音/照片"功能手动删除不需要的媒体文件</li>
@@ -865,7 +866,7 @@
         </div>
 
         <footer style="text-align: center; padding: 20px; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">
-            <p>复习打卡计划 &copy; 2023 - 使用IndexedDB安全存储，每日凌晨自动清理媒体文件</p>
+            <p>复习打卡计划 &copy; 2023 - 华为浏览器兼容优化版</p>
         </footer>
     </div>
 
@@ -1239,7 +1240,7 @@
             class DataStorage {
                 constructor() {
                     this.dbName = 'CheckinAppDB';
-                    this.version = 14; // 升级版本号
+                    this.version = 15; // 升级版本号
                     this.db = null;
                 }
 
@@ -1272,7 +1273,6 @@
                             if (!db.objectStoreNames.contains('settings')) {
                                 db.createObjectStore('settings', { keyPath: 'key' });
                             }
-                            // 添加lastCleanupDate存储
                             if (!db.objectStoreNames.contains('system')) {
                                 db.createObjectStore('system', { keyPath: 'key' });
                             }
@@ -1427,7 +1427,7 @@
 
                 async clearAllData() {
                     await this.open();
-                    const stores = ['tasks', 'recordings', 'photos', 'feedbacks', 'settings'];
+                    const stores = ['tasks', 'recordings', 'photos', 'feedbacks', 'settings', 'system'];
                     for (const storeName of stores) {
                         try {
                             const transaction = this.db.transaction([storeName], 'readwrite');
@@ -1753,6 +1753,12 @@
 
             const getSubjectNameColorClass = (subject) => {
                 return SUBJECT_NAME_COLORS[subject] || 'subject-name-other';
+            };
+
+            // 检测是否为华为浏览器
+            const isHuaweiBrowser = () => {
+                const ua = navigator.userAgent.toLowerCase();
+                return ua.indexOf('huawei') > -1 || ua.indexOf('honor') > -1 || ua.indexOf('emui') > -1;
             };
 
             // ==================== 任务计划相关函数 ====================
@@ -3004,7 +3010,7 @@
                 showDateTasks(new Date());
             };
 
-            // ==================== 打卡相关 ====================
+            // ==================== 打卡相关 - 优化录音处理 ====================
             const startCheckin = (taskId, checkpointIndex = null) => {
                 const task = state.tasks.find(t => t.id === taskId);
                 if (!task) return;
@@ -3096,49 +3102,84 @@
                 DOM.photoContainer.classList.toggle('hidden', type !== 'photo');
             };
 
+            // 优化后的录音函数
             const startRecording = async () => {
                 if (!state.currentTask) { alert('请先选择一个任务！'); return; }
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    state.mediaRecorder = new MediaRecorder(stream);
+                    // 针对华为浏览器优化：使用更通用的音频格式
+                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: {
+                            channelCount: 1,
+                            sampleRate: 16000,
+                            echoCancellation: true,
+                            noiseSuppression: true
+                        } 
+                    });
+                    
+                    // 创建 MediaRecorder 时指定 MIME 类型
+                    const options = { mimeType: mimeType };
+                    try {
+                        state.mediaRecorder = new MediaRecorder(stream, options);
+                    } catch (e) {
+                        // 如果不支持指定的 MIME 类型，使用默认
+                        console.warn('指定 MIME 类型失败，使用默认:', e);
+                        state.mediaRecorder = new MediaRecorder(stream);
+                    }
+                    
                     state.audioChunks = [];
                     
+                    // 设置更频繁的数据收集，确保完整录音
                     state.mediaRecorder.ondataavailable = (event) => {
-                        if (event.data.size > 0) state.audioChunks.push(event.data);
+                        if (event.data && event.data.size > 0) {
+                            state.audioChunks.push(event.data);
+                        }
                     };
                     
                     state.mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
+                        // 合并所有音频块
+                        const audioBlob = new Blob(state.audioChunks, { 
+                            type: state.mediaRecorder.mimeType || 'audio/webm' 
+                        });
+                        
+                        // 使用 Promise 包装 FileReader
                         const reader = new FileReader();
-                        reader.onload = async function() {
-                            const recording = {
-                                id: Date.now(),
-                                taskId: state.currentTask.id,
-                                checkpointIndex: state.currentCheckpointIndex,
-                                date: new Date().toISOString(),
-                                duration: state.recordingTime,
-                                audioData: reader.result,
-                                mimeType: 'audio/wav',
-                                type: 'audio'
-                            };
-                            createAudioUrlFromData(recording);
-                            await dataStorage.saveRecording(recording);
-                            state.currentRecording = recording;
-                            
-                            stream.getTracks().forEach(track => track.stop());
-                            DOM.recordBtn.classList.remove('recording', 'hidden');
-                            DOM.pauseBtn.classList.add('hidden');
-                            DOM.stopBtn.classList.add('hidden');
-                            DOM.playBtn.classList.remove('hidden');
-                            DOM.submitRecording.disabled = false;
-                            
-                            DOM.audioPlayer.src = recording.audioUrl;
-                            DOM.audioPlayer.classList.remove('hidden');
-                            
-                            // 自动下载录音文件
-                            downloadRecording(recording);
+                        const dataURL = await new Promise((resolve, reject) => {
+                            reader.onload = () => resolve(reader.result);
+                            reader.onerror = reject;
+                            reader.readAsDataURL(audioBlob);
+                        });
+                        
+                        const recording = {
+                            id: Date.now(),
+                            taskId: state.currentTask.id,
+                            checkpointIndex: state.currentCheckpointIndex,
+                            date: new Date().toISOString(),
+                            duration: state.recordingTime,
+                            audioData: dataURL,
+                            mimeType: state.mediaRecorder.mimeType || 'audio/webm',
+                            type: 'audio'
                         };
-                        reader.readAsDataURL(audioBlob);
+                        
+                        createAudioUrlFromData(recording);
+                        await dataStorage.saveRecording(recording);
+                        state.currentRecording = recording;
+                        
+                        stream.getTracks().forEach(track => track.stop());
+                        DOM.recordBtn.classList.remove('recording', 'hidden');
+                        DOM.pauseBtn.classList.add('hidden');
+                        DOM.stopBtn.classList.add('hidden');
+                        DOM.playBtn.classList.remove('hidden');
+                        DOM.submitRecording.disabled = false;
+                        
+                        DOM.audioPlayer.src = recording.audioUrl;
+                        DOM.audioPlayer.classList.remove('hidden');
+                        
+                        // 延迟一点再下载，确保音频处理完成
+                        setTimeout(() => {
+                            downloadRecording(recording);
+                        }, 500);
                     };
                     
                     state.isRecording = true;
@@ -3155,15 +3196,18 @@
                     DOM.recordingStatus.style.color = '#ff6b6b';
                     DOM.recordingStatus.classList.remove('hidden');
                     
-                    state.mediaRecorder.start();
+                    // 设置更小的 timeslice 来定期获取数据，确保数据完整
+                    state.mediaRecorder.start(1000); // 每秒触发一次 dataavailable
+                    
                     state.timerInterval = setInterval(() => {
                         state.recordingTime += 10;
                         DOM.timer.textContent = formatTime(state.recordingTime);
                         updateWaveform();
                     }, 10);
+                    
                 } catch (error) {
                     console.error('录音启动失败:', error);
-                    alert('无法访问麦克风，请检查权限设置');
+                    alert('无法访问麦克风，请检查权限设置。错误信息：' + error.message);
                 }
             };
 
@@ -3173,19 +3217,36 @@
                     const taskName = task ? `${task.subject}_${task.name}` : '未知任务';
                     const date = new Date();
                     const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`;
-                    const fileName = `${taskName}_${dateStr}.wav`;
+                    
+                    // 根据 MIME 类型确定文件扩展名
+                    let ext = 'webm';
+                    if (recording.mimeType.includes('mp4') || recording.mimeType.includes('m4a')) {
+                        ext = 'm4a';
+                    } else if (recording.mimeType.includes('wav')) {
+                        ext = 'wav';
+                    }
+                    
+                    const fileName = `${taskName}_${dateStr}.${ext}`;
                     
                     const audioBlob = dataURLtoBlob(recording.audioData);
+                    
+                    // 创建下载链接
                     const url = URL.createObjectURL(audioBlob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = fileName;
                     document.body.appendChild(a);
                     a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 100);
+                    
+                    // 清理
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+                    
                 } catch (error) {
                     console.error('下载录音失败:', error);
+                    alert('下载录音失败，但录音已保存。错误：' + error.message);
                 }
             };
 
@@ -3214,10 +3275,14 @@
 
             const stopRecording = () => {
                 if (!state.mediaRecorder || state.mediaRecorder.state === 'inactive') return;
+                
+                // 停止录音前先停止计时器
+                clearInterval(state.timerInterval);
+                
+                // 停止 MediaRecorder
                 state.mediaRecorder.stop();
                 state.isRecording = false;
                 state.isPaused = false;
-                clearInterval(state.timerInterval);
                 
                 DOM.recordBtn.classList.remove('recording', 'hidden');
                 DOM.pauseBtn.classList.add('hidden');
@@ -3257,6 +3322,14 @@
                 state.isPaused = false;
                 state.recordingTime = 0;
                 clearInterval(state.timerInterval);
+                
+                if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                    try {
+                        state.mediaRecorder.stop();
+                    } catch (e) {
+                        console.warn('停止录音失败:', e);
+                    }
+                }
                 
                 DOM.recordBtn.classList.remove('recording', 'hidden');
                 DOM.pauseBtn.classList.add('hidden');
