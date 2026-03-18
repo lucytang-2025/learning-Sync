@@ -168,6 +168,33 @@
         .btn-pin, .btn-unpin, .btn-pause, .btn-resume, .btn-warning, .btn-danger { background: #e2e8f0; color: #475569; }
         .btn-pin:hover, .btn-unpin:hover, .btn-pause:hover, .btn-resume:hover, .btn-warning:hover, .btn-danger:hover { background: #cbd5e1; }
 
+        /* 折叠/展开图标 */
+        .collapse-toggle {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            margin-right: 8px;
+            color: #64748b;
+            transition: transform 0.2s;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .collapse-toggle:hover { background: #e2e8f0; border-radius: 4px; }
+        .subtask-item { transition: all 0.2s; }
+
+        /* 任务描述样式 - 保留空格和换行 */
+        .task-description-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            line-height: 1.5;
+            margin: 8px 0;
+        }
+
         /* 打卡界面 */
         .recorder-container, .photo-container {
             background: white;
@@ -448,6 +475,17 @@
             display: inline-block;
             margin-left: 10px;
         }
+
+        /* 分类标题 */
+        .category-title {
+            font-size: 18px;
+            margin: 20px 0 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #e2e8f0;
+            color: #475569;
+        }
+        .category-title.completed { border-bottom-color: #1dd1a1; }
+        .category-title i { margin-right: 8px; }
     </style>
 </head>
 <body>
@@ -684,7 +722,7 @@
                     <input type="datetime-local" id="edit-create-date">
                 </div>
 
-                <!-- 系列任务编辑特有选项 -->
+                <!-- 系列任务编辑特有选项 - 仅当有子任务时显示 -->
                 <div id="edit-subtask-settings" class="hidden" style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px;">
                     <h4>系列任务设置</h4>
                     <div class="form-group">
@@ -719,12 +757,7 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>编辑选项</label>
-                    <div style="display: flex; gap: 15px;">
-                        <label><input type="checkbox" id="edit-update-subtasks" checked> 同时更新所有子任务</label>
-                    </div>
-                </div>
+                <!-- 普通任务无子任务，不再显示“同时更新所有子任务”复选框 -->
                 
                 <div class="task-actions">
                     <button class="btn btn-primary" id="update-task">更新任务</button>
@@ -734,6 +767,7 @@
             
             <button class="btn btn-primary" id="add-task-btn">新建任务</button>
             
+            <!-- 任务管理区域：按“未完成”和“已完成”分类 -->
             <div class="task-list" id="all-tasks"></div>
         </div>
 
@@ -795,7 +829,7 @@
                 </div>
             </div>
             
-            <!-- 拍照打卡容器 -->
+            <!-- 拍照打卡容器 - 合并按钮版本 -->
             <div class="photo-container hidden" id="photo-container">
                 <div class="recorder-header text-center">
                     <h3 id="photo-task-name">选择任务进行打卡</h3>
@@ -814,11 +848,9 @@
                 
                 <div class="camera-status hidden" id="camera-status" style="text-align: center; padding: 10px; border-radius: 5px; font-weight: 600;"></div>
                 
+                <!-- 合并为单个智能按钮：启动/拍照/关闭 -->
                 <div class="camera-controls" style="display: flex; justify-content: center; gap: 15px; margin: 20px 0;">
-                    <button class="camera-btn camera-btn-primary" id="start-camera-btn" style="padding: 12px 20px; background: #4facfe; color: white; border: none; border-radius: 6px; cursor: pointer;">启动摄像头</button>
-                    <button class="camera-btn camera-btn-primary" id="take-photo-btn" disabled style="padding: 12px 20px; background: #4facfe; color: white; border: none; border-radius: 6px; cursor: pointer;">拍照</button>
-                    <button class="camera-btn camera-btn-secondary" id="retake-photo-btn" disabled style="padding: 12px 20px; background: #e2e8f0; border: none; border-radius: 6px; cursor: pointer;">重拍</button>
-                    <button class="camera-btn camera-btn-danger" id="stop-camera-btn" disabled style="padding: 12px 20px; background: #ff6b6b; color: white; border: none; border-radius: 6px; cursor: pointer;">关闭摄像头</button>
+                    <button class="camera-btn camera-btn-primary" id="smart-camera-btn" style="padding: 12px 30px; background: #4facfe; color: white; border: none; border-radius: 6px; cursor: pointer;">启动摄像头</button>
                 </div>
                 
                 <div class="task-actions">
@@ -1295,7 +1327,9 @@
                 // 当前操作的系列任务
                 currentParentTask: null,
                 pauseOption: 'all',
-                selectedSubtasksForPause: new Set()
+                selectedSubtasksForPause: new Set(),
+                // 折叠状态存储
+                collapsedParents: new Set()  // 存储被折叠的父任务ID
             };
 
             // ==================== IndexedDB 存储管理 ====================
@@ -1590,7 +1624,6 @@
                 cancelTaskBtn: document.getElementById('cancel-task'),
                 updateTaskBtn: document.getElementById('update-task'),
                 cancelEditTask: document.getElementById('cancel-edit-task'),
-                editUpdateSubtasks: document.getElementById('edit-update-subtasks'),
                 calendar: document.getElementById('calendar'),
                 calendarTitle: document.getElementById('calendar-title'),
                 prevMonth: document.getElementById('prev-month'),
@@ -1620,10 +1653,7 @@
                 cameraPreview: document.getElementById('camera-preview'),
                 photoPreview: document.getElementById('photo-preview'),
                 cameraStatus: document.getElementById('camera-status'),
-                startCamera: document.getElementById('start-camera-btn'),
-                takePhoto: document.getElementById('take-photo-btn'),
-                retakePhoto: document.getElementById('retake-photo-btn'),
-                stopCamera: document.getElementById('stop-camera-btn'),
+                smartCameraBtn: document.getElementById('smart-camera-btn'),  // 合并按钮
                 submitPhoto: document.getElementById('submit-photo'),
                 resetPhoto: document.getElementById('reset-photo'),
                 
@@ -1931,6 +1961,13 @@
                 return info;
             };
 
+            // 判断任务是否已完成所有打卡
+            const isTaskCompleted = (task) => {
+                if (task.isParentTask) return false; // 父任务不算完成
+                const schedule = getTaskCheckinSchedule(task);
+                return task.checkins.filter(c => c.status === 'completed').length === schedule.length;
+            };
+
             // ==================== 自动清理函数 ====================
             const performDailyCleanup = async () => {
                 console.log('执行每日自动清理...');
@@ -2194,10 +2231,8 @@
                 DOM.submitRecording.addEventListener('click', submitRecording);
                 DOM.resetRecorder.addEventListener('click', resetRecorder);
 
-                DOM.startCamera.addEventListener('click', startCamera);
-                DOM.takePhoto.addEventListener('click', takePhoto);
-                DOM.retakePhoto.addEventListener('click', retakePhoto);
-                DOM.stopCamera.addEventListener('click', stopCamera);
+                // 合并摄像头按钮：启动/拍照/关闭
+                DOM.smartCameraBtn.addEventListener('click', handleSmartCamera);
                 DOM.submitPhoto.addEventListener('click', submitPhoto);
                 DOM.resetPhoto.addEventListener('click', resetPhoto);
             };
@@ -2329,7 +2364,7 @@
             const saveNewTask = async () => {
                 const subject = DOM.taskSubject.value;
                 const name = DOM.taskName.value.trim();
-                const desc = DOM.taskDesc.value.trim();
+                const desc = DOM.taskDesc.value;  // 保留原始格式，不trim
                 
                 if (!name) { alert('请输入任务名称'); return; }
                 
@@ -2347,7 +2382,7 @@
 
                 const newTask = {
                     id: Date.now(),
-                    subject, name, description: desc,
+                    subject, name, description: desc,  // 保存原始描述，保留空格换行
                     createDate: new Date(date).toISOString(),
                     status: 'active',
                     checkins: [],
@@ -2396,7 +2431,7 @@
 
                 const parentTask = {
                     id: Date.now(),
-                    subject, name, description: desc,
+                    subject, name, description: desc,  // 保存原始描述
                     createDate: new Date(startDate).toISOString(),
                     status: 'active',
                     checkins: [],
@@ -2474,7 +2509,7 @@
                 
                 state.editingTask.subject = DOM.editTaskSubject.value;
                 state.editingTask.name = DOM.editTaskName.value.trim();
-                state.editingTask.description = DOM.editTaskDesc.value.trim();
+                state.editingTask.description = DOM.editTaskDesc.value;  // 保留原始格式
                 
                 const createDateStr = DOM.editCreateDate.value;
                 if (createDateStr) {
@@ -2484,44 +2519,45 @@
                     }
                 }
                 
-                // 如果是父任务且勾选了更新子任务
-                if (state.editingTask.isParentTask && DOM.editUpdateSubtasks.checked) {
+                // 如果是父任务且有子任务，可以更新间隔
+                if (state.editingTask.isParentTask) {
                     const subtasks = getSubtasks(state.editingTask.id);
-                    
-                    // 处理间隔更新
-                    const updateInterval = DOM.editUpdateInterval && DOM.editUpdateInterval.checked;
-                    const resetDates = DOM.editResetDates && DOM.editResetDates.checked;
-                    const newInterval = DOM.editSubtaskInterval ? parseInt(DOM.editSubtaskInterval.value) : 1;
-                    
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    for (const subtask of subtasks) {
-                        // 更新科目和描述
-                        subtask.subject = state.editingTask.subject;
-                        subtask.description = state.editingTask.description || '';
+                    // 仅当有子任务时才处理间隔更新
+                    if (subtasks.length > 0) {
+                        const updateInterval = DOM.editUpdateInterval && DOM.editUpdateInterval.checked;
+                        const resetDates = DOM.editResetDates && DOM.editResetDates.checked;
+                        const newInterval = DOM.editSubtaskInterval ? parseInt(DOM.editSubtaskInterval.value) : 1;
                         
-                        // 更新名称（保持编号部分不变）
-                        const numberPart = subtask.name.match(/第(\d+).+$/);
-                        if (numberPart) {
-                            subtask.name = `${state.editingTask.name} 第${subtask.subtaskNumber}${subtask.subtaskUnit || '课'}`;
-                        }
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
                         
-                        // 如果尚未开始打卡，可以更新间隔和日期
-                        if (!hasStartedCheckin(subtask)) {
-                            if (updateInterval) {
-                                subtask.subtaskInterval = newInterval;
+                        for (const subtask of subtasks) {
+                            // 更新科目和描述
+                            subtask.subject = state.editingTask.subject;
+                            subtask.description = state.editingTask.description || '';
+                            
+                            // 更新名称（保持编号部分不变）
+                            const numberPart = subtask.name.match(/第(\d+).+$/);
+                            if (numberPart) {
+                                subtask.name = `${state.editingTask.name} 第${subtask.subtaskNumber}${subtask.subtaskUnit || '课'}`;
                             }
                             
-                            if (resetDates) {
-                                // 重新计算开始日期
-                                const baseDate = new Date(today);
-                                const index = (subtask.subtaskNumber - state.editingTask.subtaskStartNumber);
-                                const newDate = new Date(baseDate);
-                                newDate.setDate(baseDate.getDate() + index * (subtask.subtaskInterval || 1));
+                            // 如果尚未开始打卡，可以更新间隔和日期
+                            if (!hasStartedCheckin(subtask)) {
+                                if (updateInterval) {
+                                    subtask.subtaskInterval = newInterval;
+                                }
                                 
-                                subtask.createDate = newDate.toISOString();
-                                subtask.dailyStartDate = newDate.toISOString().split('T')[0];
+                                if (resetDates) {
+                                    // 重新计算开始日期
+                                    const baseDate = new Date(today);
+                                    const index = (subtask.subtaskNumber - state.editingTask.subtaskStartNumber);
+                                    const newDate = new Date(baseDate);
+                                    newDate.setDate(baseDate.getDate() + index * (subtask.subtaskInterval || 1));
+                                    
+                                    subtask.createDate = newDate.toISOString();
+                                    subtask.dailyStartDate = newDate.toISOString().split('T')[0];
+                                }
                             }
                         }
                     }
@@ -2613,8 +2649,9 @@
                 }
 
                 DOM.taskDetailsTitle.textContent = `${task.subject} - ${task.name}`;
+                // 使用white-space: pre-wrap显示描述中的空格和换行
                 DOM.taskDetailsContent.innerHTML = `
-                    <div class="form-group"><label>任务描述</label><p>${task.description || '无描述'}</p></div>
+                    <div class="form-group"><label>任务描述</label><p style="white-space: pre-wrap;">${task.description || '无描述'}</p></div>
                     ${task.parentTaskId ? `<div class="form-group"><label>所属系列</label><p>${state.tasks.find(t => t.id === task.parentTaskId)?.name} (编号: ${task.subtaskNumber})</p></div>` : ''}
                     <div class="form-group"><label>创建日期</label><p>${new Date(task.createDate).toLocaleDateString()}</p></div>
                     <div class="form-group"><label>计划类型</label><p>${task.scheduleType === 'daily' ? '每日打卡' : (task.scheduleType === 'custom' ? '自定义日期' : '默认计划')}</p></div>
@@ -2643,22 +2680,26 @@
                 DOM.editTaskDesc.value = task.description || '';
                 DOM.editCreateDate.value = formatDateTimeLocal(new Date(task.createDate));
                 
-                // 如果是系列任务，显示额外设置
+                // 如果是系列任务且存在子任务，显示额外设置
                 if (task.isParentTask) {
-                    DOM.editSubtaskSettings.classList.remove('hidden');
                     const subtasks = getSubtasks(task.id);
-                    const startedCount = subtasks.filter(st => hasStartedCheckin(st)).length;
-                    
-                    DOM.editSubtaskCount.value = subtasks.length;
-                    DOM.editSubtaskInterval.value = task.subtaskInterval || 1;
-                    
-                    // 如果已经有子任务开始了，给出提示
-                    if (startedCount > 0) {
-                        const warningDiv = document.createElement('div');
-                        warningDiv.className = 'info-box';
-                        warningDiv.style.cssText = 'padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;';
-                        warningDiv.innerHTML = `⚠️ 已有 ${startedCount} 个子任务开始打卡，修改间隔只会影响尚未开始的任务。`;
-                        DOM.editSubtaskSettings.appendChild(warningDiv);
+                    if (subtasks.length > 0) {
+                        DOM.editSubtaskSettings.classList.remove('hidden');
+                        const startedCount = subtasks.filter(st => hasStartedCheckin(st)).length;
+                        
+                        DOM.editSubtaskCount.value = subtasks.length;
+                        DOM.editSubtaskInterval.value = task.subtaskInterval || 1;
+                        
+                        // 如果已经有子任务开始了，给出提示
+                        if (startedCount > 0) {
+                            const warningDiv = document.createElement('div');
+                            warningDiv.className = 'info-box';
+                            warningDiv.style.cssText = 'padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;';
+                            warningDiv.innerHTML = `⚠️ 已有 ${startedCount} 个子任务开始打卡，修改间隔只会影响尚未开始的任务。`;
+                            DOM.editSubtaskSettings.appendChild(warningDiv);
+                        }
+                    } else {
+                        DOM.editSubtaskSettings.classList.add('hidden');
                     }
                 } else {
                     DOM.editSubtaskSettings.classList.add('hidden');
@@ -2750,7 +2791,7 @@
                         </div>
                         <div class="task-status ${statusClass}">${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓' : ''))}</div>
                     </div>
-                    ${task.description ? `<p>${task.description.replace(/\n/g, '<br>')}</p>` : ''}
+                    ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
                     <div class="task-progress">
                         <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
                         <div class="progress-text">已完成 ${completedCheckins} 次打卡</div>
@@ -2772,7 +2813,7 @@
                 DOM.todayTasks.appendChild(taskEl);
             };
 
-            // ==================== 所有任务渲染 ====================
+            // ==================== 所有任务渲染（分类 + 折叠）====================
             const renderAllTasks = () => {
                 DOM.allTasks.innerHTML = '';
                 if (state.tasks.length === 0) {
@@ -2783,28 +2824,52 @@
                 const parentTasks = state.tasks.filter(t => t.isParentTask);
                 const normalTasks = state.tasks.filter(t => !t.isParentTask && !t.parentTaskId);
                 
-                const sortedTasks = [...parentTasks, ...normalTasks].sort((a, b) => {
+                // 按完成状态分类所有非父任务
+                const uncompletedNormalTasks = normalTasks.filter(task => !isTaskCompleted(task));
+                const completedNormalTasks = normalTasks.filter(task => isTaskCompleted(task));
+                
+                // 父任务单独处理，不放在分类中（父任务本身不参与完成状态）
+                
+                // 排序函数
+                const sortTasks = (a, b) => {
                     if (a.pinned && !b.pinned) return -1;
                     if (!a.pinned && b.pinned) return 1;
                     const subjectA = SUBJECT_ORDER[a.subject] || 6;
                     const subjectB = SUBJECT_ORDER[b.subject] || 6;
                     return subjectA !== subjectB ? subjectA - subjectB : a.name.localeCompare(b.name, 'zh-CN');
-                });
+                };
 
-                sortedTasks.forEach(task => {
-                    if (task.isParentTask) {
-                        renderParentTask(task);
-                    } else {
-                        renderNormalTask(task);
-                    }
-                });
+                // 先渲染父任务（系列任务）
+                const sortedParents = parentTasks.sort(sortTasks);
+                sortedParents.forEach(parent => renderParentTask(parent));
+
+                // 渲染未完成普通任务分类
+                if (uncompletedNormalTasks.length > 0) {
+                    const uncompletedTitle = document.createElement('div');
+                    uncompletedTitle.className = 'category-title';
+                    uncompletedTitle.innerHTML = '<i>📝</i> 未完成的任务';
+                    DOM.allTasks.appendChild(uncompletedTitle);
+                    
+                    uncompletedNormalTasks.sort(sortTasks).forEach(task => renderNormalTask(task));
+                }
+
+                // 渲染已完成普通任务分类
+                if (completedNormalTasks.length > 0) {
+                    const completedTitle = document.createElement('div');
+                    completedTitle.className = 'category-title completed';
+                    completedTitle.innerHTML = '<i>✅</i> 已完成的任务';
+                    DOM.allTasks.appendChild(completedTitle);
+                    
+                    completedNormalTasks.sort(sortTasks).forEach(task => renderNormalTask(task, true));
+                }
             };
 
-            const renderNormalTask = (task) => {
+            const renderNormalTask = (task, isCompleted = false) => {
                 const taskEl = document.createElement('div');
                 taskEl.className = 'task-item';
                 if (task.pinned) taskEl.classList.add('pinned');
                 if (isTaskPaused(task)) taskEl.classList.add('paused');
+                if (isCompleted) taskEl.classList.add('completed');
 
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
@@ -2838,16 +2903,12 @@
 
                 let statusClass = 'status-future', statusText = '';
                 if (isTaskPaused(task)) { statusClass = 'status-paused'; statusText = '已暂停'; }
+                else if (isCompleted) { statusClass = 'status-completed'; statusText = '已完成'; }
                 else if (hasOverdue) { statusClass = 'status-overdue'; statusText = '有逾期'; }
                 else if (hasRedo) { statusClass = 'status-needs-redo'; statusText = '需重做'; }
                 else if (shouldCheckinToday) {
                     statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
                     statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
-                }
-
-                if (completedCheckins === totalCheckins) {
-                    statusClass = 'status-completed';
-                    statusText = '已完成';
                 }
 
                 const subjectBadgeClass = getSubjectBadgeClass(task.subject);
@@ -2861,7 +2922,7 @@
                         </div>
                         <div class="task-status ${statusClass}">${completedCheckins}/${totalCheckins} ${statusText}</div>
                     </div>
-                    ${task.description ? `<p>${task.description}</p>` : ''}
+                    ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
                     <div class="task-progress">
                         <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
                         <div class="progress-text">已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次</div>
@@ -2906,16 +2967,21 @@
                 const subjectBadgeClass = getSubjectBadgeClass(parentTask.subject);
                 const subjectNameColorClass = getSubjectNameColorClass(parentTask.subject);
 
+                const isCollapsed = state.collapsedParents.has(parentTask.id);
+
                 parentTaskEl.innerHTML = `
                     <div class="parent-task-info">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div style="font-weight: 600; font-size: 18px;">
-                                <span class="subject-badge ${subjectBadgeClass}">${parentTask.subject}</span>
-                                <span class="${subjectNameColorClass}">${parentTask.name}</span> 
-                                <span style="background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">系列任务</span>
+                            <div style="display: flex; align-items: center;">
+                                <button class="collapse-toggle" data-parent-id="${parentTask.id}">${isCollapsed ? '▶' : '▼'}</button>
+                                <div style="font-weight: 600; font-size: 18px;">
+                                    <span class="subject-badge ${subjectBadgeClass}">${parentTask.subject}</span>
+                                    <span class="${subjectNameColorClass}">${parentTask.name}</span> 
+                                    <span style="background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">系列任务</span>
+                                </div>
                             </div>
                         </div>
-                        <p>${parentTask.description || ''}</p>
+                        ${parentTask.description ? `<div class="task-description-content">${parentTask.description.replace(/\n/g, '<br>')}</div>` : ''}
                         <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
                             <div style="padding: 8px 12px; background: white; border-radius: 6px; border: 1px solid #e2e8f0;">
                                 <div style="color: #64748b;">子任务总数</div>
@@ -2957,9 +3023,52 @@
                                 `<button class="btn btn-bulk-resume" onclick="window.showEnhancedResumeModal(${parentTask.id})">恢复暂停</button>` : ''}
                             <button class="btn" onclick="window.deleteTask(${parentTask.id})">删除系列</button>
                         </div>
+                        <div id="subtasks-${parentTask.id}" class="subtask-container" style="margin-top: 15px; ${isCollapsed ? 'display: none;' : ''}">
+                            <h4 style="margin-bottom: 10px;">子任务列表</h4>
+                            ${subtasks.map(sub => renderSubtaskItem(sub)).join('')}
+                        </div>
                     </div>
                 `;
                 DOM.allTasks.appendChild(parentTaskEl);
+
+                // 添加折叠事件监听
+                const toggleBtn = parentTaskEl.querySelector('.collapse-toggle');
+                toggleBtn.addEventListener('click', () => {
+                    if (state.collapsedParents.has(parentTask.id)) {
+                        state.collapsedParents.delete(parentTask.id);
+                    } else {
+                        state.collapsedParents.add(parentTask.id);
+                    }
+                    renderAllTasks(); // 重新渲染以更新折叠状态
+                });
+            };
+
+            const renderSubtaskItem = (subtask) => {
+                const schedule = getTaskCheckinSchedule(subtask);
+                const completed = subtask.checkins.filter(c => c.status === 'completed').length;
+                const total = schedule.length;
+                const progressPercent = (completed / total) * 100;
+                const isPaused = isTaskPaused(subtask);
+
+                const subjectBadgeClass = getSubjectBadgeClass(subtask.subject);
+                const subjectNameColorClass = getSubjectNameColorClass(subtask.subject);
+
+                return `
+                    <div class="task-item subtask-item" style="margin-left: 20px; margin-bottom: 10px; padding: 12px;">
+                        <div class="task-header">
+                            <div class="task-name">
+                                <span class="subject-badge ${subjectBadgeClass}">${subtask.subject}</span>
+                                <span class="${subjectNameColorClass}">${subtask.name}</span>
+                            </div>
+                            <div class="task-status ${isPaused ? 'status-paused' : 'status-future'}">
+                                ${isPaused ? '已暂停' : `${completed}/${total}`}
+                            </div>
+                        </div>
+                        <div class="task-progress">
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
+                        </div>
+                    </div>
+                `;
             };
 
             // ==================== 日历渲染 ====================
@@ -3127,7 +3236,7 @@
                                 ${isTaskPaused(task) ? '已暂停' : (isOverdue ? `逾期${daysSinceStart - checkpointDay}天` : dayDisplay)} ${needsRedo ? '需重做' : (hasCheckedIn ? '✓' : '')}
                             </div>
                         </div>
-                        ${task.description ? `<p>${task.description}</p>` : ''}
+                        ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
                         <div class="task-actions">
                             ${(!isTaskPaused(task) && (!hasCheckedIn || needsRedo)) ? 
                                 `<button class="btn btn-primary" onclick="window.startCheckin(${task.id}, ${checkpointIndex})">${needsRedo ? '重做打卡' : '打卡'}</button>` : ''}
@@ -3211,7 +3320,7 @@
                 DOM.recorderCheckpoint.textContent = dayText;
 
                 if (state.currentTask.description) {
-                    DOM.recorderTaskDescContent.innerHTML = state.currentTask.description;
+                    DOM.recorderTaskDescContent.innerHTML = state.currentTask.description.replace(/\n/g, '<br>');
                     DOM.recorderTaskDesc.classList.remove('hidden');
                 } else {
                     DOM.recorderTaskDesc.classList.add('hidden');
@@ -3228,7 +3337,7 @@
                 DOM.photoCheckpoint.textContent = dayText;
 
                 if (state.currentTask.description) {
-                    DOM.photoTaskDescContent.innerHTML = state.currentTask.description;
+                    DOM.photoTaskDescContent.innerHTML = state.currentTask.description.replace(/\n/g, '<br>');
                     DOM.photoTaskDesc.classList.remove('hidden');
                 } else {
                     DOM.photoTaskDesc.classList.add('hidden');
@@ -3532,86 +3641,78 @@
                 alert('打卡成功！');
             };
 
-            const startCamera = async () => {
+            // 合并摄像头控制：启动/拍照/关闭
+            const handleSmartCamera = async () => {
                 if (!state.currentTask) { alert('请先选择一个任务！'); return; }
-                try {
-                    const constraints = { video: { facingMode: { ideal: 'environment' } } };
-                    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                    state.cameraStream = stream;
-                    state.isCameraActive = true;
+                
+                if (!state.isCameraActive) {
+                    // 启动摄像头（优先后置）
+                    try {
+                        const constraints = { 
+                            video: { 
+                                facingMode: { exact: 'environment' }  // 强制后置摄像头
+                            } 
+                        };
+                        const stream = await navigator.mediaDevices.getUserMedia(constraints).catch(() => {
+                            // 如果后置不可用，回退到任意摄像头
+                            return navigator.mediaDevices.getUserMedia({ video: true });
+                        });
+                        
+                        state.cameraStream = stream;
+                        state.isCameraActive = true;
+                        
+                        DOM.cameraPreview.srcObject = stream;
+                        DOM.cameraPreview.classList.remove('hidden');
+                        DOM.photoPreview.classList.add('hidden');
+                        
+                        DOM.smartCameraBtn.textContent = '拍照';
+                        DOM.smartCameraBtn.style.background = '#1dd1a1';
+                        
+                        DOM.cameraStatus.textContent = '摄像头已启动';
+                        DOM.cameraStatus.style.background = '#f0fff4';
+                        DOM.cameraStatus.style.color = '#1dd1a1';
+                        DOM.cameraStatus.classList.remove('hidden');
+                        
+                        DOM.submitPhoto.disabled = true;
+                    } catch (error) {
+                        DOM.cameraStatus.textContent = '无法访问摄像头，请检查权限设置';
+                        DOM.cameraStatus.style.background = '#fff5f5';
+                        DOM.cameraStatus.style.color = '#ff6b6b';
+                        DOM.cameraStatus.classList.remove('hidden');
+                    }
+                } else if (state.cameraStream) {
+                    // 拍照
+                    const canvas = document.createElement('canvas');
+                    canvas.width = DOM.cameraPreview.videoWidth;
+                    canvas.height = DOM.cameraPreview.videoHeight;
+                    canvas.getContext('2d').drawImage(DOM.cameraPreview, 0, 0, canvas.width, canvas.height);
                     
-                    DOM.cameraPreview.srcObject = stream;
-                    DOM.cameraPreview.classList.remove('hidden');
-                    DOM.photoPreview.classList.add('hidden');
+                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                    DOM.photoPreview.src = imageData;
+                    DOM.photoPreview.classList.remove('hidden');
+                    DOM.cameraPreview.classList.add('hidden');
                     
-                    DOM.startCamera.disabled = true;
-                    DOM.takePhoto.disabled = false;
-                    DOM.stopCamera.disabled = false;
-                    DOM.retakePhoto.disabled = true;
-                    DOM.submitPhoto.disabled = true;
+                    state.currentPhoto = {
+                        id: Date.now(),
+                        taskId: state.currentTask.id,
+                        checkpointIndex: state.currentCheckpointIndex,
+                        date: new Date().toISOString(),
+                        imageData: imageData,
+                        mimeType: 'image/jpeg',
+                        type: 'photo'
+                    };
                     
-                    DOM.cameraStatus.textContent = '摄像头已启动';
-                    DOM.cameraStatus.style.background = '#f0fff4';
-                    DOM.cameraStatus.style.color = '#1dd1a1';
-                    DOM.cameraStatus.classList.remove('hidden');
-                } catch (error) {
-                    DOM.cameraStatus.textContent = '无法访问摄像头，请检查权限设置';
-                    DOM.cameraStatus.style.background = '#fff5f5';
-                    DOM.cameraStatus.style.color = '#ff6b6b';
-                    DOM.cameraStatus.classList.remove('hidden');
-                }
-            };
-
-            const takePhoto = () => {
-                if (!state.isCameraActive || !state.cameraStream) { alert('请先启动摄像头！'); return; }
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = DOM.cameraPreview.videoWidth;
-                canvas.height = DOM.cameraPreview.videoHeight;
-                canvas.getContext('2d').drawImage(DOM.cameraPreview, 0, 0, canvas.width, canvas.height);
-                
-                const imageData = canvas.toDataURL('image/jpeg', 0.7);
-                DOM.photoPreview.src = imageData;
-                DOM.photoPreview.classList.remove('hidden');
-                DOM.cameraPreview.classList.add('hidden');
-                
-                state.currentPhoto = {
-                    id: Date.now(),
-                    taskId: state.currentTask.id,
-                    checkpointIndex: state.currentCheckpointIndex,
-                    date: new Date().toISOString(),
-                    imageData: imageData,
-                    mimeType: 'image/jpeg',
-                    type: 'photo'
-                };
-                
-                DOM.takePhoto.disabled = true;
-                DOM.retakePhoto.disabled = false;
-                DOM.submitPhoto.disabled = false;
-                stopCamera();
-                alert('拍照成功！');
-            };
-
-            const retakePhoto = () => {
-                DOM.photoPreview.classList.add('hidden');
-                DOM.photoPreview.src = '';
-                state.currentPhoto = null;
-                DOM.submitPhoto.disabled = true;
-                DOM.retakePhoto.disabled = true;
-                startCamera();
-            };
-
-            const stopCamera = () => {
-                if (state.cameraStream) {
+                    // 关闭摄像头（拍照后自动关闭）
                     state.cameraStream.getTracks().forEach(track => track.stop());
                     state.cameraStream = null;
                     state.isCameraActive = false;
-                    DOM.cameraPreview.classList.add('hidden');
-                    DOM.cameraPreview.srcObject = null;
-                    DOM.startCamera.disabled = false;
-                    DOM.takePhoto.disabled = true;
-                    DOM.stopCamera.disabled = true;
+                    
+                    DOM.smartCameraBtn.textContent = '启动摄像头';
+                    DOM.smartCameraBtn.style.background = '#4facfe';
                     DOM.cameraStatus.classList.add('hidden');
+                    DOM.submitPhoto.disabled = false;
+                    
+                    alert('拍照成功！');
                 }
             };
 
@@ -3679,9 +3780,17 @@
                 DOM.photoPreview.classList.add('hidden');
                 DOM.photoPreview.src = '';
                 DOM.submitPhoto.disabled = true;
-                DOM.retakePhoto.disabled = true;
                 state.currentPhoto = null;
-                stopCamera();
+                // 关闭摄像头
+                if (state.cameraStream) {
+                    state.cameraStream.getTracks().forEach(track => track.stop());
+                    state.cameraStream = null;
+                    state.isCameraActive = false;
+                }
+                DOM.smartCameraBtn.textContent = '启动摄像头';
+                DOM.smartCameraBtn.style.background = '#4facfe';
+                DOM.cameraPreview.classList.add('hidden');
+                DOM.cameraStatus.classList.add('hidden');
             };
 
             const renderRecordings = async () => {
