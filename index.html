@@ -486,6 +486,53 @@
         }
         .category-title.completed { border-bottom-color: #1dd1a1; }
         .category-title i { margin-right: 8px; }
+
+        /* 新增：今日任务按科目分组的样式 */
+        .subject-group {
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background: #f8fafc;
+            overflow: hidden;
+        }
+        .subject-group-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #e9ecef;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            border-left: 4px solid;
+            transition: background 0.2s;
+        }
+        .subject-group-header:hover {
+            background: #dee2e6;
+        }
+        .subject-group-header .toggle-icon {
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        .subject-group-header.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+        .subject-group-content {
+            padding: 12px;
+            background: white;
+            transition: all 0.2s;
+        }
+        .subject-group-content.collapsed {
+            display: none;
+        }
+        .subject-badge-group {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: white;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -1329,7 +1376,9 @@
                 pauseOption: 'all',
                 selectedSubtasksForPause: new Set(),
                 // 折叠状态存储
-                collapsedParents: new Set()  // 存储被折叠的父任务ID
+                collapsedParents: new Set(),  // 存储被折叠的父任务ID
+                // 新增：今日任务中科目分组折叠状态
+                collapsedSubjects: new Set()   // 存储被折叠的科目名称
             };
 
             // ==================== IndexedDB 存储管理 ====================
@@ -2708,12 +2757,12 @@
                 DOM.editTaskForm.scrollIntoView({ behavior: 'smooth' });
             };
 
-            // ==================== 今日任务渲染（科目颜色）====================
+            // ==================== 今日任务渲染（按科目分组，支持折叠）====================
             const renderTodayTasks = () => {
                 DOM.todayTasks.innerHTML = '';
                 const today = new Date(); today.setHours(0, 0, 0, 0);
-                let tasksForToday = [];
-                let totalTasks = 0, uncompletedTasks = 0;
+                // 收集今日任务数据（包含逾期任务）
+                const tasksForToday = [];
 
                 state.tasks.forEach(task => {
                     if (task.status !== 'active' || task.isParentTask) return;
@@ -2728,39 +2777,94 @@
                         const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
                         const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
                         const needsRedo = checkin && checkin.status === 'needs_redo';
-                        totalTasks++;
-                        if (!hasCheckedIn || needsRedo) uncompletedTasks++;
                         tasksForToday.push({ task, checkpointIndex, daysSinceStart, isOverdue: false, hasCheckedIn, needsRedo });
                     }
                     
                     taskSchedule.forEach((day, i) => {
                         if (day < daysSinceStart && !task.checkins.some(c => c.checkpointIndex === i)) {
-                            totalTasks++;
-                            uncompletedTasks++;
                             tasksForToday.push({ task, checkpointIndex: i, daysSinceStart, isOverdue: true, hasCheckedIn: false, needsRedo: false });
                         }
                     });
                 });
 
+                // 更新总计数
+                const totalTasks = tasksForToday.length;
+                const uncompletedTasks = tasksForToday.filter(item => !item.hasCheckedIn || item.needsRedo).length;
                 DOM.todayTasksCount.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
-
-                tasksForToday.sort((a, b) => {
-                    if (a.task.pinned && !b.task.pinned) return -1;
-                    if (!a.task.pinned && b.task.pinned) return 1;
-                    const subjectA = SUBJECT_ORDER[a.task.subject] || 6;
-                    const subjectB = SUBJECT_ORDER[b.task.subject] || 6;
-                    return subjectA !== subjectB ? subjectA - subjectB : a.task.name.localeCompare(b.task.name, 'zh-CN');
-                });
 
                 if (tasksForToday.length === 0) {
                     DOM.todayTasks.innerHTML = '<div class="empty-state"><i>📅</i><p>今天没有打卡任务，放松一下吧！</p></div>';
                     return;
                 }
 
-                tasksForToday.forEach(item => renderTodayTaskItem(item));
+                // 按科目分组
+                const grouped = {};
+                tasksForToday.forEach(item => {
+                    const subject = item.task.subject;
+                    if (!grouped[subject]) grouped[subject] = [];
+                    grouped[subject].push(item);
+                });
+
+                // 按科目顺序排序
+                const sortedSubjects = Object.keys(grouped).sort((a, b) => {
+                    const orderA = SUBJECT_ORDER[a] || 5;
+                    const orderB = SUBJECT_ORDER[b] || 5;
+                    return orderA - orderB;
+                });
+
+                // 渲染每个科目组
+                sortedSubjects.forEach(subject => {
+                    const items = grouped[subject];
+                    const isCollapsed = state.collapsedSubjects.has(subject);
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'subject-group';
+                    
+                    // 组头部：显示科目名称、任务数量、折叠图标
+                    const headerDiv = document.createElement('div');
+                    headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
+                    const badgeClass = getSubjectBadgeClass(subject);
+                    headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
+                    headerDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="subject-badge ${badgeClass}">${subject}</span>
+                            <span style="font-weight: normal;">(${items.length}个任务)</span>
+                        </div>
+                        <span class="toggle-icon">▼</span>
+                    `;
+                    headerDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (state.collapsedSubjects.has(subject)) {
+                            state.collapsedSubjects.delete(subject);
+                        } else {
+                            state.collapsedSubjects.add(subject);
+                        }
+                        renderTodayTasks(); // 重新渲染以更新折叠状态
+                    });
+                    
+                    // 组内容
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = `subject-group-content ${isCollapsed ? 'collapsed' : ''}`;
+                    
+                    // 对组内任务排序（置顶优先，然后按名称）
+                    const sortedItems = [...items].sort((a, b) => {
+                        if (a.task.pinned && !b.task.pinned) return -1;
+                        if (!a.task.pinned && b.task.pinned) return 1;
+                        return a.task.name.localeCompare(b.task.name, 'zh-CN');
+                    });
+                    
+                    sortedItems.forEach(item => {
+                        const taskEl = renderTodayTaskItemElement(item);
+                        contentDiv.appendChild(taskEl);
+                    });
+                    
+                    groupDiv.appendChild(headerDiv);
+                    groupDiv.appendChild(contentDiv);
+                    DOM.todayTasks.appendChild(groupDiv);
+                });
             };
 
-            const renderTodayTaskItem = (item) => {
+            // 辅助函数：生成单个任务卡片DOM元素
+            const renderTodayTaskItemElement = (item) => {
                 const { task, checkpointIndex, daysSinceStart, isOverdue, hasCheckedIn, needsRedo } = item;
                 const taskEl = document.createElement('div');
                 let taskClass = 'task-item';
@@ -2779,14 +2883,12 @@
                 const statusText = isOverdue ? '逾期' : (task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`);
                 const statusClass = isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')));
 
-                // 添加科目徽章和带颜色的任务名称
                 const subjectBadgeClass = getSubjectBadgeClass(task.subject);
                 const subjectNameColorClass = getSubjectNameColorClass(task.subject);
 
                 taskEl.innerHTML = `
                     <div class="task-header">
                         <div class="task-name">
-                            <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
                             <span class="${subjectNameColorClass}">${task.name}</span>
                         </div>
                         <div class="task-status ${statusClass}">${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓' : ''))}</div>
@@ -2810,7 +2912,7 @@
                         <button class="btn" onclick="window.deleteTask(${task.id})">删除</button>
                     </div>
                 `;
-                DOM.todayTasks.appendChild(taskEl);
+                return taskEl;
             };
 
             // ==================== 所有任务渲染（分类 + 折叠）====================
