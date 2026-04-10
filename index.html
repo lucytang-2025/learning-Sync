@@ -935,7 +935,7 @@
                         <button class="btn btn-primary" id="show-data-modal">管理数据</button>
                         <button class="btn btn-excel" id="export-excel-btn">导出为Excel</button>
                         <button class="btn btn-manage" id="manage-recordings-btn">管理录音/照片</button>
-                        <button class="btn btn-bulk-checkin" id="bulk-checkin-btn">一键打卡</button>
+                        <button class="btn btn-bulk-checkin" id="bulk-checkin-btn">批量打卡</button>
                         <button class="btn btn-bulk-pause" id="bulk-pause-btn">暂停任务</button>
                         <button class="btn btn-bulk-resume" id="bulk-resume-btn">取消暂停</button>
                         <button class="btn" id="clear-data-btn">清除所有任务</button>
@@ -2759,293 +2759,386 @@
 
             // ==================== 今日任务渲染（按科目分组，支持折叠）====================
             const renderTodayTasks = () => {
-                DOM.todayTasks.innerHTML = '';
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                // 收集今日任务数据（包含逾期任务）
-                const tasksForToday = [];
+    DOM.todayTasks.innerHTML = '';
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    // 收集今日任务数据（包含逾期任务）
+    const tasksForToday = [];
 
-                state.tasks.forEach(task => {
-                    if (task.status !== 'active' || task.isParentTask) return;
-                    
-                    const taskSchedule = getTaskCheckinSchedule(task);
-                    const taskDate = new Date(task.createDate);
-                    taskDate.setHours(0, 0, 0, 0);
-                    const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                    
-                    const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
-                    if (checkpointIndex !== -1) {
-                        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
-                        const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
-                        const needsRedo = checkin && checkin.status === 'needs_redo';
-                        tasksForToday.push({ task, checkpointIndex, daysSinceStart, isOverdue: false, hasCheckedIn, needsRedo });
-                    }
-                    
-                    taskSchedule.forEach((day, i) => {
-                        if (day < daysSinceStart && !task.checkins.some(c => c.checkpointIndex === i)) {
-                            tasksForToday.push({ task, checkpointIndex: i, daysSinceStart, isOverdue: true, hasCheckedIn: false, needsRedo: false });
-                        }
-                    });
-                });
+    state.tasks.forEach(task => {
+        if (task.status !== 'active' || task.isParentTask) return;
+        
+        const taskSchedule = getTaskCheckinSchedule(task);
+        const taskDate = new Date(task.createDate);
+        taskDate.setHours(0, 0, 0, 0);
+        const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+        
+        const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+        if (checkpointIndex !== -1) {
+            const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
+            const needsRedo = checkin && checkin.status === 'needs_redo';
+            tasksForToday.push({ task, checkpointIndex, daysSinceStart, isOverdue: false, hasCheckedIn, needsRedo });
+        }
+        
+        taskSchedule.forEach((day, i) => {
+            if (day < daysSinceStart && !task.checkins.some(c => c.checkpointIndex === i)) {
+                tasksForToday.push({ task, checkpointIndex: i, daysSinceStart, isOverdue: true, hasCheckedIn: false, needsRedo: false });
+            }
+        });
+    });
 
-                // 更新总计数
-                const totalTasks = tasksForToday.length;
-                const uncompletedTasks = tasksForToday.filter(item => !item.hasCheckedIn || item.needsRedo).length;
-                DOM.todayTasksCount.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
+    // 更新总计数
+    const totalTasks = tasksForToday.length;
+    const uncompletedTasks = tasksForToday.filter(item => !item.hasCheckedIn || item.needsRedo).length;
+    DOM.todayTasksCount.textContent = `${uncompletedTasks}/${totalTasks} 个任务`;
 
-                if (tasksForToday.length === 0) {
-                    DOM.todayTasks.innerHTML = '<div class="empty-state"><i>📅</i><p>今天没有打卡任务，放松一下吧！</p></div>';
-                    return;
-                }
+    if (tasksForToday.length === 0) {
+        DOM.todayTasks.innerHTML = '<div class="empty-state"><i>📅</i><p>今天没有打卡任务，放松一下吧！</p></div>';
+        return;
+    }
 
-                // 按科目分组
-                const grouped = {};
-                tasksForToday.forEach(item => {
-                    const subject = item.task.subject;
-                    if (!grouped[subject]) grouped[subject] = [];
-                    grouped[subject].push(item);
-                });
+    // 按科目分组
+    const grouped = {};
+    tasksForToday.forEach(item => {
+        const subject = item.task.subject;
+        if (!grouped[subject]) grouped[subject] = [];
+        grouped[subject].push(item);
+    });
 
-                // 按科目顺序排序
-                const sortedSubjects = Object.keys(grouped).sort((a, b) => {
-                    const orderA = SUBJECT_ORDER[a] || 5;
-                    const orderB = SUBJECT_ORDER[b] || 5;
-                    return orderA - orderB;
-                });
+    // 按科目顺序排序（按拼音/字母顺序）
+    const sortedSubjects = Object.keys(grouped).sort((a, b) => {
+        return a.localeCompare(b, 'zh-CN');
+    });
 
-                // 渲染每个科目组
-                sortedSubjects.forEach(subject => {
-                    const items = grouped[subject];
-                    const isCollapsed = state.collapsedSubjects.has(subject);
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'subject-group';
-                    
-                    // 组头部：显示科目名称、任务数量、折叠图标
-                    const headerDiv = document.createElement('div');
-                    headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
-                    const badgeClass = getSubjectBadgeClass(subject);
-                    headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
-                    headerDiv.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="subject-badge ${badgeClass}">${subject}</span>
-                            <span style="font-weight: normal;">(${items.length}个任务)</span>
-                        </div>
-                        <span class="toggle-icon">▼</span>
-                    `;
-                    headerDiv.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (state.collapsedSubjects.has(subject)) {
-                            state.collapsedSubjects.delete(subject);
-                        } else {
-                            state.collapsedSubjects.add(subject);
-                        }
-                        renderTodayTasks(); // 重新渲染以更新折叠状态
-                    });
-                    
-                    // 组内容
-                    const contentDiv = document.createElement('div');
-                    contentDiv.className = `subject-group-content ${isCollapsed ? 'collapsed' : ''}`;
-                    
-                    // 对组内任务排序（置顶优先，然后按名称）
-                    const sortedItems = [...items].sort((a, b) => {
-                        if (a.task.pinned && !b.task.pinned) return -1;
-                        if (!a.task.pinned && b.task.pinned) return 1;
-                        return a.task.name.localeCompare(b.task.name, 'zh-CN');
-                    });
-                    
-                    sortedItems.forEach(item => {
-                        const taskEl = renderTodayTaskItemElement(item);
-                        contentDiv.appendChild(taskEl);
-                    });
-                    
-                    groupDiv.appendChild(headerDiv);
-                    groupDiv.appendChild(contentDiv);
-                    DOM.todayTasks.appendChild(groupDiv);
-                });
-            };
+    // 渲染每个科目组
+    sortedSubjects.forEach(subject => {
+        const items = grouped[subject];
+        // 计算未完成数量：未打卡 或 需要重做
+        const uncompletedCount = items.filter(item => !item.hasCheckedIn || item.needsRedo).length;
+        const totalCount = items.length;
+        const isCollapsed = state.collapsedSubjects.has(subject);
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'subject-group';
+        
+        // 组头部：显示科目名称、未完成/总任务数、折叠图标
+        const headerDiv = document.createElement('div');
+        headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
+        const badgeClass = getSubjectBadgeClass(subject);
+        headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
+        headerDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="subject-badge ${badgeClass}">${subject}</span>
+                <span style="font-weight: normal; font-size: 13px;">
+                    <span style="color: #ff6b6b;">${uncompletedCount}</span> / ${totalCount}
+                </span>
+            </div>
+            <span class="toggle-icon">▼</span>
+        `;
+        headerDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.collapsedSubjects.has(subject)) {
+                state.collapsedSubjects.delete(subject);
+            } else {
+                state.collapsedSubjects.add(subject);
+            }
+            renderTodayTasks(); // 重新渲染以更新折叠状态
+        });
+        
+        // 组内容
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `subject-group-content ${isCollapsed ? 'collapsed' : ''}`;
+        
+        // 对组内任务排序（置顶优先，然后按任务名称字母数字顺序排序）
+        const sortedItems = [...items].sort((a, b) => {
+            if (a.task.pinned && !b.task.pinned) return -1;
+            if (!a.task.pinned && b.task.pinned) return 1;
+            // 按任务名称字母数字顺序排序
+            return a.task.name.localeCompare(b.task.name, 'zh-CN');
+        });
+        
+        sortedItems.forEach(item => {
+            const taskEl = renderTodayTaskItemElement(item);
+            contentDiv.appendChild(taskEl);
+        });
+        
+        groupDiv.appendChild(headerDiv);
+        groupDiv.appendChild(contentDiv);
+        DOM.todayTasks.appendChild(groupDiv);
+    });
+};
 
             // 辅助函数：生成单个任务卡片DOM元素
             const renderTodayTaskItemElement = (item) => {
-                const { task, checkpointIndex, daysSinceStart, isOverdue, hasCheckedIn, needsRedo } = item;
-                const taskEl = document.createElement('div');
-                let taskClass = 'task-item';
-                if (isOverdue) taskClass += ' overdue';
-                else if (hasCheckedIn && !needsRedo) taskClass += ' completed';
-                else if (needsRedo) taskClass += ' needs-redo';
-                if (isTaskPaused(task)) taskClass += ' paused';
-                if (task.pinned) taskClass += ' pinned';
-                taskEl.className = taskClass;
+    const { task, checkpointIndex, daysSinceStart, isOverdue, hasCheckedIn, needsRedo } = item;
+    const taskEl = document.createElement('div');
+    let taskClass = 'task-item';
+    if (isOverdue) taskClass += ' overdue';
+    else if (hasCheckedIn && !needsRedo) taskClass += ' completed';
+    else if (needsRedo) taskClass += ' needs-redo';
+    if (isTaskPaused(task)) taskClass += ' paused';
+    if (task.pinned) taskClass += ' pinned';
+    taskEl.className = taskClass;
 
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                const totalCheckins = taskSchedule.length;
-                const progressPercent = (completedCheckins / totalCheckins) * 100;
+    const taskSchedule = getTaskCheckinSchedule(task);
+    const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+    const totalCheckins = taskSchedule.length;
+    const progressPercent = (completedCheckins / totalCheckins) * 100;
 
-                const statusText = isOverdue ? '逾期' : (task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`);
-                const statusClass = isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')));
+    // 获取重做原因
+    let redoReasonText = '';
+    if (needsRedo) {
+        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+        if (checkin && checkin.redoReason) {
+            redoReasonText = `<div style="font-size: 12px; color: #ff9f43; margin-top: 6px; padding: 6px 8px; background: #fff3e0; border-radius: 6px;">📝 重做原因：${checkin.redoReason}${checkin.redoDeadline ? `（截止：${new Date(checkin.redoDeadline).toLocaleDateString()}）` : ''}</div>`;
+        } else if (checkin) {
+            redoReasonText = `<div style="font-size: 12px; color: #ff9f43; margin-top: 6px; padding: 6px 8px; background: #fff3e0; border-radius: 6px;">⚠️ 需要重做（原因未填写）</div>`;
+        }
+    }
 
-                const subjectBadgeClass = getSubjectBadgeClass(task.subject);
-                const subjectNameColorClass = getSubjectNameColorClass(task.subject);
+    const statusText = isOverdue ? '逾期' : (task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`);
+    const statusClass = isTaskPaused(task) ? 'status-paused' : (needsRedo ? 'status-needs-redo' : (hasCheckedIn ? 'status-completed' : (isOverdue ? 'status-overdue' : 'status-today')));
 
-                taskEl.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-name">
-                            <span class="${subjectNameColorClass}">${task.name}</span>
-                        </div>
-                        <div class="task-status ${statusClass}">${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓' : ''))}</div>
-                    </div>
-                    ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
-                    <div class="task-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
-                        <div class="progress-text">已完成 ${completedCheckins} 次打卡</div>
-                    </div>
-                    <div class="task-actions">
-                        ${(!isTaskPaused(task) && (!hasCheckedIn || needsRedo)) ? 
-                            `<button class="btn btn-primary" onclick="window.startCheckin(${task.id}, ${checkpointIndex})">${needsRedo ? '重做打卡' : '立即打卡'}</button>` : ''}
-                        <button class="btn" onclick="window.showEditTaskForm(${task.id})">编辑</button>
-                        <button class="btn" onclick="window.viewTaskDetails(${task.id})">详情</button>
-                        <button class="btn" onclick="window.toggleTaskPin(${task.id})">${task.pinned ? '取消置顶' : '置顶'}</button>
-                        ${isTaskPaused(task) ? 
-                            `<button class="btn btn-success" onclick="window.resumeSingleTask(${task.id})">恢复</button>` :
-                            `<button class="btn" onclick="window.pauseSingleTask(${task.id})">暂停</button>`
-                        }
-                        <button class="btn" onclick="window.showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
-                        <button class="btn" onclick="window.deleteTask(${task.id})">删除</button>
-                    </div>
-                `;
-                return taskEl;
-            };
+    const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+    const subjectNameColorClass = getSubjectNameColorClass(task.subject);
+
+    taskEl.innerHTML = `
+        <div class="task-header">
+            <div class="task-name">
+                <span class="${subjectNameColorClass}">${task.name}</span>
+            </div>
+            <div class="task-status ${statusClass}">${statusText} ${isTaskPaused(task) ? '已暂停' : (needsRedo ? '需重做' : (hasCheckedIn ? '✓' : ''))}</div>
+        </div>
+        ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
+        ${redoReasonText}
+        <div class="task-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
+            <div class="progress-text">已完成 ${completedCheckins} 次打卡</div>
+        </div>
+        <div class="task-actions">
+            ${(!isTaskPaused(task) && (!hasCheckedIn || needsRedo)) ? 
+                `<button class="btn btn-primary" onclick="window.startCheckin(${task.id}, ${checkpointIndex})">${needsRedo ? '重做打卡' : '立即打卡'}</button>` : ''}
+            <button class="btn" onclick="window.showEditTaskForm(${task.id})">编辑</button>
+            <button class="btn" onclick="window.viewTaskDetails(${task.id})">详情</button>
+            <button class="btn" onclick="window.toggleTaskPin(${task.id})">${task.pinned ? '取消置顶' : '置顶'}</button>
+            ${isTaskPaused(task) ? 
+                `<button class="btn btn-success" onclick="window.resumeSingleTask(${task.id})">恢复</button>` :
+                `<button class="btn" onclick="window.pauseSingleTask(${task.id})">暂停</button>`
+            }
+            <button class="btn" onclick="window.showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
+            <button class="btn" onclick="window.deleteTask(${task.id})">删除</button>
+        </div>
+    `;
+    return taskEl;
+};
 
             // ==================== 所有任务渲染（分类 + 折叠）====================
             const renderAllTasks = () => {
-                DOM.allTasks.innerHTML = '';
-                if (state.tasks.length === 0) {
-                    DOM.allTasks.innerHTML = '<div class="empty-state"><i>📝</i><p>还没有任何任务，点击"新建任务"开始吧！</p></div>';
-                    return;
-                }
+    DOM.allTasks.innerHTML = '';
+    if (state.tasks.length === 0) {
+        DOM.allTasks.innerHTML = '<div class="empty-state"><i>📝</i><p>还没有任何任务，点击"新建任务"开始吧！</p></div>';
+        return;
+    }
 
-                const parentTasks = state.tasks.filter(t => t.isParentTask);
-                const normalTasks = state.tasks.filter(t => !t.isParentTask && !t.parentTaskId);
-                
-                // 按完成状态分类所有非父任务
-                const uncompletedNormalTasks = normalTasks.filter(task => !isTaskCompleted(task));
-                const completedNormalTasks = normalTasks.filter(task => isTaskCompleted(task));
-                
-                // 父任务单独处理，不放在分类中（父任务本身不参与完成状态）
-                
-                // 排序函数
-                const sortTasks = (a, b) => {
-                    if (a.pinned && !b.pinned) return -1;
-                    if (!a.pinned && b.pinned) return 1;
-                    const subjectA = SUBJECT_ORDER[a.subject] || 6;
-                    const subjectB = SUBJECT_ORDER[b.subject] || 6;
-                    return subjectA !== subjectB ? subjectA - subjectB : a.name.localeCompare(b.name, 'zh-CN');
-                };
+    // 获取所有非父任务（普通任务和子任务）
+    const allNormalTasks = state.tasks.filter(t => !t.isParentTask && !t.parentTaskId);
+    const allSubtasks = state.tasks.filter(t => t.parentTaskId);
+    const allDisplayTasks = [...allNormalTasks, ...allSubtasks];
+    
+    // 按完成状态分组
+    const uncompletedTasks = allDisplayTasks.filter(task => !isTaskCompleted(task));
+    const completedTasks = allDisplayTasks.filter(task => isTaskCompleted(task));
+    
+    // 排序函数
+    const sortTasks = (a, b) => {
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        const subjectA = SUBJECT_ORDER[a.subject] || 6;
+        const subjectB = SUBJECT_ORDER[b.subject] || 6;
+        if (subjectA !== subjectB) return subjectA - subjectB;
+        return a.name.localeCompare(b.name, 'zh-CN');
+    };
+    
+    // 先渲染未完成的任务（按科目分组）
+    if (uncompletedTasks.length > 0) {
+        renderTasksBySubject(uncompletedTasks.sort(sortTasks), false);
+    }
+    
+    // 再渲染已完成的任务（按科目分组）
+    if (completedTasks.length > 0) {
+        renderTasksBySubject(completedTasks.sort(sortTasks), true);
+    }
+    
+    // 渲染父任务（系列任务）
+    const parentTasks = state.tasks.filter(t => t.isParentTask);
+    if (parentTasks.length > 0) {
+        const parentTitle = document.createElement('div');
+        parentTitle.className = 'category-title';
+        parentTitle.innerHTML = '<i>📚</i> 系列任务';
+        DOM.allTasks.appendChild(parentTitle);
+        parentTasks.sort(sortTasks).forEach(parent => renderParentTask(parent));
+    }
+};
 
-                // 先渲染父任务（系列任务）
-                const sortedParents = parentTasks.sort(sortTasks);
-                sortedParents.forEach(parent => renderParentTask(parent));
+// 辅助函数：按科目分组渲染任务
+const renderTasksBySubject = (tasks, isCompleted) => {
+    // 按科目分组
+    const grouped = {};
+    tasks.forEach(task => {
+        const subject = task.subject;
+        if (!grouped[subject]) grouped[subject] = [];
+        grouped[subject].push(task);
+    });
+    
+    // 按科目顺序排序
+    const sortedSubjects = Object.keys(grouped).sort((a, b) => {
+        const orderA = SUBJECT_ORDER[a] || 5;
+        const orderB = SUBJECT_ORDER[b] || 5;
+        return orderA - orderB;
+    });
+    
+    // 渲染每个科目组
+    sortedSubjects.forEach(subject => {
+        const subjectTasks = grouped[subject];
+        const totalCount = subjectTasks.length;
+        const completedCount = subjectTasks.filter(task => isTaskCompleted(task)).length;
+        const groupKey = `${subject}_${isCompleted ? 'completed' : 'uncompleted'}`;
+        const isCollapsed = state.collapsedSubjects.has(groupKey);
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'subject-group';
+        
+        // 组头部
+        const headerDiv = document.createElement('div');
+        headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
+        const badgeClass = getSubjectBadgeClass(subject);
+        const statusText = isCompleted ? '✓ 已完成' : '📋 进行中';
+        headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
+        headerDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="subject-badge ${badgeClass}">${subject}</span>
+                <span style="font-weight: normal;">${statusText}</span>
+                <span style="font-size: 12px; color: #64748b;">(${completedCount}/${totalCount})</span>
+            </div>
+            <span class="toggle-icon">▼</span>
+        `;
+        
+        headerDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.collapsedSubjects.has(groupKey)) {
+                state.collapsedSubjects.delete(groupKey);
+            } else {
+                state.collapsedSubjects.add(groupKey);
+            }
+            renderAllTasks();
+        });
+        
+        // 组内容
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `subject-group-content ${isCollapsed ? 'collapsed' : ''}`;
+        
+        subjectTasks.forEach(task => {
+            const taskEl = renderNormalTaskItem(task);
+            contentDiv.appendChild(taskEl);
+        });
+        
+        groupDiv.appendChild(headerDiv);
+        groupDiv.appendChild(contentDiv);
+        DOM.allTasks.appendChild(groupDiv);
+    });
+};
 
-                // 渲染未完成普通任务分类
-                if (uncompletedNormalTasks.length > 0) {
-                    const uncompletedTitle = document.createElement('div');
-                    uncompletedTitle.className = 'category-title';
-                    uncompletedTitle.innerHTML = '<i>📝</i> 未完成的任务';
-                    DOM.allTasks.appendChild(uncompletedTitle);
-                    
-                    uncompletedNormalTasks.sort(sortTasks).forEach(task => renderNormalTask(task));
-                }
+// 辅助函数：渲染单个任务卡片
+const renderNormalTaskItem = (task) => {
+    const taskEl = document.createElement('div');
+    taskEl.className = 'task-item';
+    if (task.pinned) taskEl.classList.add('pinned');
+    if (isTaskPaused(task)) taskEl.classList.add('paused');
+    if (isTaskCompleted(task)) taskEl.classList.add('completed');
 
-                // 渲染已完成普通任务分类
-                if (completedNormalTasks.length > 0) {
-                    const completedTitle = document.createElement('div');
-                    completedTitle.className = 'category-title completed';
-                    completedTitle.innerHTML = '<i>✅</i> 已完成的任务';
-                    DOM.allTasks.appendChild(completedTitle);
-                    
-                    completedNormalTasks.sort(sortTasks).forEach(task => renderNormalTask(task, true));
-                }
-            };
+    const taskSchedule = getTaskCheckinSchedule(task);
+    const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+    const totalCheckins = taskSchedule.length;
+    const progressPercent = totalCheckins > 0 ? (completedCheckins / totalCheckins) * 100 : 0;
 
-            const renderNormalTask = (task, isCompleted = false) => {
-                const taskEl = document.createElement('div');
-                taskEl.className = 'task-item';
-                if (task.pinned) taskEl.classList.add('pinned');
-                if (isTaskPaused(task)) taskEl.classList.add('paused');
-                if (isCompleted) taskEl.classList.add('completed');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const taskDate = new Date(task.createDate);
+    taskDate.setHours(0, 0, 0, 0);
+    const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+    
+    const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+    const shouldCheckinToday = checkpointIndex !== -1;
+    const hasCheckedInToday = shouldCheckinToday ? 
+        (checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : 
+        task.checkins.some(c => c.checkpointIndex === checkpointIndex && c.status === 'completed')) : false;
+    const needsRedoToday = shouldCheckinToday ? 
+        task.checkins.some(c => c.checkpointIndex === checkpointIndex && c.status === 'needs_redo') : false;
 
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                const totalCheckins = taskSchedule.length;
-                const progressPercent = (completedCheckins / totalCheckins) * 100;
+    let hasOverdue = false, hasRedo = false;
+    taskSchedule.forEach((day, i) => {
+        const checkin = task.checkins.find(c => c.checkpointIndex === i);
+        if (day < daysSinceStart) {
+            if (!checkin) hasOverdue = true;
+            else if (checkin.status === 'needs_redo') hasRedo = true;
+        }
+    });
 
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                const taskDate = new Date(task.createDate);
-                taskDate.setHours(0, 0, 0, 0);
-                const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                
-                const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
-                const shouldCheckinToday = checkpointIndex !== -1;
-                const hasCheckedInToday = shouldCheckinToday ? 
-                    (checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : 
-                    task.checkins.some(c => c.checkpointIndex === checkpointIndex && c.status === 'completed')) : false;
-                const needsRedoToday = shouldCheckinToday ? 
-                    task.checkins.some(c => c.checkpointIndex === checkpointIndex && c.status === 'needs_redo') : false;
+    const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
+    const checkinBtnEnabled = (canCheckinToday || hasOverdue) && !isTaskPaused(task);
 
-                let hasOverdue = false, hasRedo = false;
-                taskSchedule.forEach((day, i) => {
-                    const checkin = task.checkins.find(c => c.checkpointIndex === i);
-                    if (day < daysSinceStart) {
-                        if (!checkin) hasOverdue = true;
-                        else if (checkin.status === 'needs_redo') hasRedo = true;
-                    }
-                });
+    let statusClass = 'status-future', statusText = '';
+    if (isTaskPaused(task)) { statusClass = 'status-paused'; statusText = '已暂停'; }
+    else if (isTaskCompleted(task)) { statusClass = 'status-completed'; statusText = '已完成'; }
+    else if (hasOverdue) { statusClass = 'status-overdue'; statusText = '有逾期'; }
+    else if (hasRedo) { statusClass = 'status-needs-redo'; statusText = '需重做'; }
+    else if (shouldCheckinToday) {
+        statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
+        statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
+    }
 
-                const canCheckinToday = shouldCheckinToday && (!hasCheckedInToday || needsRedoToday);
-                const checkinBtnEnabled = (canCheckinToday || hasOverdue) && !isTaskPaused(task);
+    const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+    const subjectNameColorClass = getSubjectNameColorClass(task.subject);
 
-                let statusClass = 'status-future', statusText = '';
-                if (isTaskPaused(task)) { statusClass = 'status-paused'; statusText = '已暂停'; }
-                else if (isCompleted) { statusClass = 'status-completed'; statusText = '已完成'; }
-                else if (hasOverdue) { statusClass = 'status-overdue'; statusText = '有逾期'; }
-                else if (hasRedo) { statusClass = 'status-needs-redo'; statusText = '需重做'; }
-                else if (shouldCheckinToday) {
-                    statusClass = hasCheckedInToday ? 'status-completed' : 'status-pending';
-                    statusText = hasCheckedInToday ? '今日已打卡' : '今日未打卡';
-                }
+    // 获取重做原因
+    let redoReasonText = '';
+    if (needsRedoToday && checkpointIndex !== -1) {
+        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+        if (checkin && checkin.redoReason) {
+            redoReasonText = `<div style="font-size: 12px; color: #ff9f43; margin-top: 6px; padding: 6px 8px; background: #fff3e0; border-radius: 6px;">📝 重做原因：${checkin.redoReason}${checkin.redoDeadline ? `（截止：${new Date(checkin.redoDeadline).toLocaleDateString()}）` : ''}</div>`;
+        }
+    }
 
-                const subjectBadgeClass = getSubjectBadgeClass(task.subject);
-                const subjectNameColorClass = getSubjectNameColorClass(task.subject);
-
-                taskEl.innerHTML = `
-                    <div class="task-header">
-                        <div class="task-name">
-                            <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
-                            <span class="${subjectNameColorClass}">${task.name}</span>
-                        </div>
-                        <div class="task-status ${statusClass}">${completedCheckins}/${totalCheckins} ${statusText}</div>
-                    </div>
-                    ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
-                    <div class="task-progress">
-                        <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
-                        <div class="progress-text">已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次</div>
-                    </div>
-                    <div class="task-actions">
-                        <button class="btn ${checkinBtnEnabled ? 'btn-primary' : ''}" onclick="window.handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
-                            ${isTaskPaused(task) ? '已暂停' : (needsRedoToday ? '重做打卡' : '打卡')}
-                        </button>
-                        <button class="btn" onclick="window.showEditTaskForm(${task.id})">编辑</button>
-                        <button class="btn" onclick="window.viewTaskDetails(${task.id})">详情</button>
-                        <button class="btn" onclick="window.toggleTaskPin(${task.id})">${task.pinned ? '取消置顶' : '置顶'}</button>
-                        ${isTaskPaused(task) ? 
-                            `<button class="btn btn-success" onclick="window.resumeSingleTask(${task.id})">恢复</button>` :
-                            `<button class="btn" onclick="window.pauseSingleTask(${task.id})">暂停</button>`
-                        }
-                        <button class="btn" onclick="window.showRedoManagementModal(${task.id}, ${checkpointIndex})">标记重做</button>
-                        <button class="btn" onclick="window.deleteTask(${task.id})">删除</button>
-                    </div>
-                `;
-                DOM.allTasks.appendChild(taskEl);
-            };
+    taskEl.innerHTML = `
+        <div class="task-header">
+            <div class="task-name">
+                <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
+                <span class="${subjectNameColorClass}">${task.name}</span>
+            </div>
+            <div class="task-status ${statusClass}">${completedCheckins}/${totalCheckins} ${statusText}</div>
+        </div>
+        ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
+        ${redoReasonText}
+        <div class="task-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
+            <div class="progress-text">已完成 ${completedCheckins} 次打卡，还需 ${totalCheckins - completedCheckins} 次</div>
+        </div>
+        <div class="task-actions">
+            <button class="btn ${checkinBtnEnabled ? 'btn-primary' : ''}" onclick="window.handleCheckinClick(${task.id}, ${!checkinBtnEnabled})">
+                ${isTaskPaused(task) ? '已暂停' : (needsRedoToday ? '重做打卡' : '打卡')}
+            </button>
+            <button class="btn" onclick="window.showEditTaskForm(${task.id})">编辑</button>
+            <button class="btn" onclick="window.viewTaskDetails(${task.id})">详情</button>
+            <button class="btn" onclick="window.toggleTaskPin(${task.id})">${task.pinned ? '取消置顶' : '置顶'}</button>
+            ${isTaskPaused(task) ? 
+                `<button class="btn btn-success" onclick="window.resumeSingleTask(${task.id})">恢复</button>` :
+                `<button class="btn" onclick="window.pauseSingleTask(${task.id})">暂停</button>`
+            }
+            <button class="btn" onclick="window.showRedoManagementModal(${task.id}, ${checkpointIndex !== -1 ? checkpointIndex : 0})">标记重做</button>
+            <button class="btn" onclick="window.deleteTask(${task.id})">删除</button>
+        </div>
+    `;
+    return taskEl;
+};
 
             const renderParentTask = (parentTask) => {
                 const subtasks = getSubtasks(parentTask.id).sort((a, b) => (a.subtaskNumber || 0) - (b.subtaskNumber || 0));
@@ -3594,6 +3687,38 @@
                 }
             };
 
+// 下载图片到本地
+const downloadPhoto = (photo, task) => {
+    try {
+        const taskName = task ? `${task.subject}_${task.name}` : '未知任务';
+        const date = new Date();
+        const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`;
+        
+        const fileName = `${taskName}_${dateStr}.jpg`;
+        
+        // 将 base64 转换为 Blob
+        const imageBlob = dataURLtoBlob(photo.imageData);
+        
+        // 创建下载链接
+        const url = URL.createObjectURL(imageBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        
+        // 清理
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
+        
+        console.log('照片已下载:', fileName);
+    } catch (error) {
+        console.error('下载照片失败:', error);
+    }
+};
+
             const togglePause = () => {
                 if (!state.mediaRecorder) return;
                 if (state.isPaused) {
@@ -3819,64 +3944,70 @@
             };
 
             const submitPhoto = async () => {
-                if (!state.currentPhoto) { alert('请先拍照！'); return; }
-                
-                const task = state.tasks.find(t => t.id === state.currentPhoto.taskId);
-                if (!task) return;
+    if (!state.currentPhoto) { alert('请先拍照！'); return; }
+    
+    const task = state.tasks.find(t => t.id === state.currentPhoto.taskId);
+    if (!task) return;
 
-                if (state.isRedo) {
-                    const success = await redoCheckin(task.id, state.currentCheckpointIndex, state.currentPhoto);
-                    if (success) {
-                        resetPhoto();
-                        state.isRedo = false;
-                        renderRecordings();
-                        renderTodayTasks();
-                        renderAllTasks();
-                        renderCalendar();
-                        renderDataStats();
-                    }
-                    return;
-                }
+    if (state.isRedo) {
+        const success = await redoCheckin(task.id, state.currentCheckpointIndex, state.currentPhoto);
+        if (success) {
+            // 重做时也下载图片
+            downloadPhoto(state.currentPhoto, task);
+            resetPhoto();
+            state.isRedo = false;
+            renderRecordings();
+            renderTodayTasks();
+            renderAllTasks();
+            renderCalendar();
+            renderDataStats();
+        }
+        return;
+    }
 
-                const taskSchedule = getTaskCheckinSchedule(task);
-                const alreadyCheckedIn = task.checkins.some(c => c.checkpointIndex === state.currentPhoto.checkpointIndex && c.status === 'completed');
+    const taskSchedule = getTaskCheckinSchedule(task);
+    const alreadyCheckedIn = task.checkins.some(c => c.checkpointIndex === state.currentPhoto.checkpointIndex && c.status === 'completed');
 
-                if (state.currentCheckpointIndex === 0) {
-                    const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0);
-                    const requiredCount = task.firstDayCheckinCount || 1;
-                    if (firstDayCheckins.length >= requiredCount) {
-                        alert(`第一天已经完成${requiredCount}次打卡，不能再继续打卡！`);
-                        return;
-                    }
-                } else if (alreadyCheckedIn) {
-                    alert('这个打卡点已经完成过了！');
-                    return;
-                }
+    if (state.currentCheckpointIndex === 0) {
+        const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0);
+        const requiredCount = task.firstDayCheckinCount || 1;
+        if (firstDayCheckins.length >= requiredCount) {
+            alert(`第一天已经完成${requiredCount}次打卡，不能再继续打卡！`);
+            return;
+        }
+    } else if (alreadyCheckedIn) {
+        alert('这个打卡点已经完成过了！');
+        return;
+    }
 
-                await dataStorage.savePhoto(state.currentPhoto);
-                
-                task.checkins.push({
-                    checkpointIndex: state.currentPhoto.checkpointIndex,
-                    date: state.currentPhoto.date,
-                    photoId: state.currentPhoto.id,
-                    type: 'photo',
-                    status: 'completed'
-                });
+    await dataStorage.savePhoto(state.currentPhoto);
+    
+    task.checkins.push({
+        checkpointIndex: state.currentPhoto.checkpointIndex,
+        date: state.currentPhoto.date,
+        photoId: state.currentPhoto.id,
+        type: 'photo',
+        status: 'completed'
+    });
 
-                const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
-                if (completedCheckins === taskSchedule.length) {
-                    task.status = 'completed';
-                }
+    const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
+    if (completedCheckins === taskSchedule.length) {
+        task.status = 'completed';
+    }
 
-                await saveTasks();
-                resetPhoto();
-                renderRecordings();
-                renderTodayTasks();
-                renderAllTasks();
-                renderCalendar();
-                renderDataStats();
-                alert('打卡成功！');
-            };
+    await saveTasks();
+    
+    // 自动下载图片
+    downloadPhoto(state.currentPhoto, task);
+    
+    resetPhoto();
+    renderRecordings();
+    renderTodayTasks();
+    renderAllTasks();
+    renderCalendar();
+    renderDataStats();
+    alert('打卡成功！照片已保存并下载');
+};
 
             const resetPhoto = () => {
                 DOM.photoPreview.classList.add('hidden');
@@ -4280,8 +4411,11 @@
                 delete checkin.redoMarkedAt;
                 
                 if (media.type === 'audio') {
-                    downloadRecording(media);
-                }
+    downloadRecording(media);
+} else if (media.type === 'photo') {
+    const task = state.tasks.find(t => t.id === taskId);
+    downloadPhoto(media, task);
+}
                 
                 const taskSchedule = getTaskCheckinSchedule(task);
                 const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
@@ -4606,120 +4740,223 @@
 
             // ==================== 一键打卡 ====================
             const showBulkCheckinModal = () => {
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                let overdueCount = 0, todayCount = 0;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    // 收集所有可打卡的任务（逾期和今日未打卡）
+    const availableCheckins = [];
+    
+    // 临时存储选中的任务
+    const selectedCheckins = new Map(); // key: taskId_checkpointIndex
 
-                state.tasks.forEach(task => {
-                    if (task.status !== 'active' || isTaskPaused(task) || task.parentTaskId) return;
-                    
-                    const taskSchedule = getTaskCheckinSchedule(task);
-                    const taskDate = new Date(task.createDate);
-                    taskDate.setHours(0, 0, 0, 0);
-                    const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                    
-                    const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
-                    if (checkpointIndex !== -1) {
-                        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
-                        const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
-                        if (!hasCheckedIn) todayCount++;
-                    }
-                    
-                    taskSchedule.forEach((day, i) => {
-                        if (day < daysSinceStart) {
-                            const checkin = task.checkins.find(c => c.checkpointIndex === i);
-                            if (!checkin) overdueCount++;
-                        }
-                    });
+    state.tasks.forEach(task => {
+        if (task.status !== 'active' || isTaskPaused(task) || task.parentTaskId) return;
+        
+        const taskSchedule = getTaskCheckinSchedule(task);
+        const taskDate = new Date(task.createDate);
+        taskDate.setHours(0, 0, 0, 0);
+        const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
+        
+        // 今日打卡点
+        const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
+        if (checkpointIndex !== -1) {
+            const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+            const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
+            if (!hasCheckedIn) {
+                availableCheckins.push({
+                    task, checkpointIndex, type: 'today',
+                    dayDisplay: task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`
                 });
-
-                const totalCheckins = overdueCount + todayCount;
-                if (totalCheckins === 0) { alert('当前没有需要打卡的任务！'); return; }
-
-                const modal = document.createElement('div');
-                modal.className = 'modal';
-                modal.innerHTML = `
-                    <div class="modal-content">
-                        <div class="modal-header"><h3>一键打卡</h3><button class="close-btn" id="close-bulk-checkin-modal">&times;</button></div>
-                        <div class="modal-body">
-                            <div class="data-section">
-                                <h4>可打卡任务统计</h4>
-                                <div class="data-stats">
-                                    <div class="stat-item"><span class="stat-label">今日未打卡:</span><span class="stat-value">${todayCount} 个</span></div>
-                                    <div class="stat-item"><span class="stat-label">逾期未打卡:</span><span class="stat-value">${overdueCount} 个</span></div>
-                                    <div class="stat-item"><span class="stat-label">总计:</span><span class="stat-value">${totalCheckins} 个</span></div>
-                                </div>
-                                <p>一键打卡将为所有逾期和今日未完成的任务自动标记为"已完成"。</p>
-                            </div>
-                            <div class="task-actions">
-                                <button class="btn btn-bulk-checkin" id="confirm-bulk-checkin-btn">确认一键打卡</button>
-                                <button class="btn" id="cancel-bulk-checkin-btn">取消</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modal);
-
-                document.getElementById('close-bulk-checkin-modal').onclick = () => document.body.removeChild(modal);
-                document.getElementById('cancel-bulk-checkin-btn').onclick = () => document.body.removeChild(modal);
-                document.getElementById('confirm-bulk-checkin-btn').onclick = async () => {
-                    await performBulkCheckin();
-                    document.body.removeChild(modal);
-                };
-            };
-
-            const performBulkCheckin = async () => {
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                let completedCount = 0;
-
-                for (const task of state.tasks) {
-                    if (task.status !== 'active' || isTaskPaused(task) || task.parentTaskId) continue;
-                    
-                    const taskSchedule = getTaskCheckinSchedule(task);
-                    const taskDate = new Date(task.createDate);
-                    taskDate.setHours(0, 0, 0, 0);
-                    const daysSinceStart = Math.floor((today - taskDate) / (1000 * 60 * 60 * 24));
-                    
-                    const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
-                    if (checkpointIndex !== -1) {
-                        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
-                        const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
-                        if (!hasCheckedIn) {
-                            task.checkins.push({
-                                checkpointIndex,
-                                date: new Date().toISOString(),
-                                type: 'bulk',
-                                status: 'completed'
-                            });
-                            completedCount++;
-                        }
-                    }
-                    
-                    taskSchedule.forEach((day, i) => {
-                        if (day < daysSinceStart) {
-                            const checkin = task.checkins.find(c => c.checkpointIndex === i);
-                            if (!checkin) {
-                                task.checkins.push({
-                                    checkpointIndex: i,
-                                    date: new Date().toISOString(),
-                                    type: 'bulk',
-                                    status: 'completed'
-                                });
-                                completedCount++;
-                            }
-                        }
+            }
+        }
+        
+        // 逾期打卡点
+        taskSchedule.forEach((day, i) => {
+            if (day < daysSinceStart) {
+                const checkin = task.checkins.find(c => c.checkpointIndex === i);
+                if (!checkin) {
+                    availableCheckins.push({
+                        task, checkpointIndex: i, type: 'overdue',
+                        dayDisplay: task.scheduleType === 'daily' ? `第${day + 1}天` : `第${day}天`,
+                        overdueDays: daysSinceStart - day
                     });
                 }
+            }
+        });
+    });
 
-                if (completedCount > 0) {
-                    await saveTasks();
-                    renderTodayTasks();
-                    renderAllTasks();
-                    renderCalendar();
-                    renderRecordings();
-                    renderDataStats();
-                    alert(`一键打卡完成！成功打卡 ${completedCount} 个任务（包含逾期和今日任务）`);
-                }
-            };
+    if (availableCheckins.length === 0) {
+        alert('当前没有需要打卡的任务！');
+        return;
+    }
+
+    // 创建模态框
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>批量打卡</h3>
+                <button class="close-btn" id="close-bulk-checkin-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="data-section">
+                    <div class="select-all-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="select-all-checkins" style="width: 18px; height: 18px;">
+                            <span>全选</span>
+                        </label>
+                        <span id="selected-count-display" style="color: #4facfe; font-weight: 600;">已选择 0 个任务</span>
+                    </div>
+                    
+                    <div class="checkin-selection-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
+                        ${availableCheckins.map((item, idx) => {
+                            const task = item.task;
+                            const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+                            const overdueText = item.type === 'overdue' ? `<span style="color: #ff6b6b; font-size: 12px;">逾期${item.overdueDays}天</span>` : '<span style="color: #4ecdc4;">今日</span>';
+                            return `
+                                <div class="checkin-selection-item" style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+                                    <input type="checkbox" class="checkin-checkbox" data-task-id="${task.id}" data-checkpoint-index="${item.checkpointIndex}" data-idx="${idx}" style="width: 18px; height: 18px; margin-right: 12px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                            <span class="subject-badge ${subjectBadgeClass}" style="font-size: 11px;">${task.subject}</span>
+                                            <span style="font-weight: 600;">${task.name}</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
+                                            ${item.dayDisplay}打卡 · ${overdueText}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div class="info-box" style="padding: 12px; background: #e8f4fd; border-left: 4px solid #4facfe; border-radius: 4px; margin: 15px 0;">
+                        <strong>📌 说明：</strong>
+                        <p style="margin: 5px 0 0; font-size: 13px;">批量打卡将自动为选中的任务标记为"已完成"，无需录音或拍照。如需录音/拍照打卡，请使用"打卡"标签页单独打卡。</p>
+                    </div>
+                </div>
+                <div class="task-actions" style="justify-content: flex-end;">
+                    <button class="btn" id="cancel-bulk-checkin-btn">取消</button>
+                    <button class="btn btn-bulk-checkin" id="confirm-bulk-checkin-btn" disabled>确认打卡 (0个任务)</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取所有复选框
+    const checkboxes = modal.querySelectorAll('.checkin-checkbox');
+    const selectAllCheckbox = modal.querySelector('#select-all-checkins');
+    const selectedCountDisplay = modal.querySelector('#selected-count-display');
+    const confirmBtn = modal.querySelector('#confirm-bulk-checkin-btn');
+    
+    // 更新选中数量和按钮状态
+    const updateSelection = () => {
+        const selectedCheckboxes = Array.from(checkboxes).filter(cb => cb.checked);
+        const count = selectedCheckboxes.length;
+        selectedCountDisplay.textContent = `已选择 ${count} 个任务`;
+        confirmBtn.textContent = `确认打卡 (${count}个任务)`;
+        confirmBtn.disabled = count === 0;
+        
+        // 更新全选状态
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = count === checkboxes.length;
+            selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
+        }
+        
+        // 保存选中的任务
+        selectedCheckins.clear();
+        selectedCheckboxes.forEach(cb => {
+            const taskId = parseInt(cb.dataset.taskId);
+            const checkpointIndex = parseInt(cb.dataset.checkpointIndex);
+            const key = `${taskId}_${checkpointIndex}`;
+            selectedCheckins.set(key, { taskId, checkpointIndex });
+        });
+    };
+    
+    // 为每个复选框添加事件
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelection);
+    });
+    
+    // 全选功能
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+            });
+            updateSelection();
+        });
+    }
+    
+    // 关闭按钮
+    const closeBtn = modal.querySelector('#close-bulk-checkin-modal');
+    closeBtn.onclick = () => document.body.removeChild(modal);
+    
+    // 取消按钮
+    const cancelBtn = modal.querySelector('#cancel-bulk-checkin-btn');
+    cancelBtn.onclick = () => document.body.removeChild(modal);
+    
+    // 确认打卡按钮
+    confirmBtn.onclick = async () => {
+        if (selectedCheckins.size === 0) {
+            alert('请至少选择一个任务');
+            return;
+        }
+        await performBulkCheckin(selectedCheckins);
+        document.body.removeChild(modal);
+    };
+};
+
+            const performBulkCheckin = async (selectedCheckinsMap) => {
+    let completedCount = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const [key, { taskId, checkpointIndex }] of selectedCheckinsMap) {
+        const task = state.tasks.find(t => t.id === taskId);
+        if (!task) continue;
+        if (task.status !== 'active' || isTaskPaused(task)) continue;
+        
+        // 检查是否已经打卡
+        const existingCheckin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+        if (existingCheckin && existingCheckin.status === 'completed') continue;
+        
+        // 第一天特殊处理
+        if (checkpointIndex === 0) {
+            const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0);
+            const requiredCount = task.firstDayCheckinCount || 1;
+            if (firstDayCheckins.length >= requiredCount) continue;
+        }
+        
+        // 执行打卡
+        if (existingCheckin && existingCheckin.status === 'needs_redo') {
+            existingCheckin.status = 'completed';
+            existingCheckin.date = new Date().toISOString();
+            existingCheckin.type = 'bulk';
+        } else {
+            task.checkins.push({
+                checkpointIndex: checkpointIndex,
+                date: new Date().toISOString(),
+                type: 'bulk',
+                status: 'completed'
+            });
+        }
+        
+        completedCount++;
+    }
+
+    if (completedCount > 0) {
+        await saveTasks();
+        renderTodayTasks();
+        renderAllTasks();
+        renderCalendar();
+        renderRecordings();
+        renderDataStats();
+        alert(`批量打卡完成！成功打卡 ${completedCount} 个任务`);
+    } else {
+        alert('没有新的任务可以打卡');
+    }
+};
 
             // ==================== 录音管理 ====================
             const showRecordingsManageModal = async () => {
