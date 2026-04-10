@@ -2805,10 +2805,14 @@
         grouped[subject].push(item);
     });
 
-    // 按科目顺序排序（按拼音/字母顺序）
-    const sortedSubjects = Object.keys(grouped).sort((a, b) => {
-        return a.localeCompare(b, 'zh-CN');
-    });
+    // 按指定顺序排序：语文 → 数学 → 英语 → 科学 → 其他
+const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
+const sortedSubjects = Object.keys(grouped).sort((a, b) => {
+    const orderA = subjectOrder[a] || 99;
+    const orderB = subjectOrder[b] || 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return a.localeCompare(b, 'zh-CN');
+});
 
     // 渲染每个科目组
     sortedSubjects.forEach(subject => {
