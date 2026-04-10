@@ -2082,7 +2082,41 @@
                     await performDailyCleanup();
                 }, 5000);
             };
-
+// 滚动到指定任务的位置
+const scrollToTask = (taskId) => {
+    // 等待页面渲染完成
+    setTimeout(() => {
+        // 查找包含该任务的所有可能位置
+        const taskElements = document.querySelectorAll('.task-item');
+        for (let element of taskElements) {
+            // 检查这个任务卡片是否包含指定任务ID
+            const html = element.innerHTML;
+            if (html.includes(`startCheckin(${taskId}`) || html.includes(`startCheckin(${taskId},`)) {
+                // 找到对应的任务卡片
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // 添加高亮效果
+                element.style.transition = 'box-shadow 0.3s, background 0.3s';
+                element.style.boxShadow = '0 0 0 3px #1dd1a1, 0 4px 15px rgba(0,0,0,0.1)';
+                element.style.background = '#f0fff4';
+                setTimeout(() => {
+                    element.style.boxShadow = '';
+                    element.style.background = '';
+                }, 2000);
+                return;
+            }
+        }
+        
+        // 如果没找到，尝试查找任务名称
+        const allTasks = document.querySelectorAll('.task-item');
+        for (let element of allTasks) {
+            const taskNameElement = element.querySelector('.task-name');
+            if (taskNameElement && taskNameElement.innerText.includes('任务名称')) {
+                // 这里需要更精确的匹配，暂时跳过
+            }
+        }
+    }, 500);
+};
             // ==================== 初始化函数 ====================
             const initApp = async () => {
                 console.log('初始化应用...');
@@ -2384,26 +2418,41 @@
 
             // ==================== 任务管理 ====================
             const showTaskForm = () => {
-                DOM.taskForm.classList.remove('hidden');
-                hideEditTaskForm();
-                DOM.taskSubject.value = '语文';
-                DOM.taskName.value = '';
-                DOM.taskDesc.value = '';
-                DOM.taskDate.valueAsDate = new Date();
-                DOM.firstDayCount.value = 1;
-                switchTaskType('normal');
-                switchScheduleType('default');
-                state.customDates = [];
-                renderCustomDatesList();
-                switchFrequency('daily');
-                renderWeekdaySelector();
-                switchSubtaskType('lesson');
-                if (DOM.subtaskStartNumber) DOM.subtaskStartNumber.value = 1;
-                DOM.subtaskCount.value = 30;
-                DOM.subtaskInterval.value = '1';
-                DOM.subtaskDescriptionTemplate.value = '';
-                DOM.taskForm.scrollIntoView({ behavior: 'smooth' });
-            };
+    // 先切换到任务管理标签页
+    switchTab('tasks');
+    
+    // 等待标签页切换完成后再显示表单
+    setTimeout(() => {
+        DOM.taskForm.classList.remove('hidden');
+        hideEditTaskForm();
+        DOM.taskSubject.value = '语文';
+        DOM.taskName.value = '';
+        DOM.taskDesc.value = '';
+        DOM.taskDate.valueAsDate = new Date();
+        DOM.firstDayCount.value = 1;
+        switchTaskType('normal');
+        switchScheduleType('default');
+        state.customDates = [];
+        renderCustomDatesList();
+        switchFrequency('daily');
+        renderWeekdaySelector();
+        switchSubtaskType('lesson');
+        if (DOM.subtaskStartNumber) DOM.subtaskStartNumber.value = 1;
+        DOM.subtaskCount.value = 30;
+        DOM.subtaskInterval.value = '1';
+        DOM.subtaskDescriptionTemplate.value = '';
+        
+        // 滚动到表单位置
+        DOM.taskForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // 高亮显示
+        DOM.taskForm.style.transition = 'box-shadow 0.3s';
+        DOM.taskForm.style.boxShadow = '0 0 0 3px #4facfe, 0 4px 15px rgba(0,0,0,0.1)';
+        setTimeout(() => {
+            DOM.taskForm.style.boxShadow = '';
+        }, 1500);
+    }, 100);
+};
 
             const hideEditTaskForm = () => {
                 DOM.editTaskForm.classList.add('hidden');
@@ -2719,54 +2768,61 @@
     if (!task) return;
     
     state.editingTask = task;
-    DOM.editTaskForm.classList.remove('hidden');
-    DOM.taskForm.classList.add('hidden');
     
-    // 填充基本信息
-    DOM.editTaskTitle.textContent = task.name;
-    DOM.editTaskSubject.value = task.subject;
-    DOM.editTaskName.value = task.name;
-    DOM.editTaskDesc.value = task.description || '';
-    DOM.editCreateDate.value = formatDateTimeLocal(new Date(task.createDate));
+    // 先切换到任务管理标签页
+    switchTab('tasks');
     
-    // 如果是系列任务且存在子任务，显示额外设置
-    if (task.isParentTask) {
-        const subtasks = getSubtasks(task.id);
-        if (subtasks.length > 0) {
-            DOM.editSubtaskSettings.classList.remove('hidden');
-            const startedCount = subtasks.filter(st => hasStartedCheckin(st)).length;
-            
-            DOM.editSubtaskCount.value = subtasks.length;
-            DOM.editSubtaskInterval.value = task.subtaskInterval || 1;
-            
-            // 移除之前可能存在的警告提示
-            const existingWarning = DOM.editSubtaskSettings.querySelector('.info-box');
-            if (existingWarning) existingWarning.remove();
-            
-            // 如果已经有子任务开始了，给出提示
-            if (startedCount > 0) {
-                const warningDiv = document.createElement('div');
-                warningDiv.className = 'info-box';
-                warningDiv.style.cssText = 'padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;';
-                warningDiv.innerHTML = `⚠️ 已有 ${startedCount} 个子任务开始打卡，修改间隔只会影响尚未开始的任务。`;
-                DOM.editSubtaskSettings.appendChild(warningDiv);
+    // 等待标签页切换完成后再显示编辑表单
+    setTimeout(() => {
+        DOM.editTaskForm.classList.remove('hidden');
+        DOM.taskForm.classList.add('hidden');
+        
+        // 填充基本信息
+        DOM.editTaskTitle.textContent = task.name;
+        DOM.editTaskSubject.value = task.subject;
+        DOM.editTaskName.value = task.name;
+        DOM.editTaskDesc.value = task.description || '';
+        DOM.editCreateDate.value = formatDateTimeLocal(new Date(task.createDate));
+        
+        // 如果是系列任务且存在子任务，显示额外设置
+        if (task.isParentTask) {
+            const subtasks = getSubtasks(task.id);
+            if (subtasks.length > 0) {
+                DOM.editSubtaskSettings.classList.remove('hidden');
+                const startedCount = subtasks.filter(st => hasStartedCheckin(st)).length;
+                
+                DOM.editSubtaskCount.value = subtasks.length;
+                DOM.editSubtaskInterval.value = task.subtaskInterval || 1;
+                
+                // 移除之前可能存在的警告提示
+                const existingWarning = DOM.editSubtaskSettings.querySelector('.info-box');
+                if (existingWarning) existingWarning.remove();
+                
+                // 如果已经有子任务开始了，给出提示
+                if (startedCount > 0) {
+                    const warningDiv = document.createElement('div');
+                    warningDiv.className = 'info-box';
+                    warningDiv.style.cssText = 'padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin: 10px 0;';
+                    warningDiv.innerHTML = `⚠️ 已有 ${startedCount} 个子任务开始打卡，修改间隔只会影响尚未开始的任务。`;
+                    DOM.editSubtaskSettings.appendChild(warningDiv);
+                }
+            } else {
+                DOM.editSubtaskSettings.classList.add('hidden');
             }
         } else {
             DOM.editSubtaskSettings.classList.add('hidden');
         }
-    } else {
-        DOM.editSubtaskSettings.classList.add('hidden');
-    }
-    
-    // 滚动到编辑表单位置
-    DOM.editTaskForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-    // 高亮显示编辑表单（可选效果）
-    DOM.editTaskForm.style.transition = 'box-shadow 0.3s';
-    DOM.editTaskForm.style.boxShadow = '0 0 0 3px #4facfe, 0 4px 15px rgba(0,0,0,0.1)';
-    setTimeout(() => {
-        DOM.editTaskForm.style.boxShadow = '';
-    }, 1500);
+        
+        // 滚动到编辑表单位置
+        DOM.editTaskForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // 高亮显示编辑表单
+        DOM.editTaskForm.style.transition = 'box-shadow 0.3s';
+        DOM.editTaskForm.style.boxShadow = '0 0 0 3px #4facfe, 0 4px 15px rgba(0,0,0,0.1)';
+        setTimeout(() => {
+            DOM.editTaskForm.style.boxShadow = '';
+        }, 1500);
+    }, 100);
 };
 
             // ==================== 今日任务渲染（按科目分组，支持折叠）====================
@@ -4065,12 +4121,19 @@ const downloadPhoto = (photo, task) => {
 
                 await saveTasks();
                 resetRecorder();
+                state.isRedo = false;
                 renderRecordings();
                 renderTodayTasks();
                 renderAllTasks();
                 renderCalendar();
                 renderDataStats();
                 alert('打卡成功！');
+                
+                // 跳转到今日任务页面并定位到完成的任务
+                switchTab('today');
+                setTimeout(() => {
+                    scrollToTask(task.id);
+                }, 200);
             };
 
             // 合并摄像头控制：启动/拍照/关闭
