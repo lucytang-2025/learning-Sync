@@ -2944,14 +2944,16 @@ const sortedSubjects = Object.keys(grouped).sort((a, b) => {
         return;
     }
 
-    // 获取所有非父任务（普通任务和子任务）
-    const allNormalTasks = state.tasks.filter(t => !t.isParentTask && !t.parentTaskId);
-    const allSubtasks = state.tasks.filter(t => t.parentTaskId);
-    const allDisplayTasks = [...allNormalTasks, ...allSubtasks];
+    // 获取所有任务（包括普通任务、子任务和系列任务）
+    const allTasks = state.tasks.filter(t => !t.parentTaskId); // 不包括子任务（子任务跟随父任务显示）
+    
+    // 分离系列任务和普通任务
+    const parentTasks = allTasks.filter(t => t.isParentTask);
+    const normalTasks = allTasks.filter(t => !t.isParentTask);
     
     // 按完成状态分组
-    const uncompletedTasks = allDisplayTasks.filter(task => !isTaskCompleted(task));
-    const completedTasks = allDisplayTasks.filter(task => isTaskCompleted(task));
+    const uncompletedNormal = normalTasks.filter(task => !isTaskCompleted(task));
+    const completedNormal = normalTasks.filter(task => isTaskCompleted(task));
     
     // 排序函数
     const sortTasks = (a, b) => {
@@ -2963,25 +2965,100 @@ const sortedSubjects = Object.keys(grouped).sort((a, b) => {
         return a.name.localeCompare(b.name, 'zh-CN');
     };
     
-    // 先渲染未完成的任务（按科目分组）
-    if (uncompletedTasks.length > 0) {
-        renderTasksBySubject(uncompletedTasks.sort(sortTasks), false);
-    }
+    // 定义科目顺序
+    const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
     
-    // 再渲染已完成的任务（按科目分组）
-    if (completedTasks.length > 0) {
-        renderTasksBySubject(completedTasks.sort(sortTasks), true);
-    }
+    // 收集所有需要显示的科目（从普通任务和系列任务中收集）
+    const allSubjects = new Set();
+    [...uncompletedNormal, ...completedNormal, ...parentTasks].forEach(task => {
+        allSubjects.add(task.subject);
+    });
     
-    // 渲染父任务（系列任务）
-    const parentTasks = state.tasks.filter(t => t.isParentTask);
-    if (parentTasks.length > 0) {
-        const parentTitle = document.createElement('div');
-        parentTitle.className = 'category-title';
-        parentTitle.innerHTML = '<i>📚</i> 系列任务';
-        DOM.allTasks.appendChild(parentTitle);
-        parentTasks.sort(sortTasks).forEach(parent => renderParentTask(parent));
-    }
+    // 按指定顺序排序科目
+    const sortedSubjects = Array.from(allSubjects).sort((a, b) => {
+        const orderA = subjectOrder[a] || 99;
+        const orderB = subjectOrder[b] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.localeCompare(b, 'zh-CN');
+    });
+    
+    // 按科目渲染
+    sortedSubjects.forEach(subject => {
+        // 获取该科目下的未完成普通任务
+        const subjectUncompleted = uncompletedNormal.filter(t => t.subject === subject);
+        // 获取该科目下的已完成普通任务
+        const subjectCompleted = completedNormal.filter(t => t.subject === subject);
+        // 获取该科目下的系列任务
+        const subjectParents = parentTasks.filter(t => t.subject === subject);
+        
+        // 如果该科目没有任何任务，跳过
+        if (subjectUncompleted.length === 0 && subjectCompleted.length === 0 && subjectParents.length === 0) return;
+        
+        const totalCount = subjectUncompleted.length + subjectCompleted.length + subjectParents.length;
+        const uncompletedCount = subjectUncompleted.length + subjectParents.filter(p => {
+            const subtasks = getSubtasks(p.id);
+            const completedSubtasks = subtasks.filter(st => isTaskCompleted(st)).length;
+            return completedSubtasks < subtasks.length;
+        }).length;
+        
+        const groupKey = `subject_${subject}`;
+        const isCollapsed = state.collapsedSubjects.has(groupKey);
+        
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'subject-group';
+        
+        // 组头部
+        const headerDiv = document.createElement('div');
+        headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
+        const badgeClass = getSubjectBadgeClass(subject);
+        headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
+        headerDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="subject-badge ${badgeClass}">${subject}</span>
+                <span style="font-weight: normal; font-size: 13px;">
+                    <span style="color: #ff6b6b;">${uncompletedCount}</span> / ${totalCount}
+                </span>
+            </div>
+            <span class="toggle-icon">▼</span>
+        `;
+        
+        headerDiv.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.collapsedSubjects.has(groupKey)) {
+                state.collapsedSubjects.delete(groupKey);
+            } else {
+                state.collapsedSubjects.add(groupKey);
+            }
+            renderAllTasks();
+        });
+        
+        // 组内容
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `subject-group-content ${isCollapsed ? 'collapsed' : ''}`;
+        
+        // 先渲染未完成的普通任务
+        subjectUncompleted.sort(sortTasks).forEach(task => {
+            const taskEl = renderNormalTaskItem(task);
+            contentDiv.appendChild(taskEl);
+        });
+        
+        // 渲染系列任务（带有子任务折叠功能）
+        subjectParents.sort(sortTasks).forEach(parent => {
+            const parentEl = renderParentTaskInGroup(parent);
+            contentDiv.appendChild(parentEl);
+        });
+        
+        // 最后渲染已完成的普通任务
+        subjectCompleted.sort(sortTasks).forEach(task => {
+            const taskEl = renderNormalTaskItem(task);
+            taskEl.classList.add('completed');
+            contentDiv.appendChild(taskEl);
+        });
+        
+        groupDiv.appendChild(headerDiv);
+        groupDiv.appendChild(contentDiv);
+        DOM.allTasks.appendChild(groupDiv);
+    });
 };
 
 // 辅助函数：按科目分组渲染任务
@@ -3050,6 +3127,118 @@ const renderTasksBySubject = (tasks, isCompleted) => {
         groupDiv.appendChild(contentDiv);
         DOM.allTasks.appendChild(groupDiv);
     });
+};
+
+// 在科目分组中渲染系列任务（带子任务折叠功能）
+const renderParentTaskInGroup = (parentTask) => {
+    const subtasks = getSubtasks(parentTask.id).sort((a, b) => (a.subtaskNumber || 0) - (b.subtaskNumber || 0));
+    const completedSubtasks = subtasks.filter(st => isTaskCompleted(st)).length;
+    const totalSubtasks = subtasks.length;
+    const progressPercent = totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+    
+    const unit = parentTask.subtaskUnit || '课';
+    const startNumber = parentTask.subtaskStartNumber || 1;
+    const endNumber = startNumber + (parentTask.subtaskCount || subtasks.length) - 1;
+    const interval = parentTask.subtaskInterval || 1;
+    const intervalText = interval === 1 ? '每天' : interval === 2 ? '每2天' : interval === 3 ? '每3天' : '每周';
+    
+    const subjectBadgeClass = getSubjectBadgeClass(parentTask.subject);
+    const subjectNameColorClass = getSubjectNameColorClass(parentTask.subject);
+    
+    const isCollapsed = state.collapsedParents.has(parentTask.id);
+    
+    const parentDiv = document.createElement('div');
+    parentDiv.className = 'task-item pinned';
+    parentDiv.style.borderLeft = `4px solid ${parentTask.subject === '语文' ? '#f39c12' : parentTask.subject === '英语' ? '#9b59b6' : parentTask.subject === '数学' ? '#3498db' : parentTask.subject === '科学' ? '#1abc9c' : '#34495e'}`;
+    
+    parentDiv.innerHTML = `
+        <div class="parent-task-info">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <button class="collapse-toggle" data-parent-id="${parentTask.id}" style="margin-right: 0;">${isCollapsed ? '▶' : '▼'}</button>
+                    <span class="subject-badge ${subjectBadgeClass}">${parentTask.subject}</span>
+                    <span class="${subjectNameColorClass}" style="font-weight: 600; font-size: 16px;">${parentTask.name}</span>
+                    <span style="background: #4facfe; color: white; padding: 2px 8px; border-radius: 10px; font-size: 10px;">系列任务</span>
+                </div>
+                <div class="task-status status-future" style="margin-top: 5px;">${completedSubtasks}/${totalSubtasks}</div>
+            </div>
+            ${parentTask.description ? `<div class="task-description-content" style="margin-top: 8px;">${parentTask.description.replace(/\n/g, '<br>')}</div>` : ''}
+            <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
+                <div style="padding: 6px 10px; background: #f8fafc; border-radius: 6px; font-size: 12px;">
+                    <span style="color: #64748b;">编号范围</span>
+                    <span style="font-weight: 600; margin-left: 5px;">${startNumber}~${endNumber}${unit}</span>
+                </div>
+                <div style="padding: 6px 10px; background: #f8fafc; border-radius: 6px; font-size: 12px;">
+                    <span style="color: #64748b;">间隔</span>
+                    <span style="font-weight: 600; margin-left: 5px;">${intervalText}</span>
+                </div>
+                <div style="padding: 6px 10px; background: #e8f4fd; border-radius: 6px; font-size: 12px;">
+                    <span style="color: #3498db;">已开始</span>
+                    <span style="font-weight: 600; margin-left: 5px;">${subtasks.filter(st => hasStartedCheckin(st)).length}</span>
+                </div>
+            </div>
+            <div class="task-progress" style="margin-top: 10px;">
+                <div class="progress-bar"><div class="progress-fill" style="width: ${progressPercent}%"></div></div>
+                <div class="progress-text">已完成 ${completedSubtasks}/${totalSubtasks} 个子任务</div>
+            </div>
+            <div class="task-actions">
+                <button class="btn" onclick="window.showEditTaskForm(${parentTask.id})">编辑</button>
+                <button class="btn" onclick="window.viewTaskDetails(${parentTask.id})">详情</button>
+                <button class="btn btn-bulk-pause" onclick="window.showEnhancedPauseModal(${parentTask.id})">智能暂停</button>
+                <button class="btn btn-bulk-resume" onclick="window.showEnhancedResumeModal(${parentTask.id})">恢复暂停</button>
+                <button class="btn" onclick="window.deleteTask(${parentTask.id})">删除系列</button>
+            </div>
+            <div id="subtasks-${parentTask.id}" class="subtask-container" style="margin-top: 15px; ${isCollapsed ? 'display: none;' : ''}">
+                <h4 style="margin-bottom: 10px; font-size: 14px;">📋 子任务列表</h4>
+                <div id="subtasks-list-${parentTask.id}">
+                    ${subtasks.map(sub => renderSubtaskItemInGroup(sub)).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加折叠事件
+    const toggleBtn = parentDiv.querySelector('.collapse-toggle');
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (state.collapsedParents.has(parentTask.id)) {
+            state.collapsedParents.delete(parentTask.id);
+        } else {
+            state.collapsedParents.add(parentTask.id);
+        }
+        renderAllTasks();
+    });
+    
+    return parentDiv;
+};
+
+// 在科目分组中渲染子任务项
+const renderSubtaskItemInGroup = (subtask) => {
+    const schedule = getTaskCheckinSchedule(subtask);
+    const completed = subtask.checkins.filter(c => c.status === 'completed').length;
+    const total = schedule.length;
+    const progressPercent = total > 0 ? (completed / total) * 100 : 0;
+    const isPaused = isTaskPaused(subtask);
+    
+    const subjectBadgeClass = getSubjectBadgeClass(subtask.subject);
+    const subjectNameColorClass = getSubjectNameColorClass(subtask.subject);
+    
+    return `
+        <div class="task-item subtask-item" style="margin-left: 20px; margin-bottom: 8px; padding: 10px; border-left: 3px solid #e2e8f0;">
+            <div class="task-header">
+                <div class="task-name" style="font-size: 14px;">
+                    <span class="subject-badge ${subjectBadgeClass}" style="font-size: 10px;">${subtask.subject}</span>
+                    <span class="${subjectNameColorClass}">${subtask.name}</span>
+                </div>
+                <div class="task-status ${isPaused ? 'status-paused' : 'status-future'}" style="font-size: 11px;">
+                    ${isPaused ? '已暂停' : `${completed}/${total}`}
+                </div>
+            </div>
+            <div class="task-progress">
+                <div class="progress-bar" style="height: 4px;"><div class="progress-fill" style="width: ${progressPercent}%; height: 4px;"></div></div>
+            </div>
+        </div>
+    `;
 };
 
 // 辅助函数：渲染单个任务卡片
