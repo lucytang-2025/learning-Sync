@@ -538,7 +538,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>复习打卡计划 - 增强版 <span class="auto-cleanup-badge">系列任务智能暂停</span></h1>
+            <h1>复习打卡计划 - 增强版</h1>
             <p class="app-description">日积月累、持之以恒，系列任务可灵活调整间隔</p>
         </header>
 
@@ -964,23 +964,26 @@
                 </div>
                 
                 <div class="data-card" style="background: white; border-radius: 10px; padding: 20px;">
-                    <h3>使用说明</h3>
-                    <ol style="padding-left: 20px; margin-top: 10px;">
-                        <li><strong>安全存储:</strong> 只能存储大概10MB 数据，超过8MB请立即清除录音数据。</li>
-                        <li><strong>系列子任务:</strong> 新建任务时可以选择"系列子任务"类型，自动生成子任务</li>
-                        <li><strong>智能暂停:</strong> 暂停系列任务时，【尚未开始】的子任务会被暂停，【已开始】的继续正常进行</li>
-                        <li><strong>智能恢复:</strong> 取消暂停后，被暂停的子任务从恢复当天开始重新计算日期，不会逾期</li>
-                        <li><strong>编辑系列任务:</strong> 可修改【尚未开始】子任务的间隔天数，并重置开始日期</li>
-                        <li><strong>起始任务编号:</strong> 可以设置起始任务编号</li>
-                        <li><strong>一键打卡:</strong> 快速完成所有逾期和今日未打卡的任务</li>
-                        <li><strong>暂停任务:</strong> 可以设置具体的暂停截止日期</li>
-                        <li><strong>编辑主任务:</strong> 可以同步更新所有子任务</li>
-                        <li><strong>每日自动清理:</strong> 每天凌晨自动删除所有录音和照片文件，只保留任务数据</li>
-                        <li>使用"导出数据"功能将数据保存为JSON文件作为备份</li>
-                        <li>使用"导出为Excel"功能将任务数据导出为电子表格</li>
-                        <li>使用"管理录音/照片"功能手动删除不需要的媒体文件</li>
-                    </ol>
-                </div>
+    <h3>使用说明</h3>
+    <ol style="padding-left: 20px; margin-top: 10px;">
+        <li><strong>任务管理:</strong> 点击"新建任务"创建普通任务或系列子任务，任务按科目分组显示，支持折叠/展开</li>
+        <li><strong>系列子任务:</strong> 新建任务时选择"系列子任务"，可设置起始编号、数量、间隔天数，自动生成子任务</li>
+        <li><strong>打卡方式:</strong> 支持录音打卡和拍照打卡，打卡后自动下载文件到本地</li>
+        <li><strong>批量打卡:</strong> 点击"批量打卡"按钮，可勾选多个逾期和今日未打卡的任务，一次性完成打卡</li>
+        <li><strong>智能暂停:</strong> 暂停系列任务时，可选择暂停【尚未开始】的子任务，【已开始】的继续正常进行</li>
+        <li><strong>智能恢复:</strong> 取消暂停后，被暂停的子任务从恢复当天开始重新计算日期，不会产生逾期</li>
+        <li><strong>编辑任务:</strong> 点击任务卡片的"编辑"按钮，自动跳转到任务管理页面并定位到编辑表单</li>
+        <li><strong>编辑系列任务:</strong> 可修改【尚未开始】子任务的间隔天数，并重置开始日期</li>
+        <li><strong>任务重做:</strong> 点击"标记重做"可要求重新完成某个打卡点，并记录原因和截止日期</li>
+        <li><strong>任务置顶:</strong> 点击"置顶"按钮可将重要任务固定在列表顶部</li>
+        <li><strong>日历视图:</strong> 查看每日任务安排，点击日期查看当天详细任务</li>
+        <li><strong>数据备份:</strong> 使用"导出数据"功能将任务和打卡记录保存为JSON文件备份</li>
+        <li><strong>导出Excel:</strong> 使用"导出为Excel"功能将任务数据导出为电子表格</li>
+        <li><strong>管理录音/照片:</strong> 可查看、播放、删除已保存的录音和照片文件</li>
+        <li><strong>每日自动清理:</strong> 每天凌晨自动删除所有录音和照片文件，只保留任务数据，节省存储空间</li>
+        <li><strong>存储容量:</strong> 最大存储约10MB，超过8MB时请及时清理媒体文件</li>
+    </ol>
+</div>
             </div>
         </div>
 
@@ -1268,6 +1271,7 @@
                     </div>
                     <div class="task-actions">
                         <button class="btn" id="delete-selected-btn" disabled>删除选中项</button>
+<button class="btn" id="delete-all-media-btn" style="background: #ff6b6b; color: white;">全部删除</button>
                         <button class="btn" id="close-manage-modal">完成</button>
                     </div>
                 </div>
@@ -2360,6 +2364,39 @@ const scrollToTask = (taskId) => {
                 DOM.deleteSelected.addEventListener('click', showDeleteConfirm);
                 DOM.confirmDelete.addEventListener('click', deleteSelectedItems);
                 DOM.cancelDelete.addEventListener('click', hideDeleteConfirm);
+    // 全部删除按钮
+    const deleteAllBtn = document.getElementById('delete-all-media-btn');
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', async () => {
+            if (!confirm('⚠️ 确定要删除所有录音和照片吗？此操作不可撤销！')) return;
+            if (!confirm('再次确认：这将删除所有已保存的录音和照片文件！')) return;
+            
+            try {
+                await dataStorage.deleteAllMedia();
+                
+                // 清空本地状态
+                state.allRecordings = [];
+                state.allPhotos = [];
+                state.selectedRecordings.clear();
+                state.selectedPhotos.clear();
+                
+                // 重新渲染表格
+                renderRecordingsTable();
+                renderPhotosTable();
+                await updateManageCapacity();
+                await renderDataStats();
+                
+                // 重置全选按钮
+                if (DOM.selectAllRecordings) DOM.selectAllRecordings.checked = false;
+                if (DOM.selectAllPhotos) DOM.selectAllPhotos.checked = false;
+                
+                alert('✅ 已成功删除所有录音和照片文件！');
+            } catch (error) {
+                console.error('全部删除失败:', error);
+                alert('删除失败：' + error.message);
+            }
+        });
+    }
             };
 
             const setupMemoryMonitoring = () => {
@@ -5015,8 +5052,11 @@ const downloadPhoto = (photo, task) => {
     // 临时存储选中的任务
     const selectedCheckins = new Map(); // key: taskId_checkpointIndex
 
+    // 遍历所有任务（包括子任务）
     state.tasks.forEach(task => {
-        if (task.status !== 'active' || isTaskPaused(task) || task.parentTaskId) return;
+        // 跳过系列任务（父任务）和已暂停的任务
+        if (task.isParentTask) return;
+        if (isTaskPaused(task)) return;
         
         const taskSchedule = getTaskCheckinSchedule(task);
         const taskDate = new Date(task.createDate);
@@ -5027,25 +5067,52 @@ const downloadPhoto = (photo, task) => {
         const checkpointIndex = taskSchedule.findIndex(day => day === daysSinceStart);
         if (checkpointIndex !== -1) {
             const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
-            const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : !!checkin;
+            const hasCheckedIn = checkpointIndex === 0 ? isFirstDayCheckinComplete(task, checkpointIndex) : (checkin && checkin.status === 'completed');
             if (!hasCheckedIn) {
-                availableCheckins.push({
-                    task, checkpointIndex, type: 'today',
-                    dayDisplay: task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`
-                });
+                // 检查第一天是否已达上限
+                let canCheckin = true;
+                if (checkpointIndex === 0) {
+                    const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0 && c.status === 'completed');
+                    const requiredCount = task.firstDayCheckinCount || 1;
+                    if (firstDayCheckins.length >= requiredCount) {
+                        canCheckin = false;
+                    }
+                }
+                if (canCheckin) {
+                    availableCheckins.push({
+                        task, 
+                        checkpointIndex, 
+                        type: 'today',
+                        dayDisplay: task.scheduleType === 'daily' ? `第${daysSinceStart + 1}天` : `第${taskSchedule[checkpointIndex]}天`
+                    });
+                }
             }
         }
         
-        // 逾期打卡点
+        // 逾期打卡点（所有未完成的过去打卡点）
         taskSchedule.forEach((day, i) => {
             if (day < daysSinceStart) {
                 const checkin = task.checkins.find(c => c.checkpointIndex === i);
-                if (!checkin) {
-                    availableCheckins.push({
-                        task, checkpointIndex: i, type: 'overdue',
-                        dayDisplay: task.scheduleType === 'daily' ? `第${day + 1}天` : `第${day}天`,
-                        overdueDays: daysSinceStart - day
-                    });
+                const isCompleted = checkin && checkin.status === 'completed';
+                if (!isCompleted) {
+                    // 第一天特殊处理
+                    let canCheckin = true;
+                    if (i === 0) {
+                        const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0 && c.status === 'completed');
+                        const requiredCount = task.firstDayCheckinCount || 1;
+                        if (firstDayCheckins.length >= requiredCount) {
+                            canCheckin = false;
+                        }
+                    }
+                    if (canCheckin) {
+                        availableCheckins.push({
+                            task, 
+                            checkpointIndex: i, 
+                            type: 'overdue',
+                            dayDisplay: task.scheduleType === 'daily' ? `第${day + 1}天` : `第${day}天`,
+                            overdueDays: daysSinceStart - day
+                        });
+                    }
                 }
             }
         });
@@ -5055,6 +5122,51 @@ const downloadPhoto = (photo, task) => {
         alert('当前没有需要打卡的任务！');
         return;
     }
+
+    // 按科目分组显示
+    const groupedBySubject = {};
+    availableCheckins.forEach(item => {
+        const subject = item.task.subject;
+        if (!groupedBySubject[subject]) groupedBySubject[subject] = [];
+        groupedBySubject[subject].push(item);
+    });
+    
+    // 科目顺序
+    const subjectOrder = { '语文': 1, '数学': 2, '英语': 3, '科学': 4, '其他': 5 };
+    const sortedSubjects = Object.keys(groupedBySubject).sort((a, b) => {
+        const orderA = subjectOrder[a] || 99;
+        const orderB = subjectOrder[b] || 99;
+        return orderA - orderB;
+    });
+    
+    // 生成分组HTML
+    let groupedHtml = '';
+    sortedSubjects.forEach(subject => {
+        const items = groupedBySubject[subject];
+        const todayItems = items.filter(i => i.type === 'today');
+        const overdueItems = items.filter(i => i.type === 'overdue');
+        
+        groupedHtml += `<div style="margin-bottom: 15px;">
+            <div style="font-weight: 600; padding: 8px 0; color: #4facfe; border-bottom: 1px solid #e2e8f0;">
+                <span class="subject-badge ${getSubjectBadgeClass(subject)}">${subject}</span>
+            </div>`;
+        
+        if (todayItems.length > 0) {
+            groupedHtml += `<div style="margin: 8px 0 4px 8px; font-size: 12px; color: #4ecdc4;">📅 今日任务</div>`;
+            todayItems.forEach(item => {
+                groupedHtml += renderBatchCheckinItem(item);
+            });
+        }
+        
+        if (overdueItems.length > 0) {
+            groupedHtml += `<div style="margin: 8px 0 4px 8px; font-size: 12px; color: #ff6b6b;">⚠️ 逾期任务</div>`;
+            overdueItems.forEach(item => {
+                groupedHtml += renderBatchCheckinItem(item);
+            });
+        }
+        
+        groupedHtml += `</div>`;
+    });
 
     // 创建模态框
     const modal = document.createElement('div');
@@ -5066,46 +5178,34 @@ const downloadPhoto = (photo, task) => {
                 <button class="close-btn" id="close-bulk-checkin-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="data-section">
-                    <div class="select-all-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px;">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="select-all-checkins" style="width: 18px; height: 18px;">
-                            <span>全选</span>
-                        </label>
-                        <span id="selected-count-display" style="color: #4facfe; font-weight: 600;">已选择 0 个任务</span>
-                    </div>
-                    
-                    <div class="checkin-selection-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px;">
-                        ${availableCheckins.map((item, idx) => {
-                            const task = item.task;
-                            const subjectBadgeClass = getSubjectBadgeClass(task.subject);
-                            const overdueText = item.type === 'overdue' ? `<span style="color: #ff6b6b; font-size: 12px;">逾期${item.overdueDays}天</span>` : '<span style="color: #4ecdc4;">今日</span>';
-                            return `
-                                <div class="checkin-selection-item" style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #f1f5f9;">
-                                    <input type="checkbox" class="checkin-checkbox" data-task-id="${task.id}" data-checkpoint-index="${item.checkpointIndex}" data-idx="${idx}" style="width: 18px; height: 18px; margin-right: 12px;">
-                                    <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                            <span class="subject-badge ${subjectBadgeClass}" style="font-size: 11px;">${task.subject}</span>
-                                            <span style="font-weight: 600;">${task.name}</span>
-                                        </div>
-                                        <div style="font-size: 12px; color: #64748b; margin-top: 4px;">
-                                            ${item.dayDisplay}打卡 · ${overdueText}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    
-                    <div class="info-box" style="padding: 12px; background: #e8f4fd; border-left: 4px solid #4facfe; border-radius: 4px; margin: 15px 0;">
-                        <strong>📌 说明：</strong>
-                        <p style="margin: 5px 0 0; font-size: 13px;">批量打卡将自动为选中的任务标记为"已完成"，无需录音或拍照。如需录音/拍照打卡，请使用"打卡"标签页单独打卡。</p>
-                    </div>
+                <div class="select-all-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="select-all-checkins" style="width: 18px; height: 18px;">
+                        <span>全选</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="select-today-only" style="width: 18px; height: 18px;">
+                        <span>只选今日任务</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="select-overdue-only" style="width: 18px; height: 18px;">
+                        <span>只选逾期任务</span>
+                    </label>
+                    <span id="selected-count-display" style="color: #4facfe; font-weight: 600;">已选择 0 个任务</span>
                 </div>
-                <div class="task-actions" style="justify-content: flex-end;">
-                    <button class="btn" id="cancel-bulk-checkin-btn">取消</button>
-                    <button class="btn btn-bulk-checkin" id="confirm-bulk-checkin-btn" disabled>确认打卡 (0个任务)</button>
+                
+                <div class="checkin-selection-list" style="max-height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+                    ${groupedHtml}
                 </div>
+                
+                <div class="info-box" style="padding: 12px; background: #e8f4fd; border-left: 4px solid #4facfe; border-radius: 4px; margin: 15px 0;">
+                    <strong>📌 说明：</strong>
+                    <p style="margin: 5px 0 0; font-size: 13px;">批量打卡将自动为选中的任务标记为"已完成"。系列任务的子任务也支持批量打卡。</p>
+                </div>
+            </div>
+            <div class="task-actions" style="justify-content: flex-end;">
+                <button class="btn" id="cancel-bulk-checkin-btn">取消</button>
+                <button class="btn btn-bulk-checkin" id="confirm-bulk-checkin-btn" disabled>确认打卡 (0个任务)</button>
             </div>
         </div>
     `;
@@ -5114,6 +5214,8 @@ const downloadPhoto = (photo, task) => {
     // 获取所有复选框
     const checkboxes = modal.querySelectorAll('.checkin-checkbox');
     const selectAllCheckbox = modal.querySelector('#select-all-checkins');
+    const selectTodayOnly = modal.querySelector('#select-today-only');
+    const selectOverdueOnly = modal.querySelector('#select-overdue-only');
     const selectedCountDisplay = modal.querySelector('#selected-count-display');
     const confirmBtn = modal.querySelector('#confirm-bulk-checkin-btn');
     
@@ -5125,12 +5227,6 @@ const downloadPhoto = (photo, task) => {
         confirmBtn.textContent = `确认打卡 (${count}个任务)`;
         confirmBtn.disabled = count === 0;
         
-        // 更新全选状态
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = count === checkboxes.length;
-            selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
-        }
-        
         // 保存选中的任务
         selectedCheckins.clear();
         selectedCheckboxes.forEach(cb => {
@@ -5139,6 +5235,12 @@ const downloadPhoto = (photo, task) => {
             const key = `${taskId}_${checkpointIndex}`;
             selectedCheckins.set(key, { taskId, checkpointIndex });
         });
+        
+        // 更新全选状态
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = count === checkboxes.length;
+            selectAllCheckbox.indeterminate = count > 0 && count < checkboxes.length;
+        }
     };
     
     // 为每个复选框添加事件
@@ -5152,6 +5254,42 @@ const downloadPhoto = (photo, task) => {
             checkboxes.forEach(cb => {
                 cb.checked = e.target.checked;
             });
+            updateSelection();
+        });
+    }
+    
+    // 只选今日任务
+    if (selectTodayOnly) {
+        selectTodayOnly.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                selectOverdueOnly.checked = false;
+                checkboxes.forEach(cb => {
+                    const type = cb.dataset.type;
+                    cb.checked = type === 'today';
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                });
+            }
+            updateSelection();
+        });
+    }
+    
+    // 只选逾期任务
+    if (selectOverdueOnly) {
+        selectOverdueOnly.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                selectTodayOnly.checked = false;
+                checkboxes.forEach(cb => {
+                    const type = cb.dataset.type;
+                    cb.checked = type === 'overdue';
+                });
+            } else {
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                });
+            }
             updateSelection();
         });
     }
@@ -5175,6 +5313,34 @@ const downloadPhoto = (photo, task) => {
     };
 };
 
+// 辅助函数：渲染批量打卡选项
+const renderBatchCheckinItem = (item) => {
+    const task = item.task;
+    const subjectBadgeClass = getSubjectBadgeClass(task.subject);
+    const isParent = task.parentTaskId ? true : false;
+    const parentInfo = isParent ? ` (子任务)` : '';
+    const overdueText = item.type === 'overdue' ? `<span style="color: #ff6b6b; font-size: 12px;">逾期${item.overdueDays}天</span>` : '<span style="color: #4ecdc4;">今日</span>';
+    
+    return `
+        <div class="checkin-selection-item" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #f1f5f9; margin-left: 15px;">
+            <input type="checkbox" class="checkin-checkbox" 
+                   data-task-id="${task.id}" 
+                   data-checkpoint-index="${item.checkpointIndex}" 
+                   data-type="${item.type}"
+                   style="width: 18px; height: 18px; margin-right: 12px;">
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="subject-badge ${subjectBadgeClass}" style="font-size: 10px;">${task.subject}</span>
+                    <span style="font-weight: 500; font-size: 14px;">${task.name}${parentInfo}</span>
+                </div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 3px;">
+                    ${item.dayDisplay}打卡 · ${overdueText}
+                </div>
+            </div>
+        </div>
+    `;
+};
+
             const performBulkCheckin = async (selectedCheckinsMap) => {
     let completedCount = 0;
     const today = new Date();
@@ -5191,7 +5357,7 @@ const downloadPhoto = (photo, task) => {
         
         // 第一天特殊处理
         if (checkpointIndex === 0) {
-            const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0);
+            const firstDayCheckins = task.checkins.filter(c => c.checkpointIndex === 0 && c.status === 'completed');
             const requiredCount = task.firstDayCheckinCount || 1;
             if (firstDayCheckins.length >= requiredCount) continue;
         }
@@ -5221,6 +5387,9 @@ const downloadPhoto = (photo, task) => {
         renderRecordings();
         renderDataStats();
         alert(`批量打卡完成！成功打卡 ${completedCount} 个任务`);
+        
+        // 跳转到今日任务页面
+        switchTab('today');
     } else {
         alert('没有新的任务可以打卡');
     }
