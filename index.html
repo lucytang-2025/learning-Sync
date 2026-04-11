@@ -677,6 +677,15 @@
                 <!-- 系列子任务设置 -->
                 <div id="subtask-settings" class="hidden" style="margin-top: 15px; padding: 15px; background: #f0f9ff; border-radius: 8px;">
                     <p><strong>系列子任务设置:</strong> 自动生成系列子任务</p>
+                    <div class="form-group" style="background: #fff3e0; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="subtask-need-input-name" style="width: 20px; height: 20px;">
+                            <span><strong>📝 需要输入名称</strong>（打卡时先输入课文/内容名称，再录音）</span>
+                        </label>
+                        <div id="input-name-hint" class="hidden" style="margin-top: 8px; font-size: 12px; color: #ff9f43;">
+                            💡 提示：打卡时会先弹出输入框，让用户输入本次的内容名称
+                        </div>
+                    </div>
                     
                     <div class="form-group">
                         <label for="subtask-start-date">开始日期</label>
@@ -1382,7 +1391,9 @@
                 // 折叠状态存储
                 collapsedParents: new Set(),  // 存储被折叠的父任务ID
                 // 新增：今日任务中科目分组折叠状态
-                collapsedSubjects: new Set()   // 存储被折叠的科目名称
+                collapsedSubjects: new Set(),   // 存储被折叠的科目名称
+                pendingInputName: null,
+                pendingTaskName: null
             };
 
             // ==================== IndexedDB 存储管理 ====================
@@ -2565,20 +2576,21 @@ const scrollToTask = (taskId) => {
                 if (subtaskStartNumber < 1 || subtaskStartNumber > 999) { alert('起始任务编号应在1-999之间'); return; }
 
                 const parentTask = {
-                    id: Date.now(),
-                    subject, name, description: desc,  // 保存原始描述
-                    createDate: new Date(startDate).toISOString(),
-                    status: 'active',
-                    checkins: [],
-                    scheduleType: 'subtask',
-                    subtaskType, 
-                    subtaskCount, 
-                    subtaskStartNumber,
-                    subtaskInterval: interval,
-                    subtaskDescriptionTemplate: descriptionTemplate,
-                    pinned: false,
-                    isParentTask: true
-                };
+    id: Date.now(),
+    subject, name, description: desc,
+    createDate: new Date(startDate).toISOString(),
+    status: 'active',
+    checkins: [],
+    scheduleType: 'subtask',
+    subtaskType, 
+    subtaskCount, 
+    subtaskStartNumber,
+    subtaskInterval: interval,
+    subtaskDescriptionTemplate: descriptionTemplate,
+    pinned: false,
+    isParentTask: true,
+    needInputName: document.getElementById('subtask-need-input-name').checked  // 新增：是否需要输入名称
+};
 
                 state.tasks.push(parentTask);
 
@@ -2605,25 +2617,26 @@ const scrollToTask = (taskId) => {
                     }
 
                     const subtask = {
-                        id: Date.now() + i + 1,
-                        subject, 
-                        name: `${name} 第${currentNumber}${unit}`,
-                        description: subtaskDescription,
-                        createDate: subtaskDate.toISOString(),
-                        status: 'active',
-                        checkins: [],
-                        scheduleType: 'daily',
-                        dailyStartDate: subtaskDate.toISOString().split('T')[0],
-                        dailyFrequency: 'daily',
-                        firstDayCheckinCount: 1,
-                        pinned: false,
-                        parentTaskId: parentTask.id,
-                        subtaskNumber: currentNumber,
-                        subtaskStartNumber: subtaskStartNumber,
-                        subtaskTotal: subtaskCount,
-                        subtaskUnit: unit,
-                        subtaskInterval: interval // 保存间隔信息
-                    };
+    id: Date.now() + i + 1,
+    subject, 
+    name: `${name} 第${currentNumber}${unit}`,
+    description: subtaskDescription,
+    createDate: subtaskDate.toISOString(),
+    status: 'active',
+    checkins: [],
+    scheduleType: 'daily',
+    dailyStartDate: subtaskDate.toISOString().split('T')[0],
+    dailyFrequency: 'daily',
+    firstDayCheckinCount: 1,
+    pinned: false,
+    parentTaskId: parentTask.id,
+    subtaskNumber: currentNumber,
+    subtaskStartNumber: subtaskStartNumber,
+    subtaskTotal: subtaskCount,
+    subtaskUnit: unit,
+    subtaskInterval: interval,
+    needInputName: document.getElementById('subtask-need-input-name').checked  // 新增
+};
                     state.tasks.push(subtask);
                 }
 
@@ -3002,6 +3015,15 @@ const sortedSubjects = Object.keys(grouped).sort((a, b) => {
             redoReasonText = `<div style="font-size: 12px; color: #ff9f43; margin-top: 6px; padding: 6px 8px; background: #fff3e0; border-radius: 6px;">📝 重做原因：${checkin.redoReason}${checkin.redoDeadline ? `（截止：${new Date(checkin.redoDeadline).toLocaleDateString()}）` : ''}</div>`;
         } else if (checkin) {
             redoReasonText = `<div style="font-size: 12px; color: #ff9f43; margin-top: 6px; padding: 6px 8px; background: #fff3e0; border-radius: 6px;">⚠️ 需要重做（原因未填写）</div>`;
+        }
+    }
+
+    // 获取已保存的输入名称（显示已打卡的内容名称）
+    let inputNameText = '';
+    if (!needsRedo && hasCheckedIn) {
+        const checkin = task.checkins.find(c => c.checkpointIndex === checkpointIndex);
+        if (checkin && checkin.inputName) {
+            inputNameText = `<div style="font-size: 12px; color: #4facfe; margin-top: 4px; padding: 4px 8px; background: #e8f4fd; border-radius: 6px;">📖 内容：${checkin.inputName}</div>`;
         }
     }
 
@@ -3763,6 +3785,22 @@ const renderNormalTaskItem = (task) => {
                 if (isTaskPaused(task)) { alert('此任务已暂停，无法打卡'); return; }
 
                 state.currentTask = task;
+        // 检查是否需要输入名称
+    if (task.needInputName) {
+        // 检查这个任务是否已经有名称了
+        if (!task.name.includes(' - ')) {
+            const inputName = prompt('📝 请输入本次打卡的内容名称：\n（例如：课文名称、背诵内容等）', '');
+            if (!inputName) {
+                alert('需要输入名称才能打卡！');
+                return;
+            }
+            state.pendingTaskName = inputName;
+            state.pendingInputName = inputName;
+        }
+    } else {
+        state.pendingTaskName = null;
+        state.pendingInputName = null;
+    }
                 state.isRedo = false;
 
                 if (checkpointIndex === null) {
@@ -4143,20 +4181,36 @@ const downloadPhoto = (photo, task) => {
                     return;
                 }
 
-                task.checkins.push({
-                    checkpointIndex: state.currentRecording.checkpointIndex,
-                    date: state.currentRecording.date,
-                    recordingId: state.currentRecording.id,
-                    type: 'audio',
-                    status: 'completed'
-                });
+                const newCheckin = {
+    checkpointIndex: state.currentRecording.checkpointIndex,
+    date: state.currentRecording.date,
+    recordingId: state.currentRecording.id,
+    type: 'audio',
+    status: 'completed'
+};
+// 如果有输入的名称，保存下来
+if (state.pendingInputName) {
+    newCheckin.inputName = state.pendingInputName;
+    state.pendingInputName = null;
+}
+task.checkins.push(newCheckin);
 
                 const completedCheckins = task.checkins.filter(c => c.status === 'completed').length;
                 if (completedCheckins === taskSchedule.length) {
                     task.status = 'completed';
                 }
 
-                await saveTasks();
+                                await saveTasks();
+                
+                // 如果需要改名，就改任务名称
+                if (state.pendingTaskName && task.needInputName) {
+                    if (!task.name.includes(' - ')) {
+                        task.name = task.name + ' - ' + state.pendingTaskName;
+                        await saveTasks();
+                    }
+                    state.pendingTaskName = null;
+                }
+                
                 resetRecorder();
                 state.isRedo = false;
                 renderRecordings();
@@ -4704,13 +4758,19 @@ const downloadPhoto = (photo, task) => {
                 
                 checkin.status = 'completed';
                 checkin.date = new Date().toISOString();
-                if (media.type === 'audio') {
-                    checkin.recordingId = media.id;
-                    checkin.type = 'audio';
-                } else {
-                    checkin.photoId = media.id;
-                    checkin.type = 'photo';
-                }
+                        if (media.type === 'audio') {
+            checkin.recordingId = media.id;
+            checkin.type = 'audio';
+        } else {
+            checkin.photoId = media.id;
+            checkin.type = 'photo';
+        }
+        
+        // 如果有输入的名称，保存下来（重做时也需要）
+        if (state.pendingInputName) {
+            checkin.inputName = state.pendingInputName;
+            state.pendingInputName = null;
+        }
                 delete checkin.redoReason;
                 delete checkin.redoDeadline;
                 delete checkin.redoMarkedAt;
