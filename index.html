@@ -566,7 +566,34 @@
             
             <div id="task-form" class="task-form-container hidden" style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
                 <h3>新建任务</h3>
-                <div class="form-group">
+<div class="form-group">
+    <label>年级学期</label>
+    <div style="display: flex; gap: 10px;">
+        <select id="task-grade" style="flex: 1;">
+            <option value="">请选择年级</option>
+            <option value="一">一年级</option>
+            <option value="二">二年级</option>
+            <option value="三">三年级</option>
+            <option value="四">四年级</option>
+            <option value="五">五年级</option>
+            <option value="六">六年级</option>
+            <option value="七">七年级</option>
+            <option value="八">八年级</option>
+            <option value="九">九年级</option>
+            <option value="高一">高一</option>
+            <option value="高二">高二</option>
+            <option value="高三">高三</option>
+        </select>
+        <select id="task-semester" style="flex: 1;">
+            <option value="">请选择学期</option>
+            <option value="上">上学期</option>
+            <option value="下">下学期</option>
+            <option value="暑期">暑期</option>
+            <option value="寒假">寒假</option>
+        </select>
+    </div>
+</div>                
+<div class="form-group">
                     <label for="task-subject">科目</label>
                     <select id="task-subject">
                         <option value="语文">语文</option>
@@ -1393,7 +1420,9 @@
                 // 新增：今日任务中科目分组折叠状态
                 collapsedSubjects: new Set(),   // 存储被折叠的科目名称
                 pendingInputName: null,
-                pendingTaskName: null
+                pendingTaskName: null,
+                lastGrade: '',
+                lastSemester: '',
             };
 
             // ==================== IndexedDB 存储管理 ====================
@@ -1670,7 +1699,27 @@
                     });
                 }
             }
-
+            // 保存年级学期设置
+            const saveGradeSemester = (grade, semester) => {
+                if (grade) state.lastGrade = grade;
+                if (semester) state.lastSemester = semester;
+                localStorage.setItem('lastGrade', state.lastGrade);
+                localStorage.setItem('lastSemester', state.lastSemester);
+            };
+            
+            // 读取年级学期设置
+            const loadGradeSemester = () => {
+                const savedGrade = localStorage.getItem('lastGrade');
+                const savedSemester = localStorage.getItem('lastSemester');
+                if (savedGrade) state.lastGrade = savedGrade;
+                if (savedSemester) state.lastSemester = savedSemester;
+                
+                // 设置下拉框的值
+                const gradeSelect = document.getElementById('task-grade');
+                const semesterSelect = document.getElementById('task-semester');
+                if (gradeSelect && state.lastGrade) gradeSelect.value = state.lastGrade;
+                if (semesterSelect && state.lastSemester) semesterSelect.value = state.lastSemester;
+            };
             const dataStorage = new DataStorage();
 
             // ==================== DOM 元素缓存 ====================
@@ -2150,6 +2199,8 @@ const scrollToTask = (taskId) => {
                 renderCalendar();
                 renderRecordings();
                 renderDataStats();
+                // 加载上次保存的年级学期
+                loadGradeSemester();
                 
                 const today = new Date().toISOString().split('T')[0];
                 if (DOM.taskDate) DOM.taskDate.value = today;
@@ -2476,6 +2527,11 @@ const scrollToTask = (taskId) => {
         DOM.taskSubject.value = '语文';
         DOM.taskName.value = '';
         DOM.taskDesc.value = '';
+        // 加载上次保存的年级学期
+        const gradeSelect = document.getElementById('task-grade');
+        const semesterSelect = document.getElementById('task-semester');
+        if (gradeSelect && state.lastGrade) gradeSelect.value = state.lastGrade;
+        if (semesterSelect && state.lastSemester) semesterSelect.value = state.lastSemester;
         DOM.taskDate.valueAsDate = new Date();
         DOM.firstDayCount.value = 1;
         switchTaskType('normal');
@@ -2513,6 +2569,12 @@ const scrollToTask = (taskId) => {
                 const desc = DOM.taskDesc.value;  // 保留原始格式，不trim
                 
                 if (!name) { alert('请输入任务名称'); return; }
+                // 保存年级学期
+                const grade = document.getElementById('task-grade').value;
+                const semester = document.getElementById('task-semester').value;
+                if (grade || semester) {
+                    saveGradeSemester(grade, semester);
+                }
                 
                 if (state.taskType === 'normal') {
                     await saveNormalTask(subject, name, desc);
@@ -2526,16 +2588,18 @@ const scrollToTask = (taskId) => {
                 const firstDayCount = parseInt(DOM.firstDayCount.value) || 1;
                 if (!date) date = new Date().toISOString().split('T')[0];
 
-                const newTask = {
+                                const newTask = {
                     id: Date.now(),
-                    subject, name, description: desc,  // 保存原始描述，保留空格换行
+                    subject, name, description: desc,
                     createDate: new Date(date).toISOString(),
                     status: 'active',
                     checkins: [],
                     scheduleType: state.currentScheduleType,
                     firstDayCheckinCount: Math.max(1, Math.min(firstDayCount, 10)),
                     pinned: false,
-                    isParentTask: false
+                    isParentTask: false,
+                    grade: document.getElementById('task-grade').value,
+                    semester: document.getElementById('task-semester').value
                 };
 
                 if (state.currentScheduleType === 'daily') {
@@ -2575,22 +2639,24 @@ const scrollToTask = (taskId) => {
                 if (subtaskCount < 1 || subtaskCount > 100) { alert('子任务数量应在1-100之间'); return; }
                 if (subtaskStartNumber < 1 || subtaskStartNumber > 999) { alert('起始任务编号应在1-999之间'); return; }
 
-                const parentTask = {
-    id: Date.now(),
-    subject, name, description: desc,
-    createDate: new Date(startDate).toISOString(),
-    status: 'active',
-    checkins: [],
-    scheduleType: 'subtask',
-    subtaskType, 
-    subtaskCount, 
-    subtaskStartNumber,
-    subtaskInterval: interval,
-    subtaskDescriptionTemplate: descriptionTemplate,
-    pinned: false,
-    isParentTask: true,
-    needInputName: document.getElementById('subtask-need-input-name').checked  // 新增：是否需要输入名称
-};
+                                const parentTask = {
+                    id: Date.now(),
+                    subject, name, description: desc,
+                    createDate: new Date(startDate).toISOString(),
+                    status: 'active',
+                    checkins: [],
+                    scheduleType: 'subtask',
+                    subtaskType, 
+                    subtaskCount, 
+                    subtaskStartNumber,
+                    subtaskInterval: interval,
+                    subtaskDescriptionTemplate: descriptionTemplate,
+                    pinned: false,
+                    isParentTask: true,
+                    needInputName: document.getElementById('subtask-need-input-name').checked,
+                    grade: document.getElementById('task-grade').value,
+                    semester: document.getElementById('task-semester').value
+                };
 
                 state.tasks.push(parentTask);
 
@@ -3430,7 +3496,7 @@ const renderNormalTaskItem = (task) => {
         }
     }
 
-    taskEl.innerHTML = `
+        taskEl.innerHTML = `
         <div class="task-header">
             <div class="task-name">
                 <span class="subject-badge ${subjectBadgeClass}">${task.subject}</span>
@@ -3438,6 +3504,7 @@ const renderNormalTaskItem = (task) => {
             </div>
             <div class="task-status ${statusClass}">${completedCheckins}/${totalCheckins} ${statusText}</div>
         </div>
+        ${(task.grade || task.semester) ? `<div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">📚 ${task.grade || ''}${task.grade && task.semester ? '·' : ''}${task.semester || ''}</div>` : ''}
         ${task.description ? `<div class="task-description-content">${task.description.replace(/\n/g, '<br>')}</div>` : ''}
         ${redoReasonText}
         <div class="task-progress">
