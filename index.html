@@ -782,6 +782,33 @@
             <div id="edit-task-form" class="edit-task-form hidden" style="background: white; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
                 <h3>编辑任务 - <span id="edit-task-title"></span></h3>
                 <div class="form-group">
+                    <label>年级学期</label>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="edit-task-grade" style="flex: 1;">
+                            <option value="">请选择年级</option>
+                            <option value="一">一年级</option>
+                            <option value="二">二年级</option>
+                            <option value="三">三年级</option>
+                            <option value="四">四年级</option>
+                            <option value="五">五年级</option>
+                            <option value="六">六年级</option>
+                            <option value="七">七年级</option>
+                            <option value="八">八年级</option>
+                            <option value="九">九年级</option>
+                            <option value="高一">高一</option>
+                            <option value="高二">高二</option>
+                            <option value="高三">高三</option>
+                        </select>
+                        <select id="edit-task-semester" style="flex: 1;">
+                            <option value="">请选择学期</option>
+                            <option value="上">上学期</option>
+                            <option value="下">下学期</option>
+                            <option value="暑期">暑期</option>
+                            <option value="寒假">寒假</option>
+                        </select>
+                    </div>
+                </div>                
+<div class="form-group">
                     <label for="edit-task-subject">科目</label>
                     <select id="edit-task-subject">
                         <option value="语文">语文</option>
@@ -1867,6 +1894,8 @@
                 editTaskName: document.getElementById('edit-task-name'),
                 editTaskDesc: document.getElementById('edit-task-desc'),
                 editCreateDate: document.getElementById('edit-create-date'),
+                editGrade: document.getElementById('edit-task-grade'),
+                editSemester: document.getElementById('edit-task-semester'),
                 
                 // 计划类型
                 scheduleTypeSelectors: document.querySelectorAll('[data-type="default"], [data-type="daily"], [data-type="custom"]'),
@@ -2213,25 +2242,43 @@ const scrollToTask = (taskId) => {
             };
 
             const loadLocalData = async () => {
-                try {
-                    state.tasks = await dataStorage.getAllTasks();
-                    state.recordings = await dataStorage.getTodayRecordings();
-                    state.photos = await dataStorage.getTodayPhotos();
-                    
-                    if (state.tasks.length === 0) {
-                        state.tasks = getDefaultTasks();
-                        await dataStorage.saveAllTasks(state.tasks);
-                    }
-                    
-                    state.feedbacks = await dataStorage.getAllFromStore('feedbacks');
-                } catch (error) {
-                    console.error('数据加载失败:', error);
-                    state.tasks = getDefaultTasks();
-                    state.recordings = [];
-                    state.photos = [];
-                    state.feedbacks = [];
-                }
-            };
+    try {
+        state.tasks = await dataStorage.getAllTasks();
+        state.recordings = await dataStorage.getTodayRecordings();
+        state.photos = await dataStorage.getTodayPhotos();
+        
+        if (state.tasks.length === 0) {
+            state.tasks = getDefaultTasks();
+            await dataStorage.saveAllTasks(state.tasks);
+        }
+        
+        // ========== 迁移旧任务：添加年级学期字段 ==========
+        let needSave = false;
+        for (const task of state.tasks) {
+            if (task.grade === undefined) {
+                task.grade = '';
+                needSave = true;
+            }
+            if (task.semester === undefined) {
+                task.semester = '';
+                needSave = true;
+            }
+        }
+        if (needSave) {
+            await dataStorage.saveAllTasks(state.tasks);
+            console.log('已为旧任务添加年级学期字段');
+        }
+        // ================================================
+        
+        state.feedbacks = await dataStorage.getAllFromStore('feedbacks');
+    } catch (error) {
+        console.error('数据加载失败:', error);
+        state.tasks = getDefaultTasks();
+        state.recordings = [];
+        state.photos = [];
+        state.feedbacks = [];
+    }
+};
 
             const getDefaultTasks = () => [
                 { id: Date.now(), subject: '英语', name: '学习英语', description: '每天学习30分钟英语', createDate: new Date().toISOString(), status: 'active', checkins: [], scheduleType: 'default', firstDayCheckinCount: 1, pinned: false, isParentTask: false },
@@ -2569,9 +2616,14 @@ const scrollToTask = (taskId) => {
                 const desc = DOM.taskDesc.value;  // 保留原始格式，不trim
                 
                 if (!name) { alert('请输入任务名称'); return; }
-                // 保存年级学期
+                                // 检查年级学期是否必填
                 const grade = document.getElementById('task-grade').value;
                 const semester = document.getElementById('task-semester').value;
+                if (!grade && !semester) {
+                    alert('请选择年级和学期（必填）');
+                    return;
+                }
+                // 保存年级学期
                 if (grade || semester) {
                     saveGradeSemester(grade, semester);
                 }
@@ -2724,6 +2776,11 @@ const scrollToTask = (taskId) => {
                 state.editingTask.subject = DOM.editTaskSubject.value;
                 state.editingTask.name = DOM.editTaskName.value.trim();
                 state.editingTask.description = DOM.editTaskDesc.value;  // 保留原始格式
+                // 保存年级学期
+                const editGrade = document.getElementById('edit-task-grade').value;
+                const editSemester = document.getElementById('edit-task-semester').value;
+                if (editGrade) state.editingTask.grade = editGrade;
+                if (editSemester) state.editingTask.semester = editSemester;
                 
                 const createDateStr = DOM.editCreateDate.value;
                 if (createDateStr) {
@@ -2896,6 +2953,11 @@ const scrollToTask = (taskId) => {
         // 填充基本信息
         DOM.editTaskTitle.textContent = task.name;
         DOM.editTaskSubject.value = task.subject;
+        // 加载年级学期
+        const editGradeSelect = document.getElementById('edit-task-grade');
+        const editSemesterSelect = document.getElementById('edit-task-semester');
+        if (editGradeSelect) editGradeSelect.value = task.grade || '';
+        if (editSemesterSelect) editSemesterSelect.value = task.semester || '';
         DOM.editTaskName.value = task.name;
         DOM.editTaskDesc.value = task.description || '';
         DOM.editCreateDate.value = formatDateTimeLocal(new Date(task.createDate));
@@ -3012,13 +3074,22 @@ const sortedSubjects = Object.keys(grouped).sort((a, b) => {
         groupDiv.className = 'subject-group';
         
         // 组头部：显示科目名称、未完成/总任务数、折叠图标
+                // 获取该科目下第一个任务的年级学期（同一科目的任务年级学期应该相同）
+        let gradeSemesterText = '';
+        if (items.length > 0) {
+            const firstTask = items[0].task;
+            if (firstTask.grade || firstTask.semester) {
+                gradeSemesterText = ` · ${firstTask.grade || ''}${firstTask.grade && firstTask.semester ? '' : ''}${firstTask.semester || ''}`;
+            }
+        }
+        
         const headerDiv = document.createElement('div');
         headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
         const badgeClass = getSubjectBadgeClass(subject);
         headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
         headerDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="subject-badge ${badgeClass}">${subject}</span>
+                <span class="subject-badge ${badgeClass}">${subject}${gradeSemesterText}</span>
                 <span style="font-weight: normal; font-size: 13px;">
                     <span style="color: #ff6b6b;">${uncompletedCount}</span> / ${totalCount}
                 </span>
@@ -3203,13 +3274,20 @@ const isCollapsed = !state.collapsedSubjects.has(groupKey);
         groupDiv.className = 'subject-group';
         
         // 组头部
+                // 获取该科目下第一个任务的年级学期
+        let gradeSemesterText = '';
+        const sampleTask = [...subjectUncompleted, ...subjectParents, ...subjectCompleted][0];
+        if (sampleTask && (sampleTask.grade || sampleTask.semester)) {
+            gradeSemesterText = ` · ${sampleTask.grade || ''}${sampleTask.grade && sampleTask.semester ? '' : ''}${sampleTask.semester || ''}`;
+        }
+        
         const headerDiv = document.createElement('div');
         headerDiv.className = `subject-group-header ${isCollapsed ? 'collapsed' : ''}`;
         const badgeClass = getSubjectBadgeClass(subject);
         headerDiv.style.borderLeftColor = (subject === '语文' ? '#f39c12' : subject === '英语' ? '#9b59b6' : subject === '数学' ? '#3498db' : subject === '科学' ? '#1abc9c' : '#34495e');
         headerDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="subject-badge ${badgeClass}">${subject}</span>
+                <span class="subject-badge ${badgeClass}">${subject}${gradeSemesterText}</span>
                 <span style="font-weight: normal; font-size: 13px;">
                     <span style="color: #ff6b6b;">${uncompletedCount}</span> / ${totalCount}
                 </span>
