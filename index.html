@@ -2884,6 +2884,8 @@ const scrollToTask = (taskId) => {
 
     state.tasks.forEach(task => {
         if (task.status !== 'active' || task.isParentTask) return;
+// 如果任务已暂停，跳过（不显示在今日任务中）
+if (isTaskPaused(task)) return;
         
         const taskSchedule = getTaskCheckinSchedule(task);
         const taskDate = new Date(task.createDate);
@@ -5011,12 +5013,21 @@ task.checkins.push(newCheckin);
                     delete subtask.pauseReason;
                     delete subtask.pauseDate;
                     
-                    // 重置开始日期到今天
+                                        // 重置开始日期到今天（从今天开始重新计算打卡计划）
                     subtask.createDate = today.toISOString();
                     subtask.dailyStartDate = today.toISOString().split('T')[0];
                     
-                    // 清除之前的打卡记录（如果有）
-                    subtask.checkins = [];
+                    // 重要：不清除之前的打卡记录，只重置后续计划
+                    // 获取原来的打卡计划天数
+                    const oldSchedule = getTaskCheckinSchedule(subtask);
+                    const oldCompletedCount = subtask.checkins.filter(c => c.status === 'completed').length;
+                    
+                    // 重新计算：已完成的不变，未完成的从今天开始重新安排
+                    // 保留已完成的打卡记录，不清除
+                    
+                    // 记录恢复信息
+                    subtask.resumeReason = reason || '用户手动恢复';
+                    subtask.resumeDate = new Date().toISOString();
                     
                     // 记录恢复信息
                     subtask.resumeReason = reason || '用户手动恢复';
@@ -5059,12 +5070,13 @@ task.checkins.push(newCheckin);
                 delete task.pauseReason;
                 delete task.pauseDate;
                 
-                // 对于子任务，如果是未开始的，重置日期
-                if (task.parentTaskId && !hasStartedCheckin(task)) {
+                                // 对于子任务，重置日期从今天开始（无论是否已开始）
+                if (task.parentTaskId) {
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
                     task.createDate = today.toISOString();
                     task.dailyStartDate = today.toISOString().split('T')[0];
+                    // 不清除已完成的打卡记录
                 }
                 
                 saveTasks();
@@ -5087,10 +5099,11 @@ task.checkins.push(newCheckin);
                             delete task.pauseReason;
                             delete task.pauseDate;
                             
-                            // 如果是未开始的子任务，重置日期
-                            if (task.parentTaskId && !hasStartedCheckin(task)) {
+                                                        // 重置日期从今天开始
+                            if (task.parentTaskId) {
                                 task.createDate = today.toISOString();
                                 task.dailyStartDate = today.toISOString().split('T')[0];
+                                // 保留已完成的打卡记录
                             }
                             resumedCount++;
                         }
