@@ -6419,69 +6419,59 @@ const renderBatchCheckinItem = (item) => {
             
                         // 设置自动同步开关
             const setupAutoSyncToggle = () => {
-                const toggle = document.getElementById('auto-sync-toggle');
-                if (!toggle) return;
-// 在 setupAutoSyncToggle 函数末尾，toggle.addEventListener 之后添加：
-
-// 页面加载时，如果已配置 Token 且开关开启，自动启动同步
-const savedAutoSync = localStorage.getItem('auto_sync_enabled');
-if (savedAutoSync === 'true') {
-    const { token, gistId } = getGistSettings();
-    if (token && gistId) {
+    const toggle = document.getElementById('auto-sync-toggle');
+    if (!toggle) return;
+    
+    // 读取保存的设置，如果没有保存过则默认开启
+    const savedAutoSync = localStorage.getItem('auto_sync_enabled');
+    if (savedAutoSync === null) {
+        // 第一次使用，默认开启
         state.autoSyncEnabled = true;
-        startAutoSync();
-        // 立即同步一次
-        setTimeout(() => autoUploadData(), 1000);
+        toggle.checked = true;
+        localStorage.setItem('auto_sync_enabled', 'true');
+        // 检查是否有 Token 和 Gist ID，如果有则启动同步
+        const { token, gistId } = getGistSettings();
+        if (token && gistId) {
+            startAutoSync();
+            autoUploadData();
+        }
+    } else if (savedAutoSync === 'true') {
+        state.autoSyncEnabled = true;
+        toggle.checked = true;
+        // 页面加载时启动自动同步
+        const { token, gistId } = getGistSettings();
+        if (token && gistId) {
+            startAutoSync();
+            setTimeout(() => autoUploadData(), 1000);
+        }
+    } else {
+        state.autoSyncEnabled = false;
+        toggle.checked = false;
     }
-}
-                
-                // 读取保存的设置，如果没有保存过则默认开启
-                const savedAutoSync = localStorage.getItem('auto_sync_enabled');
-                if (savedAutoSync === null) {
-                    // 第一次使用，默认开启
-                    state.autoSyncEnabled = true;
-                    toggle.checked = true;
-                    localStorage.setItem('auto_sync_enabled', 'true');
-                    // 检查是否有 Token 和 Gist ID，如果有则启动同步
-                    const { token, gistId } = getGistSettings();
-                    if (token && gistId) {
-                        startAutoSync();
-                        autoUploadData();
-                    }
-                } else if (savedAutoSync === 'true') {
-                    state.autoSyncEnabled = true;
-                    toggle.checked = true;
-                    startAutoSync();
-                } else {
-                    state.autoSyncEnabled = false;
-                    toggle.checked = false;
-                }
-                
-                toggle.addEventListener('change', async (e) => {
-                    state.autoSyncEnabled = e.target.checked;
-                    localStorage.setItem('auto_sync_enabled', state.autoSyncEnabled);
-                    
-                    if (state.autoSyncEnabled) {
-                        // 检查是否有 Token 和 Gist ID
-                        const { token, gistId } = getGistSettings();
-                        if (!token || !gistId) {
-                            alert('请先在"GitHub Gist 同步"中设置 Token 和 Gist ID');
-                            toggle.checked = false;
-                            state.autoSyncEnabled = false;
-                            return;
-                        }
-                        startAutoSync();
-                        // 立即上传一次当前数据
-                        await autoUploadData();
-                        // 检查云端更新
-                        await autoDownloadData();
-                        alert('自动同步已开启！\n数据将自动备份到云端，并从云端获取更新。');
-                    } else {
-                        stopAutoSync();
-                        alert('自动同步已关闭');
-                    }
-                });
-            };
+    
+    toggle.addEventListener('change', async (e) => {
+        state.autoSyncEnabled = e.target.checked;
+        localStorage.setItem('auto_sync_enabled', state.autoSyncEnabled);
+        
+        if (state.autoSyncEnabled) {
+            // 检查是否有 Token 和 Gist ID
+            const { token, gistId } = getGistSettings();
+            if (!token || !gistId) {
+                alert('请先在"GitHub Gist 同步"中设置 Token 和 Gist ID');
+                toggle.checked = false;
+                state.autoSyncEnabled = false;
+                return;
+            }
+            startAutoSync();
+            await autoUploadData();
+            await autoDownloadData();
+            alert('自动同步已开启！\n数据将自动备份到云端，并从云端获取更新。');
+        } else {
+            stopAutoSync();
+            alert('自动同步已关闭');
+        }
+    });
+};
             
             // 在数据修改后自动触发上传
             const triggerAutoSync = () => {
