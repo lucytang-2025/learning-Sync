@@ -1002,6 +1002,7 @@
                         <button class="btn btn-bulk-pause" id="bulk-pause-btn">暂停任务</button>
                         <button class="btn btn-bulk-resume" id="bulk-resume-btn">取消暂停</button>
                         <button class="btn" id="clear-data-btn">清除所有任务</button>
+<button class="btn" id="sync-cloud-btn" style="background: #3498db; color: white;">☁️ 云端同步</button>
                     </div>
                 </div>
                 
@@ -1342,6 +1343,37 @@
         </div>
     </div>
 
+<!-- 云端同步模态框 -->
+<div id="sync-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>☁️ 云端同步设置</h3>
+            <button class="close-btn" id="close-sync-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>坚果云账号</label>
+                <input type="text" id="sync-username" placeholder="您的坚果云账号（邮箱）">
+            </div>
+            <div class="form-group">
+                <label>应用密码</label>
+                <input type="password" id="sync-password" placeholder="第三方应用密码">
+                <small>在坚果云【安全选项】中生成应用密码</small>
+            </div>
+            <div class="info-box" style="padding: 12px; background: #e8f4fd; border-radius: 4px; margin: 15px 0;">
+                <strong>📌 使用说明：</strong>
+                <p style="margin: 5px 0 0; font-size: 13px;">1. 先在一个设备上点击"上传到云端"</p>
+                <p style="margin: 5px 0 0; font-size: 13px;">2. 再到另一个设备点击"从云端下载"</p>
+                <p style="margin: 5px 0 0; font-size: 13px;">3. 账号密码只保存本地，不会泄露</p>
+            </div>
+            <div class="task-actions" style="justify-content: flex-end;">
+                <button class="btn" id="cancel-sync-btn">取消</button>
+                <button class="btn" id="upload-sync-btn" style="background: #3498db; color: white;">上传到云端</button>
+                <button class="btn" id="download-sync-btn" style="background: #27ae60; color: white;">从云端下载</button>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- 内存监控警告模态框 -->
     <div id="memory-warning-modal" class="modal hidden">
         <div class="modal-content" style="max-width: 400px;">
@@ -1456,7 +1488,7 @@
             class DataStorage {
                 constructor() {
                     this.dbName = 'CheckinAppDB';
-                    this.version = 16; // 升级版本号
+                    this.version = 17; // 升级版本号
                     this.db = null;
                 }
 
@@ -2221,6 +2253,7 @@ const scrollToTask = (taskId) => {
                 setupMemoryMonitoring();
                 setupSubtaskEventListeners();
                 setupAutoCleanup();
+                setupSyncButtons();
                 
                 restoreRecordingUrls();
                 renderTodayTasks();
@@ -5946,13 +5979,190 @@ const renderBatchCheckinItem = (item) => {
                     DOM.subtaskPreviewList.appendChild(moreItem);
                 }
             };
-
+// ==================== 云端同步功能 ====================
+            // 保存账号密码
+            const saveSyncAccount = (username, password) => {
+                if (username) localStorage.setItem('sync_username', username);
+                if (password) localStorage.setItem('sync_password', password);
+            };
+            
+            // 读取账号密码
+            const getSyncAccount = () => {
+                return {
+                    username: localStorage.getItem('sync_username') || '',
+                    password: localStorage.getItem('sync_password') || ''
+                };
+            };
+            
+            // 上传数据到坚果云
+            const uploadToCloud = async (username, password) => {
+                try {
+                    const tasks = await dataStorage.getAllTasks();
+                    const exportData = {
+                        version: '3.0',
+                        date: new Date().toISOString(),
+                        tasks: tasks
+                    };
+                    const dataStr = JSON.stringify(exportData, null, 2);
+                    
+                    const auth = btoa(`${username}:${password}`);
+                    const url = 'https://dav.jianguoyun.com/dav/checkin_backup.json';
+                    
+                    const response = await fetch(url, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Basic ${auth}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: dataStr
+                    });
+                    
+                    if (response.ok) {
+                        return { success: true, message: '上传成功！' };
+                    } else {
+                        return { success: false, message: `上传失败：${response.status}` };
+                    }
+                } catch (error) {
+                    return { success: false, message: '网络错误：' + error.message };
+                }
+            };
+            
+            // 从坚果云下载数据
+            const downloadFromCloud = async (username, password) => {
+                try {
+                    const auth = btoa(`${username}:${password}`);
+                    const url = 'https://dav.jianguoyun.com/dav/checkin_backup.json';
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Basic ${auth}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        return { success: true, data: data };
+                    } else if (response.status === 404) {
+                        return { success: false, message: '云端还没有备份，请先在另一台设备上传' };
+                    } else {
+                        return { success: false, message: `下载失败：${response.status}` };
+                    }
+                } catch (error) {
+                    return { success: false, message: '网络错误：' + error.message };
+                }
+            };
+            
+            // 恢复下载的数据
+            const restoreCloudData = async (cloudData) => {
+                if (!cloudData.tasks) {
+                    alert('云端数据格式错误');
+                    return false;
+                }
+                
+                if (!confirm('下载将覆盖当前所有数据，确定继续吗？')) return false;
+                
+                await dataStorage.clearAllData();
+                await dataStorage.saveAllTasks(cloudData.tasks);
+                await loadLocalData();
+                restoreRecordingUrls();
+                renderTodayTasks();
+                renderAllTasks();
+                renderCalendar();
+                renderRecordings();
+                renderDataStats();
+                
+                return true;
+            };
+            
+            // 设置同步按钮事件
+            const setupSyncButtons = () => {
+                const syncBtn = document.getElementById('sync-cloud-btn');
+                const syncModal = document.getElementById('sync-modal');
+                const closeSync = document.getElementById('close-sync-modal');
+                const cancelSync = document.getElementById('cancel-sync-btn');
+                const uploadBtn = document.getElementById('upload-sync-btn');
+                const downloadBtn = document.getElementById('download-sync-btn');
+                const usernameInput = document.getElementById('sync-username');
+                const passwordInput = document.getElementById('sync-password');
+                
+                if (!syncBtn) return;
+                
+                // 打开同步窗口
+                syncBtn.onclick = () => {
+                    const saved = getSyncAccount();
+                    if (usernameInput) usernameInput.value = saved.username;
+                    if (passwordInput) passwordInput.value = saved.password;
+                    if (syncModal) syncModal.classList.remove('hidden');
+                };
+                
+                // 关闭窗口
+                if (closeSync) closeSync.onclick = () => syncModal.classList.add('hidden');
+                if (cancelSync) cancelSync.onclick = () => syncModal.classList.add('hidden');
+                
+                // 上传按钮
+                if (uploadBtn) {
+                    uploadBtn.onclick = async () => {
+                        const username = usernameInput.value.trim();
+                        const password = passwordInput.value.trim();
+                        if (!username || !password) {
+                            alert('请输入坚果云账号和应用密码');
+                            return;
+                        }
+                        
+                        uploadBtn.disabled = true;
+                        uploadBtn.textContent = '上传中...';
+                        
+                        const result = await uploadToCloud(username, password);
+                        
+                        if (result.success) {
+                            saveSyncAccount(username, password);
+                            alert('✅ 上传成功！数据已保存到云端');
+                            syncModal.classList.add('hidden');
+                        } else {
+                            alert('❌ ' + result.message);
+                        }
+                        
+                        uploadBtn.disabled = false;
+                        uploadBtn.textContent = '上传到云端';
+                    };
+                }
+                
+                // 下载按钮
+                if (downloadBtn) {
+                    downloadBtn.onclick = async () => {
+                        const username = usernameInput.value.trim();
+                        const password = passwordInput.value.trim();
+                        if (!username || !password) {
+                            alert('请输入坚果云账号和应用密码');
+                            return;
+                        }
+                        
+                        downloadBtn.disabled = true;
+                        downloadBtn.textContent = '下载中...';
+                        
+                        const result = await downloadFromCloud(username, password);
+                        
+                        if (result.success) {
+                            saveSyncAccount(username, password);
+                            await restoreCloudData(result.data);
+                            alert('✅ 下载成功！数据已恢复');
+                            syncModal.classList.add('hidden');
+                        } else {
+                            alert('❌ ' + result.message);
+                        }
+                        
+                        downloadBtn.disabled = false;
+                        downloadBtn.textContent = '从云端下载';
+                    };
+                }
+            };
             // ==================== 辅助函数 ====================
             const handleCheckinClick = (taskId, isDisabled) => {
                 if (isDisabled) { alert('今日已经打卡成功！'); return; }
                 startCheckin(taskId);
             };
-
+            
             // 将需要暴露给全局的函数挂载到window对象
             window.startCheckin = startCheckin;
             window.showEditTaskForm = showEditTaskForm;
