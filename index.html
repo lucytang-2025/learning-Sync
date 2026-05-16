@@ -1002,6 +1002,11 @@
                         <button class="btn btn-bulk-pause" id="bulk-pause-btn">暂停任务</button>
                         <button class="btn btn-bulk-resume" id="bulk-resume-btn">取消暂停</button>
                         <button class="btn" id="clear-data-btn">清除所有任务</button>
+<button class="btn" id="gist-sync-btn" style="background: #24292e; color: white;">🐙 GitHub Gist 同步</button>
+<label style="display: flex; align-items: center; gap: 8px; margin-left: 10px; cursor: pointer;">
+    <input type="checkbox" id="auto-sync-toggle" checked style="width: 18px; height: 18px;">
+    <span style="font-size: 14px;">🤖 自动同步</span>
+</label>
                     </div>
                 </div>
                 
@@ -1342,7 +1347,7 @@
         </div>
     </div>
 
-    <!-- 内存监控警告模态框 -->
+        <!-- 内存监控警告模态框 -->
     <div id="memory-warning-modal" class="modal hidden">
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
@@ -1359,6 +1364,39 @@
                         <button class="btn btn-cleanup" id="cleanup-data-btn" style="background: #ff6b6b; color: white;">立即清理</button>
                         <button class="btn" id="later-btn">稍后处理</button>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub Gist 同步模态框 -->
+    <div id="gist-sync-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🐙 GitHub Gist 云端同步</h3>
+                <button class="close-btn" id="close-gist-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>GitHub Token</label>
+                    <input type="password" id="gist-token" placeholder="输入 GitHub Personal Access Token">
+                    <small>在 GitHub Settings → Developer settings → Personal access tokens 中生成</small>
+                </div>
+                <div class="form-group">
+                    <label>Gist ID（可选，留空自动创建）</label>
+                    <input type="text" id="gist-id" placeholder="留空自动创建新 Gist">
+                    <small>第一次上传后会自动生成ID，后续同步会自动记住</small>
+                </div>
+                <div class="info-box" style="padding: 12px; background: #e8f4fd; border-radius: 4px; margin: 15px 0;">
+                    <strong>📌 使用说明：</strong>
+                    <p style="margin: 5px 0 0; font-size: 13px;">1. 第一台设备：输入Token → 点击"上传到Gist"</p>
+                    <p style="margin: 5px 0 0; font-size: 13px;">2. 第二台设备：输入相同Token → 点击"从Gist下载"</p>
+                    <p style="margin: 5px 0 0; font-size: 13px;">3. Token只保存在您的浏览器中，不会泄露</p>
+                </div>
+                <div class="task-actions" style="justify-content: flex-end;">
+                    <button class="btn" id="cancel-gist-btn">取消</button>
+                    <button class="btn btn-primary" id="upload-gist-btn" style="background: #28a745;">上传到 Gist</button>
+                    <button class="btn btn-success" id="download-gist-btn" style="background: #1b6ec2;">从 Gist 下载</button>
                 </div>
             </div>
         </div>
@@ -1450,13 +1488,16 @@
                 pendingTaskName: null,
                 lastGrade: '',
                 lastSemester: '',
+                autoSyncEnabled: false,
+                lastSyncTime: null,
+                syncInterval: null,
             };
 
             // ==================== IndexedDB 存储管理 ====================
             class DataStorage {
                 constructor() {
                     this.dbName = 'CheckinAppDB';
-                    this.version = 16; // 升级版本号
+                    this.version = 17; // 升级版本号
                     this.db = null;
                 }
 
@@ -2221,6 +2262,19 @@ const scrollToTask = (taskId) => {
                 setupMemoryMonitoring();
                 setupSubtaskEventListeners();
                 setupAutoCleanup();
+                setupGistSync();
+                // 页面加载时检查云端是否有更新
+                (async () => {
+                    const { token, gistId } = getGistSettings();
+                    if (token && gistId) {
+                        const updateInfo = await checkCloudUpdate();
+                        if (updateInfo.hasUpdate) {
+                            if (confirm(`检测到云端有新数据（${new Date(updateInfo.cloudDate).toLocaleString()}），是否立即同步？`)) {
+                                await autoDownloadData();
+                            }
+                        }
+                    }
+                })();
                 
                 restoreRecordingUrls();
                 renderTodayTasks();
@@ -2285,9 +2339,11 @@ const scrollToTask = (taskId) => {
                 { id: Date.now() + 1, subject: '数学', name: '数学练习', description: '每天完成10道数学题', createDate: new Date().toISOString(), status: 'active', checkins: [], scheduleType: 'default', firstDayCheckinCount: 1, pinned: false, isParentTask: false }
             ];
 
-            const saveTasks = async () => {
+                        const saveTasks = async () => {
                 try {
                     await dataStorage.saveAllTasks(state.tasks);
+                    // 自动同步
+                    triggerAutoSync();
                 } catch (e) {
                     console.error('保存任务失败:', e);
                 }
@@ -5953,7 +6009,480 @@ const renderBatchCheckinItem = (item) => {
                 startCheckin(taskId);
             };
 
-            // 将需要暴露给全局的函数挂载到window对象
+            // ==================== GitHub Gist 云端同步 ====================
+            const GIST_API = 'https://api.github.com/gists';
+            
+            // 保存 Gist 设置
+            const saveGistSettings = (token, gistId) => {
+                if (token) localStorage.setItem('gist_token', token);
+                if (gistId) localStorage.setItem('gist_id', gistId);
+            };
+            
+            // 读取 Gist 设置
+            const getGistSettings = () => {
+                return {
+                    token: localStorage.getItem('gist_token') || '',
+                    gistId: localStorage.getItem('gist_id') || ''
+                };
+            };
+            
+            // 上传数据到 Gist
+            const uploadToGist = async (token, gistId) => {
+                try {
+                    const tasks = await dataStorage.getAllTasks();
+                    const exportData = {
+                        version: '3.0',
+                        date: new Date().toISOString(),
+                        tasks: tasks
+                    };
+                    const content = JSON.stringify(exportData, null, 2);
+                    
+                    if (gistId) {
+                        // 更新已有 Gist
+                        const response = await fetch(`${GIST_API}/${gistId}`, {
+                            method: 'PATCH',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                files: {
+                                    'checkin_backup.json': { content: content }
+                                }
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            alert('✅ 上传成功！数据已更新到 Gist');
+                            return true;
+                        } else {
+                            const error = await response.json();
+                            throw new Error(error.message);
+                        }
+                    } else {
+                        // 创建新 Gist
+                        const response = await fetch(GIST_API, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                description: '复习打卡计划备份',
+                                public: false,
+                                files: {
+                                    'checkin_backup.json': { content: content }
+                                }
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const newGistId = data.id;
+                            saveGistSettings(token, newGistId);
+                            alert(`✅ 上传成功！Gist ID: ${newGistId}\n请记住此ID，其他设备输入相同Token和ID即可同步`);
+                            return true;
+                        } else {
+                            const error = await response.json();
+                            throw new Error(error.message);
+                        }
+                    }
+                } catch (error) {
+                    alert('❌ 上传失败：' + error.message);
+                    return false;
+                }
+            };
+            
+            // 从 Gist 下载数据
+            const downloadFromGist = async (token, gistId) => {
+                try {
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const fileContent = data.files['checkin_backup.json']?.content;
+                        
+                        if (!fileContent) {
+                            alert('Gist 中没有找到备份文件');
+                            return false;
+                        }
+                        
+                        const cloudData = JSON.parse(fileContent);
+                        
+                        if (!cloudData.tasks) {
+                            alert('云端数据格式错误');
+                            return false;
+                        }
+                        
+                        if (!confirm(`下载将覆盖当前所有数据，确定继续吗？\n云端备份时间：${new Date(cloudData.date).toLocaleString()}`)) return false;
+                        
+                        await dataStorage.clearAllData();
+                        await dataStorage.saveAllTasks(cloudData.tasks);
+                        await loadLocalData();
+                        restoreRecordingUrls();
+                        renderTodayTasks();
+                        renderAllTasks();
+                        renderCalendar();
+                        renderRecordings();
+                        renderDataStats();
+                        
+                        alert('✅ 下载成功！数据已恢复');
+                        return true;
+                    } else if (response.status === 404) {
+                        alert('❌ 找不到指定的 Gist，请检查 Gist ID 是否正确');
+                        return false;
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.message);
+                    }
+                } catch (error) {
+                    alert('❌ 下载失败：' + error.message);
+                    return false;
+                }
+            };
+            
+            // 显示 Gist 设置弹窗
+            const showGistDialog = () => {
+                const saved = getGistSettings();
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px;">
+                        <div class="modal-header">
+                            <h3>🐙 GitHub Gist 同步设置</h3>
+                            <button class="close-btn" id="close-gist-modal2">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label>GitHub Token</label>
+                                <input type="password" id="gist-token2" placeholder="输入 GitHub Personal Access Token" value="${saved.token}">
+                                <small>在 GitHub Settings → Developer settings → Personal access tokens 中生成</small>
+                            </div>
+                            <div class="form-group">
+                                <label>Gist ID</label>
+                                <input type="text" id="gist-id2" placeholder="Gist ID（首次留空自动创建）" value="${saved.gistId}">
+                                <small>第一次上传后会自动获取，其他设备需要输入相同ID</small>
+                            </div>
+                            <div class="info-box" style="padding: 12px; background: #e8f4fd; border-radius: 4px; margin: 15px 0;">
+                                <strong>📌 使用说明：</strong>
+                                <p style="margin: 5px 0 0; font-size: 13px;">1. 第一台设备：输入Token → 点击"上传到Gist"</p>
+                                <p style="margin: 5px 0 0; font-size: 13px;">2. 第二台设备：输入相同Token和Gist ID → 点击"从Gist下载"</p>
+                            </div>
+                            <div class="task-actions" style="justify-content: flex-end;">
+                                <button class="btn" id="cancel-gist-btn2">取消</button>
+                                <button class="btn btn-primary" id="upload-gist-btn2" style="background: #28a745;">上传到 Gist</button>
+                                <button class="btn btn-success" id="download-gist-btn2" style="background: #1b6ec2;">从 Gist 下载</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                const closeModal = () => document.body.removeChild(modal);
+                const tokenInput = modal.querySelector('#gist-token2');
+                const gistIdInput = modal.querySelector('#gist-id2');
+                
+                modal.querySelector('#close-gist-modal2').onclick = closeModal;
+                modal.querySelector('#cancel-gist-btn2').onclick = closeModal;
+                
+                modal.querySelector('#upload-gist-btn2').onclick = async () => {
+                    const token = tokenInput.value.trim();
+                    let gistId = gistIdInput.value.trim();
+                    
+                    if (!token) {
+                        alert('请输入 GitHub Token');
+                        return;
+                    }
+                    
+                    const btn = modal.querySelector('#upload-gist-btn2');
+                    btn.disabled = true;
+                    btn.textContent = '上传中...';
+                    
+                    await uploadToGist(token, gistId || null);
+                    
+                    // 更新保存的 Gist ID
+                    const saved = getGistSettings();
+                    if (saved.gistId && !gistId) {
+                        gistIdInput.value = saved.gistId;
+                    }
+                    saveGistSettings(token, gistIdInput.value);
+                    
+                    closeModal();
+                };
+                
+                modal.querySelector('#download-gist-btn2').onclick = async () => {
+                    const token = tokenInput.value.trim();
+                    const gistId = gistIdInput.value.trim();
+                    
+                    if (!token) {
+                        alert('请输入 GitHub Token');
+                        return;
+                    }
+                    if (!gistId) {
+                        alert('请输入 Gist ID（从第一台设备获取）');
+                        return;
+                    }
+                    
+                    const btn = modal.querySelector('#download-gist-btn2');
+                    btn.disabled = true;
+                    btn.textContent = '下载中...';
+                    
+                    await downloadFromGist(token, gistId);
+                    saveGistSettings(token, gistId);
+                    closeModal();
+                };
+            };
+            
+            // 设置 Gist 同步按钮
+            const setupGistSync = () => {
+                const gistBtn = document.getElementById('gist-sync-btn');
+                if (gistBtn) {
+                    gistBtn.onclick = () => {
+                        showGistDialog();
+                    };
+                    console.log('GitHub Gist 同步已就绪');
+                } else {
+                    console.log('找不到 Gist 同步按钮');
+                }
+            };            
+            // 自动同步：上传当前数据
+            const autoUploadData = async () => {
+                if (!state.autoSyncEnabled) return;
+                const { token, gistId } = getGistSettings();
+                if (!token || !gistId) {
+                    console.log('自动同步失败：未设置 Token 或 Gist ID');
+                    return;
+                }
+                
+                try {
+                    const tasks = await dataStorage.getAllTasks();
+                    const exportData = {
+                        version: '3.0',
+                        date: new Date().toISOString(),
+                        tasks: tasks
+                    };
+                    const content = JSON.stringify(exportData, null, 2);
+                    
+                    // 直接使用 GitHub API（不需要代理）
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                'checkin_backup.json': { content: content }
+                            }
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        state.lastSyncTime = new Date().toISOString();
+                        localStorage.setItem('last_sync_time', state.lastSyncTime);
+                        console.log('自动同步成功', new Date().toLocaleTimeString());
+                        showSyncToast('✓ 已自动同步');
+                    } else {
+                        console.log('自动同步失败：', response.status);
+                    }
+                } catch (error) {
+                    console.error('自动同步错误:', error);
+                }
+            };            
+            // 显示同步提示
+            const showSyncToast = (message) => {
+                let toast = document.querySelector('.sync-toast');
+                if (toast) toast.remove();
+                toast = document.createElement('div');
+                toast.className = 'sync-toast';
+                toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 9999; opacity: 0; transition: opacity 0.3s;';
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => { toast.style.opacity = '1'; }, 10);
+                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+            };
+            
+            // 检查云端是否有更新
+            const checkCloudUpdate = async () => {
+                const { token, gistId } = getGistSettings();
+                if (!token || !gistId) return false;
+                
+                try {
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const fileContent = data.files['checkin_backup.json']?.content;
+                        if (!fileContent) return false;
+                        
+                        const cloudData = JSON.parse(fileContent);
+                        const cloudDate = new Date(cloudData.date);
+                        const lastSync = state.lastSyncTime ? new Date(state.lastSyncTime) : null;
+                        
+                        // 如果云端数据比本地新，提示用户
+                        if (lastSync && cloudDate > lastSync) {
+                            return { hasUpdate: true, cloudDate: cloudData.date };
+                        }
+                    }
+                    return { hasUpdate: false };
+                } catch (error) {
+                    console.error('检查更新失败:', error);
+                    return { hasUpdate: false };
+                }
+            };
+            
+            // 自动下载云端数据（静默）
+            const autoDownloadData = async () => {
+                const { token, gistId } = getGistSettings();
+                if (!token || !gistId) return false;
+                
+                try {
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const fileContent = data.files['checkin_backup.json']?.content;
+                        if (!fileContent) return false;
+                        
+                        const cloudData = JSON.parse(fileContent);
+                        if (!cloudData.tasks) return false;
+                        
+                        // 比较本地和云端任务数量，如果不同则更新
+                        const localTasks = await dataStorage.getAllTasks();
+                        if (JSON.stringify(localTasks) !== JSON.stringify(cloudData.tasks)) {
+                            await dataStorage.clearAllData();
+                            await dataStorage.saveAllTasks(cloudData.tasks);
+                            await loadLocalData();
+                            restoreRecordingUrls();
+                            renderTodayTasks();
+                            renderAllTasks();
+                            renderCalendar();
+                            renderRecordings();
+                            renderDataStats();
+                            console.log('自动同步：已从云端更新数据');
+                            showSyncToast('📥 已同步云端数据');
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('自动下载失败:', error);
+                    return false;
+                }
+            };
+            
+            // 启动自动同步定时器
+            const startAutoSync = () => {
+                if (state.syncInterval) clearInterval(state.syncInterval);
+                // 每30秒检查一次云端更新
+                state.syncInterval = setInterval(async () => {
+                    if (!state.autoSyncEnabled) return;
+                    const { token, gistId } = getGistSettings();
+                    if (!token || !gistId) return;
+                    
+                    // 先检查云端是否有更新
+                    const updateInfo = await checkCloudUpdate();
+                    if (updateInfo.hasUpdate) {
+                        // 如果有更新，自动下载
+                        await autoDownloadData();
+                    }
+                }, 30000); // 30秒检查一次
+            };
+            
+            // 停止自动同步
+            const stopAutoSync = () => {
+                if (state.syncInterval) {
+                    clearInterval(state.syncInterval);
+                    state.syncInterval = null;
+                }
+            };
+            
+            // 设置自动同步开关
+            const setupAutoSyncToggle = () => {
+                const toggle = document.getElementById('auto-sync-toggle');
+                if (!toggle) return;
+                
+                                // 读取保存的设置，如果没有保存过则默认开启
+                const savedAutoSync = localStorage.getItem('auto_sync_enabled');
+                if (savedAutoSync === null) {
+                    // 第一次使用，默认开启
+                    state.autoSyncEnabled = true;
+                    toggle.checked = true;
+                    localStorage.setItem('auto_sync_enabled', 'true');
+                    // 检查是否有 Token 和 Gist ID，如果有则启动同步
+                    const { token, gistId } = getGistSettings();
+                    if (token && gistId) {
+                        startAutoSync();
+                        autoUploadData();
+                    }
+                } else if (savedAutoSync === 'true') {
+                    state.autoSyncEnabled = true;
+                    toggle.checked = true;
+                    startAutoSync();
+                } else {
+                    state.autoSyncEnabled = false;
+                    toggle.checked = false;
+                }
+                
+                toggle.addEventListener('change', async (e) => {
+                    state.autoSyncEnabled = e.target.checked;
+                    localStorage.setItem('auto_sync_enabled', state.autoSyncEnabled);
+                    
+                    if (state.autoSyncEnabled) {
+                        // 检查是否有 Token 和 Gist ID
+                        const { token, gistId } = getGistSettings();
+                        if (!token || !gistId) {
+                            alert('请先在"GitHub Gist 同步"中设置 Token 和 Gist ID');
+                            toggle.checked = false;
+                            state.autoSyncEnabled = false;
+                            return;
+                        }
+                        startAutoSync();
+                        // 立即上传一次当前数据
+                        await autoUploadData();
+                        // 检查云端更新
+                        await autoDownloadData();
+                        alert('自动同步已开启！\n数据将自动备份到云端，并从云端获取更新。');
+                    } else {
+                        stopAutoSync();
+                        alert('自动同步已关闭');
+                    }
+                });
+            };
+            
+            // 在数据修改后自动触发上传
+            const triggerAutoSync = () => {
+                if (state.autoSyncEnabled) {
+                    const { token, gistId } = getGistSettings();
+                    if (token && gistId) {
+                        // 延迟上传，避免频繁请求
+                        if (window._autoSyncTimer) clearTimeout(window._autoSyncTimer);
+                        window._autoSyncTimer = setTimeout(() => {
+                            autoUploadData();
+                        }, 3000);
+                    }
+                }
+            };
+// 将需要暴露给全局的函数挂载到window对象
             window.startCheckin = startCheckin;
             window.showEditTaskForm = showEditTaskForm;
             window.viewTaskDetails = viewTaskDetails;
