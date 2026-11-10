@@ -379,6 +379,16 @@
         .modal-body { padding: 20px; }
 
         /* 工具类 */
+        .note-checkbox {
+            cursor: pointer;
+            font-size: 18px;
+            margin-right: 6px;
+            user-select: none;
+            display: inline-block;
+        }
+        .note-checkbox.checked {
+            color: #1dd1a1;
+        }
         .hidden { display: none !important; }
         .text-center { text-align: center; }
         .empty-state {
@@ -549,6 +559,7 @@
             <div class="tab" data-tab="calendar">日历视图</div>
             <div class="tab" data-tab="checkin">打卡</div>
             <div class="tab" data-tab="data">数据管理</div>
+            <div class="tab" data-tab="notes">备注</div>
         </div>
 
         <!-- 今日任务标签页 -->
@@ -1003,14 +1014,37 @@
                         <button class="btn btn-bulk-resume" id="bulk-resume-btn">取消暂停</button>
                         <button class="btn" id="clear-data-btn">清除所有任务</button>
 <button class="btn" id="gist-sync-btn" style="background: #24292e; color: white;">🐙 GitHub Gist 同步</button>
-<label style="display: flex; align-items: center; gap: 8px; margin-left: 10px; cursor: pointer;">
-    <input type="checkbox" id="auto-sync-toggle" checked style="width: 18px; height: 18px;">
-    <span style="font-size: 14px;">🤖 自动同步</span>
-</label>
                     </div>
                 </div>
                 
                 <div class="data-card" style="background: white; border-radius: 10px; padding: 20px;">
+                <div class="data-card" style="background: white; border-radius: 10px; padding: 20px;">
+                    <h3>云端备份状态</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <div style="font-size: 12px; color: #64748b;">上次自动备份</div>
+                            <div id="last-auto-upload-time" style="font-size: 14px; font-weight: 600; color: #28a745;">未备份</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 12px; color: #64748b;">下次备份时间</div>
+                            <div style="font-size: 14px; font-weight: 600;">每天凌晨 1:00</div>
+                        </div>
+<div>
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="auto-upload-toggle" checked style="width: 18px; height: 18px;">
+        <span style="font-size: 13px;">📤 自动上传</span>
+    </label>
+</div>
+<div>
+    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="auto-download-toggle" style="width: 18px; height: 18px;">
+        <span style="font-size: 13px;">📥 自动下载</span>
+    </label>
+</div>
+                        <button class="btn" id="manual-upload-btn" style="background: #28a745; color: white;">立即备份到云端</button>
+                    </div>
+                    <div id="auto-download-status" style="margin-top: 10px; font-size: 12px; color: #64748b; text-align: center;"></div>
+                </div>
                     <h3>数据统计</h3>
                     <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
                         <div class="stat-card" style="background: #f8fafc; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #4facfe;">
@@ -1054,7 +1088,88 @@
 </div>
             </div>
         </div>
+        <!-- 备注页 -->
+<div class="tab-content" id="notes-tab">
+    <h2>📝 辅导思路</h2>
 
+    <!-- 学期 + 操作 -->
+    <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+        <select id="note-semester" style="width:auto; padding:8px; border-radius:8px;">
+            <option value="">选择学期</option>
+            <option>一上</option><option>一下</option>
+            <option>二上</option><option>二下</option>
+            <option>三上</option><option>三下</option>
+            <option>四上</option><option>四下</option>
+            <option>五上</option><option>五下</option>
+            <option>六上</option><option>六下</option>
+            <option>七上</option><option>七下</option>
+            <option>八上</option><option>八下</option>
+            <option>九上</option><option>九下</option>
+            <option>高一上</option><option>高一下</option>
+            <option>高二上</option><option>高二下</option>
+            <option>高三上</option><option>高三下</option>
+        </select>
+        <button class="btn btn-primary" id="note-new-btn">+ 新建</button>
+        <button class="btn btn-success" id="note-save-btn">💾 保存</button>
+        <span id="note-tip" style="font-size:12px; color:#1dd1a1;"></span>
+    </div>
+
+    <!-- 工具栏（两行） -->
+    <div id="note-toolbar" style="padding:8px; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:12px 12px 0 0;">
+        <!-- 第一行：字体、字号、颜色 -->
+        <div style="display:flex; gap:5px; flex-wrap:wrap; margin-bottom:6px; align-items:center;">
+            <select id="note-font" title="字体" style="width:auto; padding:5px; font-size:13px; border-radius:6px;">
+                <option value="system-ui, 'Segoe UI', sans-serif">默认字体</option>
+                <option value="'Microsoft YaHei', sans-serif">微软雅黑</option>
+                <option value="SimSun, serif">宋体</option>
+                <option value="SimHei, sans-serif">黑体</option>
+                <option value="KaiTi, serif">楷体</option>
+                <option value="'Courier New', monospace">等宽</option>
+            </select>
+            <select id="note-size" title="字号" style="width:auto; padding:5px; font-size:13px; border-radius:6px;">
+                <option value="12px">12</option>
+                <option value="14px" selected>14</option>
+                <option value="16px">16</option>
+                <option value="18px">18</option>
+                <option value="20px">20</option>
+                <option value="24px">24</option>
+                <option value="28px">28</option>
+                <option value="32px">32</option>
+            </select>
+            <label style="display:flex; align-items:center; gap:3px; font-size:12px; margin:0;">
+                🎨<input type="color" id="note-color" value="#2c3e50" style="width:30px; height:30px; border:none; cursor:pointer;">
+            </label>
+            <label style="display:flex; align-items:center; gap:3px; font-size:12px; margin:0;">
+                🖍️<input type="color" id="note-bg" value="#ffff00" style="width:30px; height:30px; border:none; cursor:pointer;">
+            </label>
+        </div>
+        <!-- 第二行：格式按钮 -->
+        <div style="display:flex; gap:4px; flex-wrap:wrap; align-items:center;">
+            <button class="btn" data-cmd="bold" title="加粗"><b>B</b></button>
+            <button class="btn" data-cmd="italic" title="倾斜"><i>I</i></button>
+            <button class="btn" data-cmd="underline" title="下划线"><u>U</u></button>
+            <button class="btn" data-cmd="strikeThrough" title="删除线"><s>S</s></button>
+            <button class="btn" data-cmd="insertUnorderedList" title="无序列表">• 列表</button>
+            <button class="btn" data-cmd="insertOrderedList" title="有序编号">1. 编号</button>
+            <button class="btn" data-cmd="justifyLeft" title="左对齐">⬅</button>
+            <button class="btn" data-cmd="justifyCenter" title="居中">⬌</button>
+            <button class="btn" data-cmd="justifyRight" title="右对齐">➡</button>
+            <button class="btn" data-cmd="insertHorizontalRule" title="分割线">—</button>
+            <button class="btn" id="note-checkbox-btn" title="插入复选框">☐ 复选框</button>
+            <button class="btn" data-cmd="removeFormat" title="清除格式">✖ 格式</button>
+        </div>
+    </div>
+
+    <!-- 编辑区 -->
+    <div id="note-editor" contenteditable="true"
+        style="min-height:350px; padding:16px; border:1px solid #e2e8f0; border-top:none; border-radius:0 0 12px 12px; background:white; outline:none; font-size:15px; line-height:1.8;">
+        在这里写辅导思路...
+    </div>
+
+    <!-- 已有备注 -->
+    <h3 style="margin-top:20px;">📚 已有备注</h3>
+    <div id="note-list"></div>
+</div>
         <footer style="text-align: center; padding: 20px; color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0;">
             <p>复习打卡计划 &copy; 2023 - 系列任务智能暂停增强版</p>
         </footer>
@@ -1488,16 +1603,13 @@
                 pendingTaskName: null,
                 lastGrade: '',
                 lastSemester: '',
-                autoSyncEnabled: false,
-                lastSyncTime: null,
-                syncInterval: null,
             };
 
             // ==================== IndexedDB 存储管理 ====================
             class DataStorage {
                 constructor() {
                     this.dbName = 'CheckinAppDB';
-                    this.version = 17; // 升级版本号
+                    this.version = 5; // 升级版本号
                     this.db = null;
                 }
 
@@ -1529,6 +1641,9 @@
                             }
                             if (!db.objectStoreNames.contains('settings')) {
                                 db.createObjectStore('settings', { keyPath: 'key' });
+                            }
+                            if (!db.objectStoreNames.contains('notes')) {
+                                db.createObjectStore('notes', { keyPath: 'id' });
                             }
                             if (!db.objectStoreNames.contains('system')) {
                                 db.createObjectStore('system', { keyPath: 'key' });
@@ -2201,6 +2316,294 @@
                 }
             };
 
+            // ==================== 每日凌晨自动上传 ====================
+            // 执行每日自动上传（凌晨1点）
+            const performDailyAutoUpload = async () => {
+                console.log('执行每日自动上传检查...');
+                const { token, gistId } = getGistSettings();
+                
+                if (!token || !gistId) {
+                    console.log('未配置 GitHub Gist，跳过自动上传');
+                    return false;
+                }
+                
+                // 检查今天是否已经上传过
+                const lastUploadDate = localStorage.getItem('last_auto_upload_date');
+                const today = new Date().toDateString();
+                
+                if (lastUploadDate === today) {
+                    console.log('今天已经自动上传过，跳过');
+                    return false;
+                }
+                
+                try {
+                    const tasks = state.tasks;
+                    if (!tasks || tasks.length === 0) {
+                        console.log('没有任务数据，跳过自动上传');
+                        return false;
+                    }
+                    
+                    const exportData = {
+                        version: '3.0',
+                        date: new Date().toISOString(),
+                        tasks: tasks
+                    };
+                    const content = JSON.stringify(exportData, null, 2);
+                    
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'PATCH',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            files: {
+                                'checkin_backup.json': { content: content }
+                            }
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        localStorage.setItem('last_auto_upload_date', today);
+                        console.log(`✅ 每日自动上传成功！时间: ${new Date().toLocaleString()}`);
+                        
+                        // 显示提示（仅在页面可见时显示）
+                        if (document.visibilityState === 'visible') {
+                            const toast = document.createElement('div');
+                            toast.textContent = '☁️ 已自动上传';
+                            toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 10000; animation: fadeInOut 2s ease;';
+                            document.body.appendChild(toast);
+                            setTimeout(() => toast.remove(), 2000);
+                        }
+                        return true;
+                    } else {
+                        console.error('每日自动上传失败:', response.status);
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('每日自动上传错误:', error);
+                    return false;
+                }
+            };
+            
+            // 启动每日自动上传定时器（每天凌晨1点执行）
+            const setupDailyAutoUpload = () => {
+                // 检查用户是否开启了自动备份（每台设备独立设置，存储在localStorage）
+                let isAutoUploadEnabled = localStorage.getItem('auto_upload_enabled');
+                if (isAutoUploadEnabled === null) {
+                    isAutoUploadEnabled = true;
+                    localStorage.setItem('auto_upload_enabled', 'true');
+                } else {
+                    isAutoUploadEnabled = isAutoUploadEnabled === 'true';
+                }                
+                // 绑定上传开关事件
+                const uploadToggle = document.getElementById('auto-upload-toggle');
+                if (uploadToggle) {
+                    uploadToggle.checked = isAutoUploadEnabled;
+                    uploadToggle.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        localStorage.setItem('auto_upload_enabled', isChecked);
+                        if (isChecked) {
+                            console.log('✅ 自动上传已开启');
+                            setTimeout(() => {
+                                performDailyAutoUpload();
+                            }, 1000);
+                        } else {
+                            console.log('⏸️ 自动上传已关闭');
+                        }
+                    });
+                }                
+                if (!isAutoUploadEnabled) {
+                    console.log('⏸️ 自动上传已关闭，跳过启动定时器');
+                    return;
+                }                
+                // 清除可能存在的旧定时器
+                if (window.dailyUploadInterval) {
+                    clearInterval(window.dailyUploadInterval);
+                }
+                
+                // 每小时检查一次，在凌晨1点执行上传
+                window.dailyUploadInterval = setInterval(async () => {
+                    // 每次执行前重新检查开关状态
+                    const isStillEnabled = localStorage.getItem('auto_upload_enabled') === 'true';
+                    if (!isStillEnabled) {
+                        console.log('⏸️ 自动备份已关闭，跳过本次检查');
+                        return;
+                    }
+                    
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    
+                    // 在凌晨1:00 - 1:05之间执行
+                    if (hours === 1 && minutes < 5) {
+                        await performDailyAutoUpload();
+                    }
+                }, 60 * 1000); // 每分钟检查一次
+                
+                console.log('✅ 每日自动上传定时器已启动（每天凌晨1点）');
+                
+                // 页面加载时，如果上次上传超过24小时，也执行一次
+                const lastUploadDate = localStorage.getItem('last_auto_upload_date');
+                const today = new Date().toDateString();
+                if (lastUploadDate !== today) {
+                    // 延迟30秒后执行，避免影响页面加载
+                    setTimeout(async () => {
+                        // 再次检查开关状态
+                        const isStillEnabled = localStorage.getItem('auto_upload_enabled') === 'true';
+                        if (isStillEnabled) {
+                            await performDailyAutoUpload();
+                        }
+                    }, 30000);
+                }
+            };
+            // ==================== 自动下载同步（定时检查云端更新）====================
+            // 执行自动下载检查
+            const performAutoDownload = async () => {
+                console.log('执行自动下载检查...');
+                const { token, gistId } = getGistSettings();
+                
+                if (!token || !gistId) {
+                    console.log('未配置 GitHub Gist，跳过自动下载');
+                    return false;
+                }
+                
+                try {
+                    const response = await fetch(`${GIST_API}/${gistId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const fileContent = data.files['checkin_backup.json']?.content;
+                        if (!fileContent) return false;
+                        
+                        const cloudData = JSON.parse(fileContent);
+                        if (!cloudData.tasks) return false;
+                        
+                        // 获取云端数据的修改时间
+                        const cloudDate = new Date(cloudData.date);
+                        const lastSyncTime = localStorage.getItem('last_sync_time') || '0';
+                        const lastSyncDate = new Date(lastSyncTime);
+                        
+                        // 如果云端数据比本地同步时间新，则下载
+                        if (cloudDate > lastSyncDate) {
+                            console.log(`检测到云端有新数据 (${cloudData.date})，开始自动下载...`);
+                            
+                            await dataStorage.clearAllData();
+                            await dataStorage.saveAllTasks(cloudData.tasks);
+                            await loadLocalData();
+                            restoreRecordingUrls();
+                            renderTodayTasks();
+                            renderAllTasks();
+                            renderCalendar();
+                            renderRecordings();
+                            renderDataStats();
+                            
+                            localStorage.setItem('last_sync_time', new Date().toISOString());
+                            
+                            // 显示提示
+                            if (document.visibilityState === 'visible') {
+                                const toast = document.createElement('div');
+                                toast.textContent = '📥 已自动同步云端最新数据';
+                                toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #4facfe; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 10000; animation: fadeInOut 2s ease;';
+                                document.body.appendChild(toast);
+                                setTimeout(() => toast.remove(), 2000);
+                            }
+                            
+                            console.log('✅ 自动下载完成');
+                            return true;
+                        } else {
+                            console.log('云端无新数据');
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('自动下载检查失败:', error);
+                    return false;
+                }
+            };
+            
+            // 启动自动下载定时器（每30分钟检查一次）
+            const setupAutoDownload = () => {
+                let isAutoDownloadEnabled = localStorage.getItem('auto_download_enabled');
+                if (isAutoDownloadEnabled === null) {
+                    isAutoDownloadEnabled = false;  // 默认关闭
+                    localStorage.setItem('auto_download_enabled', 'false');
+                } else {
+                    isAutoDownloadEnabled = isAutoDownloadEnabled === 'true';
+                }
+                
+                // 绑定下载开关事件
+                const downloadToggle = document.getElementById('auto-download-toggle');
+                const statusDiv = document.getElementById('auto-download-status');
+                
+                if (downloadToggle) {
+                    downloadToggle.checked = isAutoDownloadEnabled;
+                    downloadToggle.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        localStorage.setItem('auto_download_enabled', isChecked);
+                        if (isChecked) {
+                            console.log('✅ 自动下载已开启（每30分钟检查一次）');
+                            if (statusDiv) {
+                                statusDiv.innerHTML = '⏳ 自动同步已开启，每30分钟检查一次云端更新';
+                                statusDiv.style.color = '#28a745';
+                                setTimeout(() => {
+                                    if (statusDiv.innerHTML === '⏳ 自动同步已开启，每30分钟检查一次云端更新') {
+                                        statusDiv.innerHTML = '';
+                                    }
+                                }, 5000);
+                            }
+                            setTimeout(() => performAutoDownload(), 3000);
+                        } else {
+                            console.log('⏸️ 自动下载已关闭');
+                            if (statusDiv) {
+                                statusDiv.innerHTML = '⏸️ 自动同步已关闭';
+                                statusDiv.style.color = '#ff9f43';
+                                setTimeout(() => {
+                                    if (statusDiv.innerHTML === '⏸️ 自动同步已关闭') {
+                                        statusDiv.innerHTML = '';
+                                    }
+                                }, 3000);
+                            }
+                        }
+                    });
+                }
+                
+                if (!isAutoDownloadEnabled) {
+                    console.log('⏸️ 自动下载已关闭，跳过启动');
+                    if (statusDiv) statusDiv.innerHTML = '';
+                    return;
+                }
+                
+                // 清除可能存在的旧定时器
+                if (window.autoDownloadInterval) {
+                    clearInterval(window.autoDownloadInterval);
+                }
+                
+                // 每30分钟检查一次云端更新
+                window.autoDownloadInterval = setInterval(async () => {
+                    const isStillEnabled = localStorage.getItem('auto_download_enabled') === 'true';
+                    if (!isStillEnabled) return;
+                    
+                    console.log('🔍 定时检查云端更新...');
+                    await performAutoDownload();
+                }, 30 * 60 * 1000); // 30分钟
+                
+                console.log('✅ 自动下载定时器已启动（每30分钟检查一次）');
+                
+                // 页面加载时也执行一次检查
+                setTimeout(() => {
+                    const isStillEnabled = localStorage.getItem('auto_download_enabled') === 'true';
+                    if (isStillEnabled) {
+                        performAutoDownload();
+                    }
+                }, 5000);
+            };
             const setupAutoCleanup = () => {
                 state.cleanupInterval = setInterval(async () => {
                     const now = new Date();
@@ -2262,20 +2665,8 @@ const scrollToTask = (taskId) => {
                 setupMemoryMonitoring();
                 setupSubtaskEventListeners();
                 setupAutoCleanup();
+                setupDailyAutoUpload();  // 启动每日自动上传
                 setupGistSync();
-                setupAutoSyncToggle();
-                // 页面加载时检查云端是否有更新
-                (async () => {
-                    const { token, gistId } = getGistSettings();
-                    if (token && gistId) {
-                        const updateInfo = await checkCloudUpdate();
-                        if (updateInfo.hasUpdate) {
-                            if (confirm(`检测到云端有新数据（${new Date(updateInfo.cloudDate).toLocaleString()}），是否立即同步？`)) {
-                                await autoDownloadData();
-                            }
-                        }
-                    }
-                })();
                 
                 restoreRecordingUrls();
                 renderTodayTasks();
@@ -2295,7 +2686,6 @@ const scrollToTask = (taskId) => {
                 await checkAndResumePausedTasks();
                 console.log('应用初始化完成');
             };
-
             const loadLocalData = async () => {
     try {
         state.tasks = await dataStorage.getAllTasks();
@@ -2340,11 +2730,9 @@ const scrollToTask = (taskId) => {
                 { id: Date.now() + 1, subject: '数学', name: '数学练习', description: '每天完成10道数学题', createDate: new Date().toISOString(), status: 'active', checkins: [], scheduleType: 'default', firstDayCheckinCount: 1, pinned: false, isParentTask: false }
             ];
 
-                        const saveTasks = async () => {
+            const saveTasks = async () => {
                 try {
                     await dataStorage.saveAllTasks(state.tasks);
-                    // 自动同步
-                    triggerAutoSync();
                 } catch (e) {
                     console.error('保存任务失败:', e);
                 }
@@ -4099,7 +4487,15 @@ const renderNormalTaskItem = (task) => {
             const startRecording = async () => {
                 if (!state.currentTask) { alert('请先选择一个任务！'); return; }
                 try {
-                    const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+                    // 优先使用 MP4 格式（更通用，华为录音机支持更好）
+let mimeType = 'audio/mp4';
+if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+    mimeType = 'audio/mpeg';
+    if (!MediaRecorder.isTypeSupported('audio/mpeg')) {
+        mimeType = 'audio/webm';  // 最后备选
+    }
+}
+console.log('录音格式:', mimeType);
                     
                     const stream = await navigator.mediaDevices.getUserMedia({ 
                         audio: {
@@ -4203,13 +4599,15 @@ const renderNormalTaskItem = (task) => {
                     const date = new Date();
                     const dateStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}_${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`;
                     
-                    let ext = 'webm';
-                    if (recording.mimeType.includes('mp4') || recording.mimeType.includes('m4a')) {
-                        ext = 'm4a';
-                    } else if (recording.mimeType.includes('wav')) {
-                        ext = 'wav';
-                    }
-                    
+// 优先使用 m4a 扩展名（华为录音机支持）
+let ext = 'm4a';
+if (recording.mimeType.includes('webm')) {
+    ext = 'webm';
+} else if (recording.mimeType.includes('wav')) {
+    ext = 'wav';
+} else if (recording.mimeType.includes('mpeg') || recording.mimeType.includes('mp3')) {
+    ext = 'mp3';
+}                    
                     const fileName = `${taskName}_${dateStr}.${ext}`;
                     
                     const audioBlob = dataURLtoBlob(recording.audioData);
@@ -4657,7 +5055,6 @@ task.checkins.push(newCheckin);
                     </head><body><img src="${photo.imageData}" alt="打卡照片"></body></html>
                 `);
             };
-
             // ==================== 数据管理 ====================
             const showDataManagementModal = async () => {
                 DOM.dataModal.classList.remove('hidden');
@@ -6252,18 +6649,44 @@ const renderBatchCheckinItem = (item) => {
                 } else {
                     console.log('找不到 Gist 同步按钮');
                 }
-            };            
-            // 自动同步：上传当前数据
-            const autoUploadData = async () => {
-                if (!state.autoSyncEnabled) return;
+                
+                // 绑定手动备份按钮事件
+                const manualBackupBtn = document.getElementById('manual-upload-btn');
+                if (manualBackupBtn) {
+                    manualBackupBtn.onclick = () => {
+                        manualBackupToCloud();
+                    };
+                    console.log('手动备份按钮已绑定');
+                } else {
+                    console.log('找不到手动备份按钮');
+                }
+                
+                // 更新上次自动备份时间显示
+                updateLastUploadTimeDisplay();
+            };
+            // 手动备份到云端（立即执行）
+            const manualBackupToCloud = async () => {
                 const { token, gistId } = getGistSettings();
+                
                 if (!token || !gistId) {
-                    console.log('自动同步失败：未设置 Token 或 Gist ID');
-                    return;
+                    alert('❌ 请先在 GitHub Gist 同步中配置 Token 和 Gist ID');
+                    return false;
+                }
+                
+                const btn = document.getElementById('manual-upload-btn');
+                const originalText = btn ? btn.textContent : '';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = '备份中...';
                 }
                 
                 try {
-                    const tasks = await dataStorage.getAllTasks();
+                    const tasks = state.tasks;
+                    if (!tasks || tasks.length === 0) {
+                        alert('没有任务数据可以备份');
+                        return false;
+                    }
+                    
                     const exportData = {
                         version: '3.0',
                         date: new Date().toISOString(),
@@ -6271,7 +6694,6 @@ const renderBatchCheckinItem = (item) => {
                     };
                     const content = JSON.stringify(exportData, null, 2);
                     
-                    // 直接使用 GitHub API（不需要代理）
                     const response = await fetch(`${GIST_API}/${gistId}`, {
                         method: 'PATCH',
                         headers: {
@@ -6286,203 +6708,38 @@ const renderBatchCheckinItem = (item) => {
                     });
                     
                     if (response.ok) {
-                        state.lastSyncTime = new Date().toISOString();
-                        localStorage.setItem('last_sync_time', state.lastSyncTime);
-                        console.log('自动同步成功', new Date().toLocaleTimeString());
-                        showSyncToast('✓ 已自动同步');
+                        const today = new Date().toDateString();
+                        localStorage.setItem('last_auto_upload_date', today);
+                        updateLastUploadTimeDisplay();
+                        alert('✅ 手动备份成功！数据已保存到云端');
+                        console.log('手动备份成功');
+                        return true;
                     } else {
-                        console.log('自动同步失败：', response.status);
+                        const error = await response.json();
+                        throw new Error(error.message);
                     }
                 } catch (error) {
-                    console.error('自动同步错误:', error);
-                }
-            };            
-            // 显示同步提示
-            const showSyncToast = (message) => {
-                let toast = document.querySelector('.sync-toast');
-                if (toast) toast.remove();
-                toast = document.createElement('div');
-                toast.className = 'sync-toast';
-                toast.style.cssText = 'position: fixed; bottom: 20px; right: 20px; background: #28a745; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; z-index: 9999; opacity: 0; transition: opacity 0.3s;';
-                toast.textContent = message;
-                document.body.appendChild(toast);
-                setTimeout(() => { toast.style.opacity = '1'; }, 10);
-                setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
-            };
-            
-            // 检查云端是否有更新
-            const checkCloudUpdate = async () => {
-                const { token, gistId } = getGistSettings();
-                if (!token || !gistId) return false;
-                
-                try {
-                    const response = await fetch(`${GIST_API}/${gistId}`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        const fileContent = data.files['checkin_backup.json']?.content;
-                        if (!fileContent) return false;
-                        
-                        const cloudData = JSON.parse(fileContent);
-                        const cloudDate = new Date(cloudData.date);
-                        const lastSync = state.lastSyncTime ? new Date(state.lastSyncTime) : null;
-                        
-                        // 如果云端数据比本地新，提示用户
-                        if (lastSync && cloudDate > lastSync) {
-                            return { hasUpdate: true, cloudDate: cloudData.date };
-                        }
-                    }
-                    return { hasUpdate: false };
-                } catch (error) {
-                    console.error('检查更新失败:', error);
-                    return { hasUpdate: false };
-                }
-            };
-            
-            // 自动下载云端数据（静默）
-            const autoDownloadData = async () => {
-                const { token, gistId } = getGistSettings();
-                if (!token || !gistId) return false;
-                
-                try {
-                    const response = await fetch(`${GIST_API}/${gistId}`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        const fileContent = data.files['checkin_backup.json']?.content;
-                        if (!fileContent) return false;
-                        
-                        const cloudData = JSON.parse(fileContent);
-                        if (!cloudData.tasks) return false;
-                        
-                        // 比较本地和云端任务数量，如果不同则更新
-                        const localTasks = await dataStorage.getAllTasks();
-                        if (JSON.stringify(localTasks) !== JSON.stringify(cloudData.tasks)) {
-                            await dataStorage.clearAllData();
-                            await dataStorage.saveAllTasks(cloudData.tasks);
-                            await loadLocalData();
-                            restoreRecordingUrls();
-                            renderTodayTasks();
-                            renderAllTasks();
-                            renderCalendar();
-                            renderRecordings();
-                            renderDataStats();
-                            console.log('自动同步：已从云端更新数据');
-                            showSyncToast('📥 已同步云端数据');
-                            return true;
-                        }
-                    }
+                    console.error('手动备份失败:', error);
+                    alert('❌ 备份失败：' + error.message);
                     return false;
-                } catch (error) {
-                    console.error('自动下载失败:', error);
-                    return false;
-                }
-            };
-            
-            // 启动自动同步定时器
-            const startAutoSync = () => {
-                if (state.syncInterval) clearInterval(state.syncInterval);
-                // 每30秒检查一次云端更新
-                state.syncInterval = setInterval(async () => {
-                    if (!state.autoSyncEnabled) return;
-                    const { token, gistId } = getGistSettings();
-                    if (!token || !gistId) return;
-                    
-                    // 先检查云端是否有更新
-                    const updateInfo = await checkCloudUpdate();
-                    if (updateInfo.hasUpdate) {
-                        // 如果有更新，自动下载
-                        await autoDownloadData();
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = originalText || '立即备份到云端';
                     }
-                }, 30000); // 30秒检查一次
-            };
-            
-            // 停止自动同步
-            const stopAutoSync = () => {
-                if (state.syncInterval) {
-                    clearInterval(state.syncInterval);
-                    state.syncInterval = null;
                 }
             };
-            
-                        // 设置自动同步开关
-            const setupAutoSyncToggle = () => {
-    const toggle = document.getElementById('auto-sync-toggle');
-    if (!toggle) return;
-    
-    // 读取保存的设置，如果没有保存过则默认开启
-    const savedAutoSync = localStorage.getItem('auto_sync_enabled');
-    if (savedAutoSync === null) {
-        // 第一次使用，默认开启
-        state.autoSyncEnabled = true;
-        toggle.checked = true;
-        localStorage.setItem('auto_sync_enabled', 'true');
-        // 检查是否有 Token 和 Gist ID，如果有则启动同步
-        const { token, gistId } = getGistSettings();
-        if (token && gistId) {
-            startAutoSync();
-            autoUploadData();
-        }
-    } else if (savedAutoSync === 'true') {
-        state.autoSyncEnabled = true;
-        toggle.checked = true;
-        // 页面加载时启动自动同步
-        const { token, gistId } = getGistSettings();
-        if (token && gistId) {
-            startAutoSync();
-            setTimeout(() => autoUploadData(), 1000);
-        }
-    } else {
-        state.autoSyncEnabled = false;
-        toggle.checked = false;
-    }
-    
-    toggle.addEventListener('change', async (e) => {
-        state.autoSyncEnabled = e.target.checked;
-        localStorage.setItem('auto_sync_enabled', state.autoSyncEnabled);
-        
-        if (state.autoSyncEnabled) {
-            // 检查是否有 Token 和 Gist ID
-            const { token, gistId } = getGistSettings();
-            if (!token || !gistId) {
-                alert('请先在"GitHub Gist 同步"中设置 Token 和 Gist ID');
-                toggle.checked = false;
-                state.autoSyncEnabled = false;
-                return;
-            }
-            startAutoSync();
-            await autoUploadData();
-            await autoDownloadData();
-            alert('自动同步已开启！\n数据将自动备份到云端，并从云端获取更新。');
-        } else {
-            stopAutoSync();
-            alert('自动同步已关闭');
-        }
-    });
-};
-            
-            // 在数据修改后自动触发上传
-            const triggerAutoSync = () => {
-                if (state.autoSyncEnabled) {
-                    const { token, gistId } = getGistSettings();
-                    if (token && gistId) {
-                        // 延迟上传，避免频繁请求
-                        if (window._autoSyncTimer) clearTimeout(window._autoSyncTimer);
-                        window._autoSyncTimer = setTimeout(() => {
-                            autoUploadData();
-                        }, 3000);
+            // 更新上次自动上传时间显示
+            const updateLastUploadTimeDisplay = () => {
+                const lastUploadDate = localStorage.getItem('last_auto_upload_date');
+                const timeElement = document.getElementById('last-auto-upload-time');
+                if (timeElement) {
+                    if (lastUploadDate) {
+                        timeElement.textContent = lastUploadDate;
+                        timeElement.style.color = '#28a745';
+                    } else {
+                        timeElement.textContent = '尚未备份';
+                        timeElement.style.color = '#ff9f43';
                     }
                 }
             };
@@ -6502,15 +6759,268 @@ const renderBatchCheckinItem = (item) => {
             window.togglePhotoSelection = togglePhotoSelection;
             window.showEnhancedPauseModal = showEnhancedPauseModal;
             window.showEnhancedResumeModal = showEnhancedResumeModal;
+// ========== 备注页 ==========
+let noteList = [];
+let currentNoteId = null;
+let noteAutoTimer = null;
 
+// 打开 notes 表（复用 DataStorage 的数据库）
+async function getNoteDB() {
+    await dataStorage.open();
+    // 如果数据库里没有 notes 表，说明版本不够，提示用户
+    if (!dataStorage.db.objectStoreNames.contains('notes')) {
+        alert('数据库缺少 notes 表，请刷新页面重试（如果还不行，说明版本号需要升级）');
+    }
+    return dataStorage.db;
+}
+
+// 加载所有备注
+async function loadNotes() {
+    const database = await getNoteDB();
+    const tx = database.transaction('notes', 'readonly');
+    noteList = await new Promise(r => {
+        tx.objectStore('notes').getAll().onsuccess = e => r(e.target.result || []);
+    });
+    renderNoteList();
+}
+
+// 保存当前备注（手动或自动）
+async function saveNote(silent = false) {
+    const editor = document.getElementById('note-editor');
+    if (!editor) return;
+    const content = editor.innerHTML;
+    const semester = document.getElementById('note-semester').value || '未命名学期';
+    const plain = content.replace(/<[^>]+>/g, '').trim();
+    if (plain === '' && !currentNoteId) return;
+
+    const note = {
+        id: currentNoteId || Date.now(),
+        semester: semester,
+        content: content,
+        updated: new Date().toISOString()
+    };
+    if (!currentNoteId) { currentNoteId = note.id; noteList.push(note); }
+    else {
+        const i = noteList.findIndex(n => n.id === currentNoteId);
+        if (i > -1) noteList[i] = note;
+        else noteList.push(note);
+    }
+
+    const database = await getNoteDB();
+    const tx = database.transaction('notes', 'readwrite');
+    tx.objectStore('notes').put(note);
+    await new Promise(r => tx.oncomplete = r);
+
+    if (!silent) {
+        const tip = document.getElementById('note-tip');
+        tip.textContent = '✅ 已保存 ' + new Date().toLocaleTimeString();
+        setTimeout(() => tip.textContent = '', 2000);
+    }
+    renderNoteList();
+}
+
+// 显示备注列表
+function renderNoteList() {
+    const list = document.getElementById('note-list');
+    if (!list) return;
+    list.innerHTML = '';
+    if (noteList.length === 0) {
+        list.innerHTML = '<p style="color:#94a3b8;">还没有备注</p>';
+        return;
+    }
+    noteList.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+    noteList.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'task-item';
+        div.style.cursor = 'pointer';
+        const preview = (n.content || '').replace(/<[^>]+>/g, '').slice(0, 40);
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                    <strong>📘 ${n.semester}</strong>
+                    <div style="font-size:12px; color:#64748b;">${preview || '（空）'}</div>
+                    <div style="font-size:11px; color:#94a3b8;">更新: ${new Date(n.updated).toLocaleString()}</div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn btn-primary" data-open="${n.id}">打开</button>
+                    <button class="btn" data-del="${n.id}" style="background:#ffe3e3;">删除</button>
+                </div>
+            </div>`;
+        list.appendChild(div);
+    });
+
+    list.querySelectorAll('[data-open]').forEach(b => {
+        b.onclick = () => {
+            const note = noteList.find(n => n.id == b.dataset.open);
+            if (!note) return;
+            currentNoteId = note.id;
+            document.getElementById('note-editor').innerHTML = note.content;
+            document.getElementById('note-semester').value = note.semester;
+            bindNoteCheckboxes();
+        };
+    });
+    list.querySelectorAll('[data-del]').forEach(b => {
+        b.onclick = async () => {
+            if (!confirm('确定删除？')) return;
+            const database = await getNoteDB();
+            const tx = database.transaction('notes', 'readwrite');
+            tx.objectStore('notes').delete(Number(b.dataset.del));
+            await new Promise(r => tx.oncomplete = r);
+            if (currentNoteId == b.dataset.del) {
+                currentNoteId = null;
+                document.getElementById('note-editor').innerHTML = '';
+            }
+            await loadNotes();
+        };
+    });
+}
+
+// 插入复选框（点击变打勾）
+function insertCheckbox() {
+    const editor = document.getElementById('note-editor');
+    editor.focus();
+    const html = `<span class="note-checkbox" contenteditable="false">☐</span>&nbsp;`;
+    document.execCommand('insertHTML', false, html);
+    bindNoteCheckboxes();
+    saveNote(true);
+}
+
+// 绑定复选框点击事件
+function bindNoteCheckboxes() {
+    document.querySelectorAll('#note-editor .note-checkbox').forEach(cb => {
+        cb.onclick = (e) => {
+            e.preventDefault();
+            if (cb.classList.contains('checked')) {
+                cb.classList.remove('checked');
+                cb.textContent = '☐';
+            } else {
+                cb.classList.add('checked');
+                cb.textContent = '☑';
+            }
+            saveNote(true);
+        };
+    });
+}
+
+// 初始化备注页
+function initNotes() {
+    const editor = document.getElementById('note-editor');
+    if (!editor) return;
+
+    const fontSel = document.getElementById('note-font');
+    const sizeSel = document.getElementById('note-size');
+    const colorInput = document.getElementById('note-color');
+    const bgInput = document.getElementById('note-bg');
+    const toolbar = document.getElementById('note-toolbar');
+
+    toolbar.querySelectorAll('[data-cmd]').forEach(btn => {
+        btn.onmousedown = (e) => {
+            e.preventDefault();
+            editor.focus();
+            document.execCommand(btn.dataset.cmd, false, null);
+            saveNote(true);
+        };
+    });
+
+    fontSel.onchange = () => {
+        editor.focus();
+        document.execCommand('fontName', false, fontSel.value);
+        saveNote(true);
+    };
+
+    sizeSel.onchange = () => {
+        editor.focus();
+        document.execCommand('fontSize', false, '7');
+        editor.querySelectorAll('font[size="7"]').forEach(font => {
+            const span = document.createElement('span');
+            span.style.fontSize = sizeSel.value;
+            span.innerHTML = font.innerHTML;
+            font.parentNode.replaceChild(span, font);
+        });
+        saveNote(true);
+    };
+
+    colorInput.onchange = () => {
+        const color = colorInput.value;
+        const sel = window.getSelection();
+        if (sel.rangeCount === 0 || sel.isCollapsed) {
+            editor.focus();
+            document.execCommand('foreColor', false, color);
+            saveNote(true);
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style.color = color;
+        try {
+            range.surroundContents(span);
+        } catch (e) {
+            editor.focus();
+            document.execCommand('foreColor', false, color);
+        }
+        saveNote(true);
+    };
+
+    bgInput.onchange = () => {
+        const color = bgInput.value;
+        const sel = window.getSelection();
+        if (sel.rangeCount === 0 || sel.isCollapsed) {
+            editor.focus();
+            document.execCommand('hiliteColor', false, color);
+            saveNote(true);
+            return;
+        }
+        const range = sel.getRangeAt(0);
+        const span = document.createElement('span');
+        span.style.backgroundColor = color;
+        try {
+            range.surroundContents(span);
+        } catch (e) {
+            editor.focus();
+            document.execCommand('hiliteColor', false, color);
+        }
+        saveNote(true);
+    };
+
+    document.getElementById('note-checkbox-btn').onclick = insertCheckbox;
+
+    editor.oninput = () => {
+        clearTimeout(noteAutoTimer);
+        noteAutoTimer = setTimeout(() => saveNote(true), 1000);
+        bindNoteCheckboxes();
+    };
+
+    document.getElementById('note-semester').onchange = () => saveNote(true);
+
+    document.getElementById('note-new-btn').onclick = () => {
+        currentNoteId = null;
+        editor.innerHTML = '';
+        editor.focus();
+        document.getElementById('note-semester').value = '';
+    };
+
+    document.getElementById('note-save-btn').onclick = () => saveNote(false);
+document.getElementById('note-save-btn').addEventListener('click', function(){ saveNote(false); });
+
+    loadNotes().then(bindNoteCheckboxes);
+}
+
+
+// ========== 备注页结束 ==========  
             // 启动应用
             document.addEventListener('DOMContentLoaded', () => {
                 initApp().catch(error => {
                     console.error('应用初始化失败:', error);
                     alert('应用初始化失败: ' + error.message);
                 });
+                // ★ 添加这一行：初始化备注页
+                setTimeout(function() {
+                    try { initNotes(); } catch(e) { console.error('备注初始化失败:', e); }
+                }, 500);
             });
+
         })();
-    </script>
+
+</script>
 </body>
 </html>
